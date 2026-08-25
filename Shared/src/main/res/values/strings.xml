@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+   <string name="action_select_photo">Foto auswählen </string>
+   <string name="action_take_photo">Kamera starten</string>
+   <string name="action_remove_photo">Foto entfernen</string>
+   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+</resources>

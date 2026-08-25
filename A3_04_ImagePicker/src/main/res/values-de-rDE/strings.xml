@@ -1,0 +1,41 @@
+<resources>
+  <string name="app_name">A3_04 ImagePicker</string>
+
+  <string name="person_create">Person hinzufügen</string>
+  <string name="person_detail">Person bearbeiten</string>
+  <string name="people_list">Personen</string>
+
+  <string name="firstname">Vorname</string>
+  <string name="lastname">Nachname</string>
+  <string name="email">E-Mail-Adresse</string>
+  <string name="phone">Telefonnummer</string>
+  <string name="image">Foto der Person</string>
+
+  <integer name="char_min">2</integer>
+  <integer name="char_max">16</integer>
+
+  <string name="action_create">Neu</string>
+  <string name="action_send">Senden</string>
+  <string name="action_save">Speichern</string>
+  <string name="action_cancel">Abbrechen</string>
+  <string name="action_delete">Löschen</string>
+  <string name="action_back">Zurück</string>
+  <string name="action_undo">Rückgängig</string>
+
+  <string name="message_person_saved">%1$s wurde gespeichert.</string>
+  <string name="message_person_removed">%1$s wurde entfernt.</string>
+
+  <string name="error_people_observe">Personen konnten nicht geladen werden.</string>
+  <string name="error_person_not_found">Person wurde nicht gefunden.</string>
+  <string name="error_person_load">Person konnte nicht geladen werden.</string>
+  <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
+  <string name="error_person_remove">Person konnte nicht gelöscht werden.</string>
+  <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+
+  <string name="error_firstname_too_short">Vorname ist zu kurz.</string>
+  <string name="error_firstname_too_long">Vorname ist zu lang.</string>
+  <string name="error_lastname_too_short">Nachname ist zu kurz.</string>
+  <string name="error_lastname_too_long">Nachname ist zu lang.</string>
+  <string name="error_email">E-Mail-Adresse ist ungültig.</string>
+  <string name="error_phone">Telefonnummer ist ungültig.</string>
+</resources>

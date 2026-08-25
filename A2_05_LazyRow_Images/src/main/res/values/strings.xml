@@ -1,0 +1,12 @@
+<resources>
+  <string name="app_name">A2_06_LazyRow_Images</string>
+  <string name="search">Suchen</string>
+  <string name="dog_01">Struppi</string>
+  <string name="dog_02">Bello</string>
+  <string name="dog_03">Fiffi</string>
+  <string name="dog_04">Stupsi</string>
+  <string name="dog_05">Lulu</string>
+  <string name="dog_06">Mimi</string>
+  <string name="dog_07">Gundi</string>
+  <string name="dog_08">Knut</string>
+</resources>
