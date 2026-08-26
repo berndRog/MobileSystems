@@ -31,8 +31,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.images.ImageSelection
 import de.rogallab.mobile.shared.ui.components.InputValueString
+import de.rogallab.mobile.shared.ui.images.ImageSelection
 import de.rogallab.mobile.ui.people.PersonValidator
 import org.koin.compose.koinInject
 
@@ -55,8 +55,10 @@ fun PersonScreen(
    onPhoneChange: (String) -> Unit = {},
 
    imagePath: String? = null,
-   onImagePathChange: (String?) -> Unit = {},
-   onImageStorageFailed: (String) -> Unit = {},
+   imageActionsEnabled: Boolean = true,
+   onSelectPhoto: () -> Unit = {},
+   onTakePhoto: () -> Unit = {},
+   onRemovePhoto: () -> Unit = {},
 
    onBack: () -> Unit = {},
    onSave: () -> Unit = {},
@@ -69,16 +71,19 @@ fun PersonScreen(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
+   // Saving is enabled only when the mandatory name fields contain values.
    val enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
    Column(
       modifier = modifier
    ) {
+
+      // The TopAppBar delegates back navigation to the caller.
       TopAppBar(
          windowInsets = WindowInsets(0),
          navigationIcon = {
             IconButton(
-               onClick = onBack,
+               onClick = onBack
             ) {
                Icon(
                   imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -95,6 +100,7 @@ fun PersonScreen(
          },
       )
 
+      // While an existing person is loaded, the form is not displayed.
       if (isLoading) {
          Column(
             modifier = Modifier.fillMaxWidth(),
@@ -106,6 +112,8 @@ fun PersonScreen(
          return@Column
       }
 
+      // The form remains stateless. All changes are sent back through
+      // callback functions supplied by PersonAdapter.
       InputValueString(
          value = firstName,
          onValueChange = onFirstNameChange,
@@ -146,14 +154,18 @@ fun PersonScreen(
          imeAction = ImeAction.Done,
       )
 
-      // Gallery and camera are both hidden behind the reusable ImageSelection.
+      // ImageSelection renders the current image and the image buttons only.
+      // Gallery and camera Activity Result handling live in PersonAdapter.
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         onImageChange = onImagePathChange,
-         onFailure = onImageStorageFailed,
+         imageActionsEnabled = imageActionsEnabled,
+         onSelectPhoto = onSelectPhoto,
+         onTakePhoto = onTakePhoto,
+         onRemovePhoto = onRemovePhoto,
       )
 
+      // Save and Cancel are also delegated to the caller.
       Row(
          modifier = Modifier.fillMaxWidth(),
          horizontalArrangement = Arrangement.spacedBy(
@@ -164,14 +176,18 @@ fun PersonScreen(
          OutlinedButton(
             onClick = onCancel,
          ) {
-            Text(text = stringResource(R.string.action_cancel))
+            Text(
+               text = stringResource(R.string.action_cancel)
+            )
          }
 
          Button(
             onClick = onSave,
             enabled = enableSave,
          ) {
-            Text(text = stringResource(R.string.action_save))
+            Text(
+               text = stringResource(R.string.action_save)
+            )
          }
       }
    }
@@ -180,19 +196,36 @@ fun PersonScreen(
 /*
  * Didaktik und Lernziele
  *
- * - A3_04 ersetzt die reine Bildanzeige aus A3_03 durch ImageSelection.
- *   Diese gemeinsame Komponente kapselt Photo Picker und Kamera.
+ * - A3_05 übernimmt den PersonScreen aus A3_04. Die Swipe-Gesten werden im
+ *   PeopleListScreen ergänzt und verändern den Aufbau des Personeneditors nicht.
  *
- * - Der Screen erhält weiterhin nur Werte und Callback-Funktionen. Er kennt
- *   weder Repository noch Navigation oder SnackbarController.
+ * - PersonScreen bleibt ein zustandsloses Composable. Er erhält Werte und
+ *   Callback-Funktionen und kennt weder ViewModel noch Repository, Navigation,
+ *   SnackbarController oder Android ActivityResultContracts.
  *
- * - Galerie- und Kamerabilder werden vor ImagePathChange bereits in den
- *   privaten App-Speicher kopiert. Der Screen transportiert deshalb nur einen
- *   String-Dateipfad weiter.
+ * - ImageSelection übernimmt nur die Darstellung des aktuellen Bildes sowie
+ *   die Schaltflächen für Galerie, Kamera und Entfernen. Die technische
+ *   Bildauswahl gehört nicht mehr zu ImageSelection.
+ *
+ * - GalleryPickerHandler und CameraPickerHandler werden im PersonAdapter
+ *   verwendet. PersonScreen erhält lediglich onSelectPhoto und onTakePhoto.
+ *   Dadurch ist für den Screen unerheblich, dass Galerie und Kamera technisch
+ *   völlig unterschiedliche Abläufe besitzen.
+ *
+ * - Nach einer Galerieauswahl wird zunächst eine Content-Uri an das ViewModel
+ *   weitergegeben. Dort kopiert IImageFileStorage das Bild in den privaten
+ *   App-Speicher. Eine Kameraaufnahme liefert dagegen bereits einen bestätigten
+ *   internen Dateipfad.
+ *
+ * - Auch onRemovePhoto löst im Screen keine Dateioperation aus. Die weitere
+ *   Verarbeitung erfolgt über PersonAdapter, PersonViewModel und IImageEdit.
  *
  * Lernziele:
  *
- * - Activity Result APIs über wiederverwendbare Compose-Komponenten einsetzen.
- * - Gallery und Camera hinter derselben UI-Schnittstelle verwenden.
- * - Fehler der Bildauswahl wieder in die bestehende Effect-Kette einspeisen.
+ * - Stateful Adapter und stateless Screen klar voneinander trennen.
+ * - Android-spezifische Activity-Result-Logik aus dem Screen heraushalten.
+ * - GalleryPickerHandler und CameraPickerHandler getrennt verwenden.
+ * - Bildanzeige und technische Bildauswahl als unterschiedliche Aufgaben sehen.
+ * - UI-Aktionen ausschließlich über Callback-Funktionen delegieren.
+ * - Den bestehenden UDF-/MVI-Datenfluss auch für Bildoperationen beibehalten.
  */
