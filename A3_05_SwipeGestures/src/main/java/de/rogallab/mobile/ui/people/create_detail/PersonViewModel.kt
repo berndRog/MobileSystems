@@ -1,16 +1,19 @@
 package de.rogallab.mobile.ui.people.create_detail
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.ui.images.IImageEdit
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import kotlinx.coroutines.delay
@@ -25,7 +28,8 @@ class PersonViewModel(
    private val _repository: IPersonRepository,
    private val _stringProvider: IStringProvider,
    private val _validator: PersonValidator,
-   private val _imageEditDelegate: ImageEditDelegate,
+   private val _imageFileStorage: IImageFileStorage,
+   private val _imageEdit: IImageEdit,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
@@ -39,7 +43,6 @@ class PersonViewModel(
       else
          PersonUiState(isNew = false, isLoading = true)
 
-   // Holds the persistent UI state of the person screen.
    private val _stateFlow: MutableStateFlow<PersonUiState> =
       MutableStateFlow(_initialState)
 
@@ -50,48 +53,33 @@ class PersonViewModel(
       if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person from the repository.
    private fun loadPerson(id: String) {
       viewModelScope.launch {
          _stateFlow.update { state: PersonUiState ->
             state.copy(isLoading = true)
          }
 
-         delay(2500)
+         delay(1000)
 
          _repository.findById(id)
             .onSuccess { person ->
                if (person == null) {
-                  Alog.e(TAG, "Person not found: $id")
-                  _effectDelegate.emit(
-                     PersonEffect.ShowError(
-                        _stringProvider.getString(R.string.error_person_not_found)
-                     )
-                  )
-
+                  val error = _stringProvider.getString(R.string.error_person_not_found)
+                  _effectDelegate.emit(PersonEffect.ShowError(error))
                   _stateFlow.update { state: PersonUiState ->
                      state.copy(isLoading = false)
                   }
                   return@onSuccess
                }
 
-               _imageEditDelegate.start(person.imagePath)
-
+               _imageEdit.start(listOfNotNull(person.imagePath))
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(
-                     person = person,
-                     isLoading = false,
-                  )
+                  state.copy(person = person, isLoading = false)
                }
             }
-            .onFailure { throwable ->
-               Alog.e(TAG, "loadPerson failed: ${throwable.message}")
-               _effectDelegate.emit(
-                  PersonEffect.ShowError(
-                     _stringProvider.getString(R.string.error_person_load)
-                  )
-               )
-
+            .onFailure {
+               val error = _stringProvider.getString(R.string.error_person_load)
+               _effectDelegate.emit(PersonEffect.ShowError(error))
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isLoading = false)
                }
@@ -99,7 +87,6 @@ class PersonViewModel(
       }
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PersonIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -108,6 +95,7 @@ class PersonViewModel(
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
+         is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          is PersonIntent.ImagePathChange -> changeImage(intent.imagePath)
          is PersonIntent.ImageStorageFailed -> showError(intent.message)
          PersonIntent.Save -> save()
@@ -117,62 +105,64 @@ class PersonViewModel(
 
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state: PersonUiState ->
-         state.copy(
-            person = state.person.copy(firstName = firstName.trim())
-         )
+         state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state: PersonUiState ->
-         state.copy(
-            person = state.person.copy(lastName = lastName.trim())
-         )
+         state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty()) emailNullable = email.trim()
-
       _stateFlow.update { state: PersonUiState ->
-         state.copy(
-            person = state.person.copy(email = emailNullable)
-         )
+         state.copy(person = state.person.copy(email = emailNullable))
       }
    }
 
    private fun changePhone(phone: String) {
       var phoneNullable: String? = null
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
-
       _stateFlow.update { state: PersonUiState ->
-         state.copy(
-            person = state.person.copy(phone = phoneNullable)
-         )
+         state.copy(person = state.person.copy(phone = phoneNullable))
       }
    }
 
-   // Delegates the lifetime of selected image files to shared_01. The
-   // PersonUiState remains the only StateFlow observed by the screen.
+   private fun storeGalleryImage(sourceUri: Uri) {
+      viewModelScope.launch {
+         val imagePath = _imageFileStorage
+            .copyImageToAppStorage(sourceUri)
+            .getOrElse {
+               showError(_stringProvider.getString(SharedR.string.error_image_save))
+               return@launch
+            }
+
+         replaceImage(imagePath)
+      }
+   }
+
    private fun changeImage(imagePath: String?) {
       viewModelScope.launch {
-         val newImagePath = _imageEditDelegate.replace(imagePath)
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(person = state.person.copy(imagePath = newImagePath))
-         }
+         replaceImage(imagePath)
       }
    }
 
-   // Converts an image-storage failure into the same UI error path used by
-   // repository and validation errors.
-   private fun showError(message: String) {
-      viewModelScope.launch {
-         _effectDelegate.emit(
-            PersonEffect.ShowError(message)
+   private suspend fun replaceImage(imagePath: String?) {
+      val images = _imageEdit.replace(listOfNotNull(imagePath))
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(
+            person = state.person.copy(imagePath = images.firstOrNull())
          )
       }
    }
 
-   // Validates and persists the current person.
+   private fun showError(message: String) {
+      viewModelScope.launch {
+         _effectDelegate.emit(PersonEffect.ShowError(message))
+      }
+   }
+
    private fun save() {
       if (_isSaving) return
 
@@ -182,9 +172,7 @@ class PersonViewModel(
          val email = sanitizeEmailInput(person.email)
          if (email != person.email) {
             _stateFlow.update { state: PersonUiState ->
-               state.copy(
-                  person = state.person.copy(email = email)
-               )
+               state.copy(person = state.person.copy(email = email))
             }
             person = _stateFlow.value.person.normalized()
          }
@@ -194,18 +182,15 @@ class PersonViewModel(
          val phone = sanitizePhoneInput(person.phone)
          if (phone != person.phone) {
             _stateFlow.update { state: PersonUiState ->
-               state.copy(
-                  person = state.person.copy(phone = phone)
-               )
+               state.copy(person = state.person.copy(phone = phone))
             }
             person = _stateFlow.value.person.normalized()
          }
       }
 
-      val errorMessage = _validator.validatePerson(person)
-      if (errorMessage != null) {
-         Alog.e(TAG, errorMessage)
-         showError(errorMessage)
+      val error = _validator.validatePerson(person)
+      if (error != null) {
+         showError(error)
          return
       }
 
@@ -221,36 +206,27 @@ class PersonViewModel(
 
          result
             .onSuccess {
-               // The database owns the new selection only after Save succeeds.
-               _imageEditDelegate.commit()
+               _imageEdit.commit()
 
-               _effectDelegate.emit(
-                  PersonEffect.ShowMessage(
-                     _stringProvider.getString(R.string.message_person_saved, person.fullName)
-                  )
+               val message = _stringProvider.getString(
+                  R.string.message_person_saved,
+                  person.fullName,
                )
-
-               _effectDelegate.emit(
-                  PersonEffect.NavigateBack(BackReason.Save)
-               )
+               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
-            .onFailure { throwable ->
-               Alog.e(TAG, "save failed: ${throwable.message}")
-               _effectDelegate.emit(
-                  PersonEffect.ShowError(
-                     _stringProvider.getString(R.string.error_person_save)
-                  )
-               )
+            .onFailure {
+               val errorMessage = _stringProvider.getString(R.string.error_person_save)
+               _effectDelegate.emit(PersonEffect.ShowError(errorMessage))
             }
 
          _isSaving = false
       }
    }
 
-   // Discards newly selected image files and requests back navigation.
    private fun cancel() {
       viewModelScope.launch {
-         _imageEditDelegate.discard()
+         _imageEdit.discard()
          _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
       }
    }
@@ -259,40 +235,3 @@ class PersonViewModel(
       private const val TAG = "<-PersonViewModel"
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - A3_05 übernimmt die Bildbearbeitung aus A3_04 unverändert. Die neuen
- *   Swipe-Gesten betreffen ausschließlich den PeopleListScreen.
- *
- * - ImagePickerHandler speichert ausgewählte Galerie-Bilder und Kamera-Fotos
- *   zuerst in den privaten App-Speicher. Das ViewModel erhält anschließend nur
- *   den gespeicherten Dateipfad über PersonIntent.ImagePathChange.
- *
- * - Die Lebensdauer dieser Dateien wird an den gemeinsamen ImageEditDelegate
- *   delegiert. PersonViewModel kennt dadurch weder Original-/Ersatzbild-Logik
- *   noch direkte Datei-Löschoperationen.
- *
- * - Der Screen beobachtet weiterhin genau einen StateFlow<PersonUiState>. Der
- *   Delegate verwaltet nur internen Bearbeitungszustand und keinen zweiten Flow.
- *   Auch der reine Schreibschutz während Save bleibt als private ViewModel-Variable
- *   außerhalb des UI-States, da der Screen ihn nicht darstellt.
- *
- * - Fehler des ImagePicker werden über ImageStorageFailed in denselben
- *   ShowError-Effect übersetzt wie andere Fehler des Features.
- *
- * - State-Änderungen verwenden weiterhin konsequent:
- *
- *      _stateFlow.update { state: PersonUiState ->
- *         state.copy(...)
- *      }
- *
- * Lernziele:
- *
- * - Activity-Result-basierte Bildauswahl in eine MVI-Struktur integrieren.
- * - Galerie und Kamera hinter einer gemeinsamen Komponente kapseln.
- * - Bilddateien über Delegation statt ViewModel-Vererbung verwalten.
- * - Einzel- und Mehrfachbilder mit derselben Shared-Komponente vorbereiten.
- * - Bestehendes Effect- und Snackbar-Handling für neue Fehler wiederverwenden.
- */

@@ -39,85 +39,61 @@ fun CameraPickerHandler(
 ) {
 
    // Create a coroutine scope bound to the lifecycle of this composable.
-   // File creation, confirmation and deletion are suspend operations and
-   // therefore must be executed from a coroutine.
    val coroutineScope = rememberCoroutineScope()
 
    // Keep the latest references without recreating the Activity Result launcher
    // whenever the surrounding composable is recomposed.
-   val currentImageFileStorage by
-   rememberUpdatedState(imageFileStorage)
-
-   val currentOnPhotoStored by
-   rememberUpdatedState(onPhotoStored)
-
-   val currentOnError by
-   rememberUpdatedState(onError)
+   val currentImageFileStorage by rememberUpdatedState(imageFileStorage)
+   val currentOnPhotoStored by rememberUpdatedState(onPhotoStored)
+   val currentOnError by rememberUpdatedState(onError)
 
    // Prevent overlapping camera operations while a file is being prepared,
    // the camera is active or the result is currently being processed.
-   var isBusy by rememberSaveable {
-      mutableStateOf(false)
-   }
+   var isBusy by rememberSaveable { mutableStateOf(false) }
 
    // Remember the path of the provisional camera file while the external
    // camera application is active.
-   //
    // The Activity Result callback only returns a Boolean success value.
    // Therefore the associated file path must be stored separately.
-   var pendingCameraImagePath by rememberSaveable {
-      mutableStateOf<String?>(null)
-   }
+   var pendingCameraImagePath by rememberSaveable { mutableStateOf<String?>(null) }
 
    // Register the Android TakePicture contract.
-   //
    // TakePicture receives a destination Uri when launched and returns only
    // whether the camera application successfully wrote an image to that Uri.
    val cameraLauncher = rememberLauncherForActivityResult(
       contract = ActivityResultContracts.TakePicture(),
    ) { success ->
-
       // Take a local copy of the pending path before clearing the Compose state.
       val imagePath = pendingCameraImagePath
-
       // The camera operation has finished, so no file remains pending.
       pendingCameraImagePath = null
 
       coroutineScope.launch {
-
          if (success && imagePath != null) {
-
             // A successful TakePicture result means that the camera application
             // claims to have written the file. Let the storage layer verify and
             // finalize the provisional image before exposing it to the feature.
             currentImageFileStorage
                .confirmCameraImageFile(imagePath)
                .onSuccess { confirmedImagePath ->
-
                   // Only confirmed internal file paths are forwarded to
                   // PersonAdapter and eventually to the ImageEditDelegate.
-                  currentOnPhotoStored(
-                     confirmedImagePath
-                  )
+                  currentOnPhotoStored(confirmedImagePath)
                }
                .onFailure { throwable ->
-
                   // Confirmation failed. The provisional image must not remain
                   // in app storage because it is not a valid edit-session image.
-                  currentImageFileStorage
-                     .deleteImageFromAppStorage(imagePath)
+                  currentImageFileStorage.deleteImageFromAppStorage(imagePath)
 
                   currentOnError(throwable)
                }
          }
          else {
-
             // The user cancelled the camera or the capture failed.
             // In both cases the provisional target file is no longer needed.
             currentImageFileStorage
                .deleteImageFromAppStorage(imagePath)
                .onFailure { throwable ->
-
                   // Deletion errors are reported as technical image errors.
                   currentOnError(throwable)
                }
@@ -135,13 +111,11 @@ fun CameraPickerHandler(
       isBusy = isBusy,
 
       takePhoto = {
-
          // Ignore additional requests while another camera operation is active.
          if (!isBusy) {
             isBusy = true
 
             coroutineScope.launch {
-
                // Create the provisional target file before opening the camera.
                //
                // This is the key difference from the gallery flow:
@@ -149,7 +123,6 @@ fun CameraPickerHandler(
                val cameraImageFile = currentImageFileStorage
                   .createCameraImageFile()
                   .getOrElse { throwable ->
-
                      // File creation failed, therefore the camera cannot start.
                      isBusy = false
                      currentOnError(throwable)
@@ -158,28 +131,18 @@ fun CameraPickerHandler(
 
                // Store the internal path so that it is available again when
                // the asynchronous Activity Result callback is invoked.
-               pendingCameraImagePath =
-                  cameraImageFile.imagePath
+               pendingCameraImagePath = cameraImageFile.imagePath
 
                try {
-
-                  // Start the external camera application and provide the
-                  // FileProvider content Uri as its destination.
-                  cameraLauncher.launch(
-                     cameraImageFile.contentUri
-                  )
+                  // Start external camera with the contentUri as destination.
+                  cameraLauncher.launch(cameraImageFile.contentUri)
                }
                catch (throwable: Throwable) {
-
-                  // Launching the camera itself failed.
-                  // Remove the provisional file immediately because no camera
-                  // application will write into it anymore.
+                  // Launching the camera itself failed. Remove provisional file.
                   pendingCameraImagePath = null
 
                   currentImageFileStorage
-                     .deleteImageFromAppStorage(
-                        cameraImageFile.imagePath
-                     )
+                     .deleteImageFromAppStorage(cameraImageFile.imagePath)
 
                   isBusy = false
                   currentOnError(throwable)

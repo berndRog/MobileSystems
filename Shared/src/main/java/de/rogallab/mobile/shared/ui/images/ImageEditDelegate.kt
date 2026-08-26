@@ -16,19 +16,12 @@ class ImageEditDelegate(
    private var _originalImages: List<String> = emptyList()
    private var _images: List<String> = emptyList()
 
-
-   fun dummy(wert:String):String{
-      return wert
-   }
-
    // Starts an edit session with the images currently stored by the entity.
    override fun start(imagePaths: List<String>) {
       val images = normalized(imagePaths)
       _originalImages = images
       _images = images
    }
-
-   override fun start(imagePath: String?) = start(listOfNotNull(imagePath))
 
    // Replaces the current selection. Images created during this edit session
    // that are no longer selected can be deleted immediately.
@@ -42,9 +35,6 @@ class ImageEditDelegate(
       deleteImages(obsoleteImages, "delete replacement image failed")
       return _images
    }
-
-   override suspend fun replace(imagePath: String?): String? =
-      replace(listOfNotNull(imagePath)).firstOrNull()
 
    // Adds images to the current selection. This is useful for entities such as
    // cars that may own more than one image.

@@ -4,11 +4,9 @@ interface IImageEdit {
 
    // Starts an edit session with the images currently stored by the entity.
    fun start(imagePaths: List<String>)
-   fun start(imagePath: String?)
 
    // Replaces the current selection.
    suspend fun replace(imagePaths: List<String>): List<String>
-   suspend fun replace(imagePath: String?): String?
 
    // Adds images to the current selection.
    suspend fun add(imagePaths: List<String>): List<String>

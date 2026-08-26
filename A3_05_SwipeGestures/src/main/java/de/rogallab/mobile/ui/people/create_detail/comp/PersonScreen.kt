@@ -41,27 +41,22 @@ import org.koin.compose.koinInject
 fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
-
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
-
    lastName: String = "",
    onLastNameChange: (String) -> Unit = {},
-
    email: String? = "",
    onEmailChange: (String) -> Unit = {},
-
    phone: String? = "",
    onPhoneChange: (String) -> Unit = {},
-
    imagePath: String? = null,
-   onImagePathChange: (String?) -> Unit = {},
-   onImageStorageFailed: (String) -> Unit = {},
-
+   imageActionsEnabled: Boolean = true,
+   onSelectPhoto: () -> Unit = {},
+   onTakePhoto: () -> Unit = {},
+   onRemovePhoto: () -> Unit = {},
    onBack: () -> Unit = {},
    onSave: () -> Unit = {},
    onCancel: () -> Unit = {},
-
    modifier: Modifier = Modifier,
    validator: PersonValidator = koinInject(),
 ) {
@@ -71,15 +66,11 @@ fun PersonScreen(
 
    val enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
-   Column(
-      modifier = modifier
-   ) {
+   Column(modifier = modifier) {
       TopAppBar(
          windowInsets = WindowInsets(0),
          navigationIcon = {
-            IconButton(
-               onClick = onBack,
-            ) {
+            IconButton(onClick = onBack) {
                Icon(
                   imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                   contentDescription = stringResource(R.string.action_back),
@@ -88,9 +79,8 @@ fun PersonScreen(
          },
          title = {
             Text(
-               text =
-                  if (isNew) stringResource(R.string.person_create)
-                  else stringResource(R.string.person_detail)
+               text = if (isNew) stringResource(R.string.person_create)
+               else stringResource(R.string.person_detail)
             )
          },
       )
@@ -106,93 +96,30 @@ fun PersonScreen(
          return@Column
       }
 
-      InputValueString(
-         value = firstName,
-         onValueChange = onFirstNameChange,
-         label = stringResource(R.string.firstname),
-         leadingIcon = Icons.Default.AccountCircle,
-         validate = validator::validateFirstName,
-         keyboardType = KeyboardType.Text,
-         imeAction = ImeAction.Next,
-      )
+      InputValueString(value = firstName,onValueChange = onFirstNameChange,label = stringResource(R.string.firstname),leadingIcon = Icons.Default.AccountCircle,validate = validator::validateFirstName,keyboardType = KeyboardType.Text,imeAction = ImeAction.Next)
+      InputValueString(value = lastName,onValueChange = onLastNameChange,label = stringResource(R.string.lastname),leadingIcon = Icons.Default.Person,validate = validator::validateLastName,keyboardType = KeyboardType.Text,imeAction = ImeAction.Next)
+      InputValueString(value = email.orEmpty(),onValueChange = onEmailChange,label = stringResource(R.string.email),leadingIcon = Icons.Default.Email,validate = validator::validateEmail,keyboardType = KeyboardType.Email,imeAction = ImeAction.Next)
+      InputValueString(value = phone.orEmpty(),onValueChange = onPhoneChange,label = stringResource(R.string.phone),leadingIcon = Icons.Default.Phone,validate = validator::validatePhone,keyboardType = KeyboardType.Phone,imeAction = ImeAction.Done)
 
-      InputValueString(
-         value = lastName,
-         onValueChange = onLastNameChange,
-         label = stringResource(R.string.lastname),
-         leadingIcon = Icons.Default.Person,
-         validate = validator::validateLastName,
-         keyboardType = KeyboardType.Text,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = email.orEmpty(),
-         onValueChange = onEmailChange,
-         label = stringResource(R.string.email),
-         leadingIcon = Icons.Default.Email,
-         validate = validator::validateEmail,
-         keyboardType = KeyboardType.Email,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = phone.orEmpty(),
-         onValueChange = onPhoneChange,
-         label = stringResource(R.string.phone),
-         leadingIcon = Icons.Default.Phone,
-         validate = validator::validatePhone,
-         keyboardType = KeyboardType.Phone,
-         imeAction = ImeAction.Done,
-      )
-
-      // Gallery and camera are both hidden behind the reusable ImageSelection.
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         onImageChange = onImagePathChange,
-         onFailure = onImageStorageFailed,
+         imageActionsEnabled = imageActionsEnabled,
+         onSelectPhoto = onSelectPhoto,
+         onTakePhoto = onTakePhoto,
+         onRemovePhoto = onRemovePhoto,
       )
 
       Row(
          modifier = Modifier.fillMaxWidth(),
-         horizontalArrangement = Arrangement.spacedBy(
-            40.dp,
-            Alignment.CenterHorizontally,
-         ),
+         horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
       ) {
-         OutlinedButton(
-            onClick = onCancel,
-         ) {
+         OutlinedButton(onClick = onCancel) {
             Text(text = stringResource(R.string.action_cancel))
          }
-
-         Button(
-            onClick = onSave,
-            enabled = enableSave,
-         ) {
+         Button(onClick = onSave,enabled = enableSave) {
             Text(text = stringResource(R.string.action_save))
          }
       }
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - A3_04 ersetzt die reine Bildanzeige aus A3_03 durch ImageSelection.
- *   Diese gemeinsame Komponente kapselt Photo Picker und Kamera.
- *
- * - Der Screen erhält weiterhin nur Werte und Callback-Funktionen. Er kennt
- *   weder Repository noch Navigation oder SnackbarController.
- *
- * - Galerie- und Kamerabilder werden vor ImagePathChange bereits in den
- *   privaten App-Speicher kopiert. Der Screen transportiert deshalb nur einen
- *   String-Dateipfad weiter.
- *
- * Lernziele:
- *
- * - Activity Result APIs über wiederverwendbare Compose-Komponenten einsetzen.
- * - Gallery und Camera hinter derselben UI-Schnittstelle verwenden.
- * - Fehler der Bildauswahl wieder in die bestehende Effect-Kette einspeisen.
- */

@@ -42,15 +42,12 @@ fun GalleryPickerHandler(
 
    // Keep the latest callback without recreating the Activity Result launchers
    // whenever the surrounding composable is recomposed.
-   val currentOnImagesSelected =
-      rememberUpdatedState(onImagesSelected)
+   val currentOnImagesSelected = rememberUpdatedState(onImagesSelected)
 
    // Create one reusable request that accepts image media only.
    // The request itself contains no launcher and does not open the picker yet.
    val imageRequest = remember {
-      PickVisualMediaRequest(
-         ActivityResultContracts.PickVisualMedia.ImageOnly,
-      )
+      PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
    }
 
    // Register the launcher for selecting exactly one image.
@@ -59,15 +56,10 @@ fun GalleryPickerHandler(
       contract = ActivityResultContracts.PickVisualMedia(),
    ) { selectedUri ->
 
-      // A null URI means that the user closed the picker without selecting
-      // an image. In that case no application callback is emitted.
+      // A null URI means that the user closed the picker without selecting an image.
       selectedUri?.let { uri ->
-
-         // Normalize the result to List<Uri> so that Single and Multiple
-         // selection can use the same callback interface.
-         currentOnImagesSelected.value(
-            listOf(uri)
-         )
+         // Normalize the result to List<Uri>
+         currentOnImagesSelected.value(listOf(uri))
       }
    }
 
@@ -77,17 +69,14 @@ fun GalleryPickerHandler(
       contract = ActivityResultContracts.PickMultipleVisualMedia(
          // Multiple selection requires at least two selectable items.
          maxItems = maxSelectionCount.coerceAtLeast(2),
-      ),
+      )
    ) { selectedUris ->
-
       // An empty list means that no image was selected.
       if (selectedUris.isNotEmpty()) {
 
          // Forward the selected content URIs unchanged.
          // Persisting these images is the responsibility of the caller.
-         currentOnImagesSelected.value(
-            selectedUris
-         )
+         currentOnImagesSelected.value(selectedUris)
       }
    }
 
@@ -95,7 +84,6 @@ fun GalleryPickerHandler(
    // themselves. The caller therefore does not need to know which Android
    // Activity Result contract is used internally.
    val actions = GalleryPickerActions(
-
       // Open the correct Photo Picker depending on the configured mode.
       selectFromGallery = {
          when (selectionMode) {
