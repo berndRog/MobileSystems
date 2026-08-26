@@ -31,7 +31,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.components.ImageSelection
+import de.rogallab.mobile.shared.ui.images.ImageSelection
 import de.rogallab.mobile.shared.ui.components.InputValueString
 import de.rogallab.mobile.ui.people.PersonValidator
 import org.koin.compose.koinInject

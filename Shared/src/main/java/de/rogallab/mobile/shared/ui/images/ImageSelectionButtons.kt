@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.ui.components
+package de.rogallab.mobile.shared.ui.images
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
@@ -19,38 +19,39 @@ private const val TAG = "<-ImageSelectionBtns"
 fun ImageSelectionButtons(
    modifier: Modifier = Modifier,
    imagePath: String?,
+   enabled: Boolean = true,
    onSelectPhoto: () -> Unit,
    onTakePhoto: () -> Unit,
-   onRemovePhoto: () -> Unit
+   onRemovePhoto: () -> Unit,
 ) {
    val cCount = remember { mutableIntStateOf(0) }
    SideEffect { Alog.c(TAG, "Composition #${cCount.intValue++}") }
 
-
+   // Renders the button for selecting a photo from the gallery.
    Button(
-      modifier = Modifier
-         .fillMaxWidth(),
-      onClick = onSelectPhoto
+      modifier = modifier.fillMaxWidth(),
+      onClick = onSelectPhoto,
+      enabled = enabled,
    ) {
       Text(stringResource(R.string.action_select_photo))
    }
-
+   // Renders the button for taking a photo with the camera.
    Button(
-      modifier = Modifier
-         .fillMaxWidth(),
-      onClick = onTakePhoto
+      modifier = modifier.fillMaxWidth(),
+      onClick = onTakePhoto,
+      enabled = enabled,
    ) {
       Text(stringResource(R.string.action_take_photo))
    }
 
+   // Renders the button for removing the current photo.
    if (!imagePath.isNullOrBlank()) {
       OutlinedButton(
-         modifier = Modifier
-            .fillMaxWidth(),
-         onClick = onRemovePhoto
+         modifier = modifier.fillMaxWidth(),
+         onClick = onRemovePhoto,
+         enabled = enabled,
       ) {
          Text(stringResource(R.string.action_remove_photo))
       }
    }
-
 }

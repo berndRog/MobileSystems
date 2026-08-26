@@ -16,15 +16,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.components.collectAsStateWithLifecycleLogs
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
@@ -49,8 +50,8 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the current ViewModel state with lifecycle awareness.
-   val state: PersonUiState =
-      viewModel.stateFlow.collectAsStateWithLifecycleLogs(tag)
+   val state: PersonUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    Column(
       modifier = modifier

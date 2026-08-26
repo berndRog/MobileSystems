@@ -50,8 +50,8 @@ fun PeopleAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the persistent UI state from the ViewModel.
-   val peopleUiState: PeopleUiState by
-   viewModel.stateFlow.collectAsStateWithLifecycle()
+   val peopleUiState: PeopleUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->

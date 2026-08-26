@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.ui.components
+package de.rogallab.mobile.shared.ui.images
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

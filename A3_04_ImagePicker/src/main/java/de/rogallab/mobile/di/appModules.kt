@@ -9,6 +9,7 @@ import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.images.IImageEdit
 import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
@@ -61,7 +62,8 @@ fun appModule(): Module = module {
            _repository = get<IPersonRepository>(),
            _stringProvider = get(),
            _validator = get<PersonValidator>(),
-           _imageEditDelegate = get<ImageEditDelegate>(),
+           _imageFileStorage = get<IImageFileStorage>(),
+           _imageEdit = get<IImageEdit>(),
            _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
         )
     }
