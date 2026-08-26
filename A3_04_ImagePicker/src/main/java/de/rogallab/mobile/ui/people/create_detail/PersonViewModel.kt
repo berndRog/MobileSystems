@@ -92,10 +92,16 @@ class PersonViewModel(
 
                // A successful repository call may still return no matching person.
                if (person == null) {
-                  val error = _stringProvider.getString(
+                  val error =
+                     _stringProvider.getString(
                         R.string.error_person_not_found
                      )
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
+
+                  // Errors are one-time UI effects and therefore do not belong
+                  // to the persistent PersonUiState.
+                  _effectDelegate.emit(
+                     PersonEffect.ShowError(error)
+                  )
 
                   _stateFlow.update { state: PersonUiState ->
                      state.copy(isLoading = false)
@@ -105,19 +111,29 @@ class PersonViewModel(
 
                // Start the image edit session with the persisted image.
                // The delegate remembers this image as the original selection.
-               _imageEdit.start(listOfNotNull(person.imagePath))
+               _imageEdit.start(
+                  listOfNotNull(person.imagePath)
+               )
 
                // Publish the loaded person as the new persistent UI state.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person, isLoading = false)
+                  state.copy(
+                     person = person,
+                     isLoading = false,
+                  )
                }
             }
             .onFailure {
+
                // Repository failures are converted into a localized UI effect.
-               val error = _stringProvider.getString(
+               val error =
+                  _stringProvider.getString(
                      R.string.error_person_load
                   )
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+
+               _effectDelegate.emit(
+                  PersonEffect.ShowError(error)
+               )
 
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isLoading = false)
