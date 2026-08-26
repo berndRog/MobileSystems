@@ -47,14 +47,9 @@ fun PersonAdapter(
    // Handle one-time effects separately from the persistent UI state.
    EffectHandler(viewModel.effects) { personEffect ->
       when (personEffect) {
-         is PersonEffect.ShowMessage ->
-            onMessage(personEffect.message)
-
-         is PersonEffect.ShowError ->
-            onError(personEffect.message)
-
-         is PersonEffect.NavigateBack ->
-            onNavigateBack(personEffect.reason)
+         is PersonEffect.ShowMessage -> onMessage(personEffect.message)
+         is PersonEffect.ShowError -> onError(personEffect.message)
+         is PersonEffect.NavigateBack -> onNavigateBack(personEffect.reason)
       }
    }
 
@@ -66,7 +61,6 @@ fun PersonAdapter(
    val person = personUiState.person
 
    // The gallery handler only selects images and returns their content URIs.
-   // Persisting a selected gallery image is handled by PersonViewModel.
    GalleryPickerHandler(
       selectionMode = GallerySelectionMode.Single,
       onImagesSelected = { sourceUris ->
@@ -82,81 +76,37 @@ fun PersonAdapter(
       // After a successful capture it returns the confirmed internal file path.
       CameraPickerHandler(
          imageFileStorage = imageFileStorage,
-         onPhotoStored = { imagePath ->
-            viewModel.onIntent(
-               PersonIntent.ImagePathChange(imagePath)
-            )
-         },
-         onError = {
-            viewModel.onIntent(
-               PersonIntent.ImageStorageFailed(imageSaveError)
-            )
-         },
+         onPhotoStored = {  viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
+         onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
       ) { cameraActions ->
 
-         // Connect the current UI state and all user actions to the stateless
-         // PersonScreen.
+         // Connect the current UI state and all user actions to PersonScreen.
          PersonScreen(
             isNew = personUiState.isNew,
             isLoading = personUiState.isLoading,
-
             firstName = person.firstName,
-            onFirstNameChange = {
-               viewModel.onIntent(
-                  PersonIntent.FirstNameChange(it)
-               )
-            },
-
+            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
             lastName = person.lastName,
-            onLastNameChange = {
-               viewModel.onIntent(
-                  PersonIntent.LastNameChange(it)
-               )
-            },
-
+            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
             email = person.email,
-            onEmailChange = {
-               viewModel.onIntent(
-                  PersonIntent.EmailChange(it)
-               )
-            },
-
+            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
             phone = person.phone,
-            onPhoneChange = {
-               viewModel.onIntent(
-                  PersonIntent.PhoneChange(it)
-               )
-            },
+            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
 
+            // current image path is provided to the screen for display.
             imagePath = person.imagePath,
-
-            // Disable image actions while a camera file is being prepared or
-            // confirmed to avoid starting overlapping camera operations.
+            // Disable image actions while a camera file is being prepared
             imageActionsEnabled = !cameraActions.isBusy,
-
-            // Gallery and camera actions are delegated directly to their
-            // corresponding Activity Result handlers.
+            // Gallery/camera are delegated their Activity Result handlers.
             onSelectPhoto = galleryActions.selectFromGallery,
             onTakePhoto = cameraActions.takePhoto,
-
-            // Removing an image changes the edit-session selection. The
-            // ImageEditDelegate decides when a physical file may be deleted.
-            onRemovePhoto = {
-               viewModel.onIntent(
-                  PersonIntent.ImagePathChange(null)
-               )
-            },
+            // Removing an image: a physical file may be deleted.
+            onRemovePhoto = {  viewModel.onIntent(PersonIntent.RemoveImage(null)) },
 
             // Navigation and Save/Cancel actions remain ViewModel intents.
-            onNavigateBack = {
-               viewModel.onIntent(PersonIntent.Cancel)
-            },
-            onSave = {
-               viewModel.onIntent(PersonIntent.Save)
-            },
-            onCancel = {
-               viewModel.onIntent(PersonIntent.Cancel)
-            },
+            onNavigateBack = { viewModel.onIntent(PersonIntent.Cancel) },
+            onSave = { viewModel.onIntent(PersonIntent.Save) },
+            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
             modifier = modifier
                .fillMaxSize()
@@ -221,7 +171,7 @@ fun PersonAdapter(
  *          -> IImageFileStorage.confirmCameraImageFile(...)
  *          -> interner Dateipfad
  *          -> PersonAdapter
- *          -> PersonIntent.ImagePathChange
+ *          -> PersonIntent.CameraImageTaken
  *          -> PersonViewModel
  *          -> ImageEditDelegate
  *          -> PersonUiState

@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.navigation
 
+import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -23,7 +24,10 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonBackEffectTest {
 
    @get:Rule

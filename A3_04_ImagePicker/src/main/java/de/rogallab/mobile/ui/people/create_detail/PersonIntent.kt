@@ -9,8 +9,10 @@ sealed interface PersonIntent {
    data class PhoneChange(val phone: String) : PersonIntent
 
    data class GalleryImageSelected(val sourceUri: Uri) : PersonIntent
-   data class ImagePathChange(val imagePath: String?) : PersonIntent
-   data class ImageStorageFailed(val message: String) : PersonIntent
+   data class CameraImageTaken(val imagePath: String?) : PersonIntent
+   data class RemoveImage(val imagePath: String?) : PersonIntent
+
+   data class ImageFailed(val message: String) : PersonIntent
 
    data object Save : PersonIntent
    data object Cancel : PersonIntent

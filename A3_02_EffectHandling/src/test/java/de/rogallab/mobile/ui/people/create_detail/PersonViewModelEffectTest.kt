@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
+import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.R
@@ -22,7 +23,10 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonViewModelEffectTest {
 
    @get:Rule

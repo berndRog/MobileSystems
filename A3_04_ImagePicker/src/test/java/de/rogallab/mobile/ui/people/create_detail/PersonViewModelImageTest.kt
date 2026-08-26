@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
+import android.app.Application
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
@@ -26,7 +27,10 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonViewModelImageTest {
 
    @get:Rule
@@ -80,7 +84,7 @@ class PersonViewModelImageTest {
    @Test
    fun imagePathChange_updatesState() = runTest(mainDispatcherRule.testDispatcher) {
       val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/new.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
       assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
    }
@@ -88,9 +92,9 @@ class PersonViewModelImageTest {
    @Test
    fun replacingUnsavedImage_deletesPreviousReplacement() = runTest(mainDispatcherRule.testDispatcher) {
       val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/one.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/one.jpg"))
       advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/two.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/two.jpg"))
       advanceUntilIdle()
       assertTrue("/images/one.jpg" in storage.deletedPaths)
       assertEquals("/images/two.jpg", viewModel.stateFlow.value.person.imagePath)
@@ -99,7 +103,7 @@ class PersonViewModelImageTest {
    @Test
    fun cancel_deletesUnsavedReplacementAndEmitsNavigateBack() = runTest(mainDispatcherRule.testDispatcher) {
       val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/new.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
 
       viewModel.effects.test {
@@ -118,7 +122,7 @@ class PersonViewModelImageTest {
       repository.findResult = Result.success(original)
       val viewModel = createViewModel("p1")
       advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/new.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
       assertFalse("/images/original.jpg" in storage.deletedPaths)
       viewModel.onIntent(PersonIntent.Save)
@@ -134,7 +138,7 @@ class PersonViewModelImageTest {
       repository.updateResult = Result.failure(IllegalStateException("write failed"))
       val viewModel = createViewModel("p1")
       advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.ImagePathChange("/images/new.jpg"))
+      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
       viewModel.onIntent(PersonIntent.Save)
       advanceUntilIdle()
@@ -150,7 +154,7 @@ class PersonViewModelImageTest {
    fun imageStorageFailed_isForwardedAsShowErrorString() = runTest(mainDispatcherRule.testDispatcher) {
       val viewModel = createViewModel()
       viewModel.effects.test {
-         viewModel.onIntent(PersonIntent.ImageStorageFailed("camera failed"))
+         viewModel.onIntent(PersonIntent.ImageFailed("camera failed"))
          advanceUntilIdle()
          val effect = awaitItem() as PersonEffect.ShowError
          assertEquals("camera failed", effect.message)

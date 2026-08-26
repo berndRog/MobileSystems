@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people
 
+import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import de.rogallab.mobile.domain.entities.Person
 import org.junit.Assert.assertNotNull
@@ -10,10 +11,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonValidatorTest {
 
-   private val validator = PersonValidator(ApplicationProvider.getApplicationContext())
+   private val validator =
+      PersonValidator(ApplicationProvider.getApplicationContext())
 
    @Test
    fun validatePerson_validPersonReturnsNull() {

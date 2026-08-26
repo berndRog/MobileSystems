@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
+import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.IStringProvider
@@ -19,14 +20,18 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonViewModelTest {
 
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
    private val repository = FakePersonRepository()
-   private val validator = PersonValidator(ApplicationProvider.getApplicationContext())
+   private val validator =
+      PersonValidator(ApplicationProvider.getApplicationContext())
    private val stringProvider = object : IStringProvider {
       override fun getString(resId: Int, vararg args: Any): String = "text-$resId"
    }

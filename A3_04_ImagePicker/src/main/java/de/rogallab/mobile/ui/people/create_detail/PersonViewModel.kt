@@ -89,19 +89,12 @@ class PersonViewModel(
 
          _repository.findById(id)
             .onSuccess { person ->
-
                // A successful repository call may still return no matching person.
                if (person == null) {
-                  val error =
-                     _stringProvider.getString(
-                        R.string.error_person_not_found
-                     )
-
                   // Errors are one-time UI effects and therefore do not belong
                   // to the persistent PersonUiState.
-                  _effectDelegate.emit(
-                     PersonEffect.ShowError(error)
-                  )
+                  val error = _stringProvider.getString(R.string.error_person_not_found)
+                  _effectDelegate.emit(PersonEffect.ShowError(error))
 
                   _stateFlow.update { state: PersonUiState ->
                      state.copy(isLoading = false)
@@ -111,29 +104,19 @@ class PersonViewModel(
 
                // Start the image edit session with the persisted image.
                // The delegate remembers this image as the original selection.
-               _imageEdit.start(
-                  listOfNotNull(person.imagePath)
-               )
+               _imageEdit.start(listOfNotNull(person.imagePath))
 
                // Publish the loaded person as the new persistent UI state.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(
-                     person = person,
-                     isLoading = false,
-                  )
+                  state.copy(person = person, isLoading = false)
                }
             }
             .onFailure {
-
                // Repository failures are converted into a localized UI effect.
-               val error =
-                  _stringProvider.getString(
+               val error = _stringProvider.getString(
                      R.string.error_person_load
                   )
-
-               _effectDelegate.emit(
-                  PersonEffect.ShowError(error)
-               )
+               _effectDelegate.emit(PersonEffect.ShowError(error))
 
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isLoading = false)
@@ -153,14 +136,14 @@ class PersonViewModel(
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
 
-         // Gallery selection still contains an external Content-Uri.
-         // The image must first be copied into private app storage.
+         // Gallery selection must be copied from media store to app storage.
          is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          // Camera images already arrive as confirmed internal file paths.
+         is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
          // The same intent is also used when an image is removed with null.
-         is PersonIntent.ImagePathChange -> changeImage(intent.imagePath)
+         is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
          // Technical image errors are converted into the common error effect.
-         is PersonIntent.ImageStorageFailed -> showError(intent.message)
+         is PersonIntent.ImageFailed -> showError(intent.message)
 
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
@@ -216,12 +199,19 @@ class PersonViewModel(
    }
 
    // Camera images already arrive as internal paths.
-   // Passing null removes the image from the current edit-session selection.
-   private fun changeImage(imagePath: String?) {
+   private fun storeCameraImage(imagePath: String?) {
       viewModelScope.launch {
          replaceImage(imagePath)
       }
    }
+
+   // Passing null removes the image from the current edit-session selection.
+   private fun removeImage(imagePath: String?) {
+      viewModelScope.launch {
+         replaceImage(imagePath)
+      }
+   }
+
 
    // Delegate image lifecycle management to IImageEdit.
    //
@@ -384,7 +374,7 @@ class PersonViewModel(
  *
  * - Ein Kamera-Bild wurde dagegen bereits durch CameraPickerHandler vorbereitet
  *   und nach erfolgreicher Aufnahme bestätigt. PersonViewModel erhält deshalb
- *   direkt den internen Dateipfad über PersonIntent.ImagePathChange.
+ *   direkt den internen Dateipfad über PersonIntent.CameraImageTaken.
  *
  * - Nach diesem technischen Unterschied werden Galerie- und Kamera-Bilder
  *   wieder gleich behandelt. In beiden Fällen wird der interne Dateipfad an

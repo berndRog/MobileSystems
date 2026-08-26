@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
+import android.app.Application
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
@@ -25,7 +26,10 @@ import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonViewModelImageTest {
 
    @get:Rule
