@@ -32,6 +32,23 @@ class EffectDelegateTest {
          cancelAndIgnoreRemainingEvents()
       }
    }
+
+   @Test
+   fun interfaceDelegation_exposesDelegateFlowThroughEffectSource() = runTest {
+      val delegate = EffectDelegate<String>()
+      val source = TestEffectSource(delegate)
+
+      delegate.emit("delegated")
+
+      assertEquals(
+         "delegated",
+         source.effects.first()
+      )
+   }
+
+   private class TestEffectSource(
+      delegate: EffectDelegate<String>,
+   ) : IEffectSource<String> by delegate
 }
 
 /*
@@ -40,5 +57,7 @@ class EffectDelegateTest {
  * - Die Tests prüfen ausschließlich die technische Aufgabe des EffectDelegate.
  * - Ein gesendeter Effect muss über den bereitgestellten Flow ankommen.
  * - Mehrere gepufferte Effects müssen in ihrer Sendereihenfolge ankommen.
+ * - Die Kotlin-Delegation `IEffectSource<E> by EffectDelegate<E>` stellt nach
+ *   außen denselben read-only Effect-Flow bereit.
  * - Feature-spezifische Effects werden bewusst in den jeweiligen Modulen getestet.
  */

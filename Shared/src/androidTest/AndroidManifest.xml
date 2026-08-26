@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+   <application>
+      <!-- Default host activity used by createComposeRule() for library tests. -->
+      <activity
+         android:name="android.app.Activity"
+         android:exported="true" />
+   </application>
+
+</manifest>
