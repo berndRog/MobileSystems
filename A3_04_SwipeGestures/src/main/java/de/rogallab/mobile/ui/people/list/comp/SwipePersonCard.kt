@@ -93,20 +93,16 @@ fun SwipePersonCard(
          }
       },
       onDismiss = { direction ->
-         when (direction) {
-            SwipeToDismissBoxValue.StartToEnd -> {
-               // Editing navigates away. Reset the swipe state so the card is
-               // settled again when the list becomes visible later.
-               onEdit()
-               coroutineScope.launch {
-                  swipeState.reset()
-               }
+         coroutineScope.launch {
+            // The swipe is only an input trigger. Reset the Material swipe state
+            // before navigation or visual removal changes the surrounding UI.
+            swipeState.snapTo(SwipeToDismissBoxValue.Settled)
+
+            when (direction) {
+               SwipeToDismissBoxValue.StartToEnd -> onEdit()
+               SwipeToDismissBoxValue.EndToStart -> onDelete()
+               SwipeToDismissBoxValue.Settled -> Unit
             }
-
-            SwipeToDismissBoxValue.EndToStart ->
-               onDelete()
-
-            SwipeToDismissBoxValue.Settled -> Unit
          }
       },
    ) {
@@ -132,13 +128,17 @@ fun SwipePersonCard(
  * - backgroundContent macht die beiden möglichen Aktionen bereits während
  *   der Geste sichtbar. Farbe und Symbol ändern sich abhängig von targetValue.
  *
- * - Beim Editieren wird der Swipe-State zurückgesetzt, weil die Card nicht aus
- *   der Liste entfernt wird. Beim Löschen übernimmt dagegen PeopleViewModel
- *   das visuelle Entfernen aus dem State.
+ * - Die Swipe-Geste ist nur ein Eingabe-Trigger. Vor onEdit() oder onDelete()
+ *   wird der SwipeToDismissBoxState deshalb mit snapTo(Settled) zurückgesetzt.
+ *   Die Card bleibt nicht im internen Material-Dismiss-Zustand hängen.
+ *
+ * - Das ist für Undo besonders wichtig: Wird dieselbe Person wieder in die
+ *   LazyColumn eingefügt, darf ein alter EndToStart-Zustand nicht unmittelbar
+ *   einen zweiten Delete-Callback auslösen.
  *
  * Lernziele:
  *
  * - SwipeToDismissBox für zwei unterschiedliche Gestenrichtungen verwenden.
  * - Geste und fachliche Aktion über Callback-Funktionen trennen.
- * - Animiertes visuelles Feedback während einer Geste einsetzen.
+ * - Temporären Gestenzustand vor einer State- oder Navigationsänderung bereinigen.
  */
