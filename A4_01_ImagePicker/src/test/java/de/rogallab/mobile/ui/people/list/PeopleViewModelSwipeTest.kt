@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -46,6 +47,7 @@ class PeopleViewModelSwipeTest {
          advanceUntilIdle()
 
          assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+         assertNull(viewModel.stateFlow.value.restoredPersonId)
          assertTrue(repository.removed.isEmpty())
 
          val effect = awaitItem() as PeopleEffect.ShowUndo
@@ -60,7 +62,7 @@ class PeopleViewModelSwipeTest {
    }
 
    @Test
-   fun undoRemove_restoresPersonWithoutRepositoryDelete() = runTest(mainDispatcherRule.testDispatcher) {
+   fun undoRemove_restoresPersonAndExposesRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
       val viewModel = createViewModel(repository)
       advanceUntilIdle()
@@ -71,7 +73,27 @@ class PeopleViewModelSwipeTest {
       advanceUntilIdle()
 
       assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+      assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
       assertTrue(repository.removed.isEmpty())
+   }
+
+   @Test
+   fun restoreHandled_clearsRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository(listOf(ada, grace))
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+
+      viewModel.onIntent(PeopleIntent.Remove(ada))
+      advanceUntilIdle()
+      viewModel.onIntent(PeopleIntent.UndoRemove("p1"))
+      advanceUntilIdle()
+      assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
+
+      viewModel.onIntent(PeopleIntent.RestoreHandled)
+      advanceUntilIdle()
+
+      assertNull(viewModel.stateFlow.value.restoredPersonId)
+      assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
    }
 
    @Test
@@ -92,7 +114,7 @@ class PeopleViewModelSwipeTest {
    }
 
    @Test
-   fun failedCommit_restoresPersonAndEmitsErrorString() = runTest(mainDispatcherRule.testDispatcher) {
+   fun failedCommit_restoresPersonAndExposesRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace)).apply {
          removeResult = Result.failure(IllegalStateException("delete failed"))
       }
@@ -112,6 +134,7 @@ class PeopleViewModelSwipeTest {
          val error = awaitItem() as PeopleEffect.ShowError
          assertEquals(stringProvider.getString(R.string.error_person_remove), error.message)
          assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+         assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
          cancelAndIgnoreRemainingEvents()
       }
    }
