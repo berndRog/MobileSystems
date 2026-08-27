@@ -55,10 +55,14 @@ class VisualRemovalDelegate<T>(
    override fun pending(id: String): T? =
       _pendingItems[id]
 
-   // Ends the Undo phase after persistence succeeded. The id intentionally
-   // remains hidden until update(...) confirms the repository change.
+   // Ends the Undo phase after persistence succeeded. If the latest source list
+   // already confirms the removal, the temporary hidden id can be released now.
    override fun commit(id: String) {
       _pendingItems.remove(id)
+
+      if (_items.none { item -> idOf(item) == id }) {
+         _hiddenIds.remove(id)
+      }
    }
 
    // Restores the visual state after persistence failed.
@@ -90,10 +94,14 @@ class VisualRemovalDelegate<T>(
  *   diesen Zustand vollständig zurücknehmen, ohne eine Repository-Operation
  *   rückgängig machen zu müssen.
  *
- * - Nach erfolgreicher Persistenz entfernt commit(...) nur den Pending-Eintrag.
- *   Die id bleibt zunächst verborgen. Erst update(...) löst den visuellen
- *   Filter, sobald das Repository bestätigt, dass das Objekt nicht mehr
- *   vorhanden ist.
+ * - Nach erfolgreicher Persistenz beendet commit(...) den Pending-Zustand.
+ *   Solange das Objekt im zuletzt bekannten Repository-Stand noch vorhanden ist,
+ *   bleibt seine id verborgen. Hat update(...) die Löschung bereits vorher
+ *   bestätigt, kann commit(...) den Hidden-Zustand unmittelbar freigeben.
+ *
+ * - Damit spielt es keine Rolle, ob die neue Repository-Liste kurz vor oder
+ *   kurz nach dem erfolgreichen Rückgabewert von remove(...) eintrifft. Der
+ *   Delegate hält beide möglichen Reihenfolgen konsistent.
  *
  * - Nach einem Persistenzfehler entfernt restore(...) dagegen sowohl Pending-
  *   als auch Hidden-Zustand. Das ViewModel kann die sichtbare Liste anschließend
@@ -107,5 +115,6 @@ class VisualRemovalDelegate<T>(
  * - Temporären UI-Zustand in einer wiederverwendbaren Komponente kapseln.
  * - Delegation durch Komposition statt ViewModel-Vererbung einsetzen.
  * - Persistenzverantwortung weiterhin im ViewModel bzw. Repository belassen.
+ * - Unterschiedliche Reihenfolgen asynchroner Zustandsänderungen berücksichtigen.
  * - Undo implementieren, bevor eine destruktive Persistenzoperation erfolgt.
  */
