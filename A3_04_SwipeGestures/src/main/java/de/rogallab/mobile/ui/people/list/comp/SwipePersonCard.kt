@@ -46,23 +46,24 @@ fun SwipePersonCard(
    val onEditState = rememberUpdatedState(onEdit)
    val onDeleteState = rememberUpdatedState(onDelete)
 
-   val onDismiss: (SwipeToDismissBoxValue) -> Unit =
-      remember(swipeState, coroutineScope) {
-         { direction: SwipeToDismissBoxValue ->
-            coroutineScope.launch {
-               // Reset the Material state before navigation or visual removal changes
-               // the surrounding composition.
-               swipeState.snapTo(SwipeToDismissBoxValue.Settled)
+   val onDismiss = remember<(SwipeToDismissBoxValue) -> Unit>(
+      swipeState,
+      coroutineScope,
+   ) {
+      { direction: SwipeToDismissBoxValue ->
+         coroutineScope.launch {
+            // Reset the Material state before navigation or visual removal changes
+            // the surrounding composition.
+            swipeState.snapTo(SwipeToDismissBoxValue.Settled)
 
-               when (direction) {
-                  SwipeToDismissBoxValue.StartToEnd -> onEditState.value()
-                  SwipeToDismissBoxValue.EndToStart -> onDeleteState.value()
-                  SwipeToDismissBoxValue.Settled -> Unit
-               }
+            when (direction) {
+               SwipeToDismissBoxValue.StartToEnd -> onEditState.value()
+               SwipeToDismissBoxValue.EndToStart -> onDeleteState.value()
+               SwipeToDismissBoxValue.Settled -> Unit
             }
-            Unit
          }
       }
+   }
 
    SwipeToDismissBox(
       state = swipeState,
