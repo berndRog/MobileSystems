@@ -9,6 +9,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.ui.removal.IVisualRemoval
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 class PeopleViewModel(
    private val _repository: IPersonRepository,
    private val _stringProvider: IStringProvider,
+   private val _visualRemoval: IVisualRemoval<Person>,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
@@ -33,17 +35,6 @@ class PeopleViewModel(
 
    // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
-
-   // Keeps the complete repository result. Visual removal is intentionally
-   // separated from persistence during the Undo window.
-   private var _repositoryPeople: List<Person> = emptyList()
-
-   // IDs hidden only in the UI. The repository still contains these people
-   // until CommitRemove is received.
-   private val _visuallyRemovedIds = mutableSetOf<String>()
-
-   // Keeps the domain object required for a possible later repository delete.
-   private val _pendingRemovals = mutableMapOf<String, Person>()
 
    init {
       Alog.i(TAG, "init: observePeople()")
@@ -72,8 +63,8 @@ class PeopleViewModel(
       }
    }
 
-   // Observes the repository and combines its persistent data with the current
-   // set of items that are hidden only for the active Undo operation.
+   // Observes the repository. The delegate combines this persistent source
+   // list with the temporary items that are hidden during an Undo operation.
    private fun observePeople() {
       _observeJob?.cancel()
 
@@ -90,15 +81,8 @@ class PeopleViewModel(
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result
                .onSuccess { people ->
-                  _repositoryPeople = people
-
-                  // A committed removal remains hidden until the repository
-                  // confirms that the row no longer exists.
-                  val repositoryIds = people.mapTo(mutableSetOf()) { it.id }
-                  _visuallyRemovedIds.removeAll { personId ->
-                     personId !in _pendingRemovals && personId !in repositoryIds
-                  }
-
+                  // Pass the latest persistent source list to the delegate.
+                  _visualRemoval.update(people)
                   publishVisiblePeople(isLoading = false)
                   Alog.d(TAG, "observePeople: people=${people.size}")
                }
@@ -118,14 +102,12 @@ class PeopleViewModel(
       }
    }
 
-   // Removes a person only from the visible state. The repository is not
-   // touched while the user can still select Undo.
+   // Removes a person only from the visible state. The delegate keeps the
+   // temporary removal state; the repository is not touched during Undo.
    private fun removeVisually(person: Person) {
-      // Repeated events for the same item must not create multiple Undo windows.
-      if (_pendingRemovals.containsKey(person.id)) return
+      // Repeated events for the same item must not create another Undo effect.
+      if (!_visualRemoval.remove(person)) return
 
-      _pendingRemovals[person.id] = person
-      _visuallyRemovedIds += person.id
       publishVisiblePeople()
 
       viewModelScope.launch {
@@ -142,12 +124,11 @@ class PeopleViewModel(
       }
    }
 
-   // Cancels a pending deletion. The person becomes visible again because the
-   // repository was not changed yet.
+   // Cancels a pending deletion. The delegate removes the temporary filter so
+   // that the unchanged repository item becomes visible again immediately.
    private fun undoRemove(personId: String) {
-      if (_pendingRemovals.remove(personId) == null) return
+      if (!_visualRemoval.undo(personId)) return
 
-      _visuallyRemovedIds.remove(personId)
       publishVisiblePeople()
       Alog.d(TAG, "undoRemove: personId=$personId")
    }
@@ -155,20 +136,19 @@ class PeopleViewModel(
    // Deletes from the repository only after the Action Snackbar was dismissed
    // without selecting Undo.
    private fun commitRemove(personId: String) {
-      val person = _pendingRemovals[personId] ?: return
+      val person = _visualRemoval.pending(personId) ?: return
 
       viewModelScope.launch {
          _repository.remove(person)
             .onSuccess {
-               // Keep the id visually hidden until observeAll() confirms that
-               // the repository no longer contains it.
-               _pendingRemovals.remove(personId)
+               // End the pending Undo operation. The delegate keeps the item
+               // hidden until observeAll() confirms the repository change.
+               _visualRemoval.commit(personId)
                Alog.d(TAG, "commitRemove: personId=$personId")
             }
             .onFailure { throwable ->
                // Persistence failed: restore the visual item and report error.
-               _pendingRemovals.remove(personId)
-               _visuallyRemovedIds.remove(personId)
+               _visualRemoval.restore(personId)
                publishVisiblePeople()
 
                Alog.e(TAG, "commitRemove failed: ${throwable.message}")
@@ -181,18 +161,14 @@ class PeopleViewModel(
       }
    }
 
-   // Publishes the repository result after applying the temporary UI-only
-   // removal filter. This is the single place that derives the visible list.
+   // Publishes the source list after the delegate has applied its temporary
+   // UI-only removal filter.
    private fun publishVisiblePeople(
       isLoading: Boolean = _stateFlow.value.isLoading,
    ) {
-      val visiblePeople = _repositoryPeople.filterNot { person ->
-         person.id in _visuallyRemovedIds
-      }
-
       _stateFlow.update { state: PeopleUiState ->
          state.copy(
-            people = visiblePeople,
+            people = _visualRemoval.visibleItems(),
             isLoading = isLoading,
          )
       }
@@ -206,36 +182,47 @@ class PeopleViewModel(
 /*
  * Didaktik und Lernziele
  *
- * - PeopleUiState bleibt der dauerhafte, von der UI beobachtete State. Wie in
- *   den vorherigen Beispielen wird er über ein internes MutableStateFlow
- *   geschrieben und nach außen nur als StateFlow veröffentlicht.
+ * - PeopleUiState bleibt wie in den vorherigen Beispielen der einzige State,
+ *   den die Oberfläche beobachtet. MutableStateFlow wird nur innerhalb des
+ *   ViewModels verändert und nach außen als read-only StateFlow angeboten.
  *
- * - Neu ist die Trennung zwischen Repository-State und vorübergehend sichtbarem
- *   UI-State. Während des Undo-Fensters werden drei Informationen gehalten:
+ * - Neu ist VisualRemovalDelegate. Die drei Verwaltungsstrukturen für den
+ *   Repository-Stand, visuell ausgeblendete ids und ausstehende Löschungen
+ *   liegen nicht mehr direkt im ViewModel. Diese technische Zustandsverwaltung
+ *   wird über IVisualRemoval<Person> an ein spezialisiertes Objekt delegiert.
  *
- *      _repositoryPeople      -> vollständiger Repository-Stand
- *      _visuallyRemovedIds    -> nur in der UI ausgeblendete Personen
- *      _pendingRemovals       -> mögliche spätere Repository-Löschungen
+ * - Dabei handelt es sich bewusst nicht um Kotlin Interface Delegation mit
+ *   "by". PeopleViewModel implementiert IVisualRemoval<Person> nicht, sondern
+ *   besitzt die Abhängigkeit und ruft ihre Funktionen explizit auf. Dies ist
+ *   Delegation einer Aufgabe durch Komposition.
  *
- * - Remove verändert deshalb zunächst nur den sichtbaren State und erzeugt
- *   anschließend ShowUndo als einmaligen Effect. Die Snackbar selbst gehört
- *   nicht in den State, weil sie kein dauerhaftes Abbild des Screens ist.
+ * - Effects zeigen im selben ViewModel die andere Form: Durch
+ *   IEffectSource<PeopleEffect> by _effectDelegate implementiert PeopleViewModel
+ *   formal die Effect-Schnittstelle, während EffectDelegate deren Implementierung
+ *   bereitstellt. Damit können beide Delegationsformen direkt verglichen werden.
  *
- * - Wird "Rückgängig" gewählt, entfernt UndoRemove die id aus dem visuellen
- *   Filter. Die Person erscheint wieder, ohne dass eine Repository-Operation
- *   rückgängig gemacht werden müsste.
+ * - Remove verändert weiterhin zunächst ausschließlich den sichtbaren Zustand.
+ *   Das Repository bleibt während des Undo-Fensters unverändert. ShowUndo wird
+ *   als einmaliger Effect erzeugt und gehört deshalb nicht in PeopleUiState.
  *
- * - Erst wenn die Action-Snackbar ohne Undo endet, führt CommitRemove die
- *   eigentliche Repository-Operation aus. Schlägt sie fehl, wird der sichtbare
- *   State wiederhergestellt und ShowError erzeugt.
+ * - UndoRemove hebt nur den temporären Filter im VisualRemovalDelegate auf.
+ *   Eine Repository-Operation muss nicht rückgängig gemacht werden, weil die
+ *   persistente Löschung zu diesem Zeitpunkt noch gar nicht erfolgt ist.
  *
- * - Create und Detail bleiben unverändert: Beide erzeugen NavigateTo und bauen
- *   damit auf der bereits eingeführten Navigation-3-Struktur auf.
+ * - Erst CommitRemove führt _repository.remove(...) aus. Nach Erfolg beendet
+ *   commit(...) den Pending-Zustand; nach Fehler stellt restore(...) das Element
+ *   wieder her und das ViewModel erzeugt zusätzlich ShowError.
+ *
+ * - Der Delegate kennt weder Repository, StateFlow, Coroutines, Strings noch
+ *   Effects. Diese Verantwortungen bleiben im ViewModel. Dadurch wird das
+ *   ViewModel kürzer, ohne die eigentliche Anwendungslogik zu verstecken.
  *
  * Lernziele:
  *
- * - State, Intent und Effect konsequent voneinander unterscheiden.
- * - Visuellen UI-State von persistiertem Repository-State trennen.
- * - Undo vor einer destruktiven Persistenzoperation ermöglichen.
- * - Neue Gestenfunktionalität ergänzen, ohne bestehende Navigation umzubauen.
+ * - State, Intent und Effect weiterhin konsequent voneinander unterscheiden.
+ * - Temporären UI-Zustand von persistiertem Repository-State trennen.
+ * - Kotlin Interface Delegation und Delegation durch Komposition unterscheiden.
+ * - Dependency Injection zur Bereitstellung eines Delegationsobjekts nutzen.
+ * - Undo vor einer destruktiven Persistenzoperation implementieren.
+ * - ViewModels durch klar abgegrenzte, testbare Verantwortlichkeiten lesbar halten.
  */
