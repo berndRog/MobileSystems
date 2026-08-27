@@ -372,7 +372,6 @@ subprojects {
       // Koin Tests
       add("androidTestImplementation", sharedLibs.koin.test)
       add("androidTestImplementation", sharedLibs.koin.test.junit4)
-      add("androidTestImplementation", sharedLibs.koin.android.test)
       add("androidTestImplementation", sharedLibs.koin.androidx.compose)
 
       // Espresso UI Tests
@@ -408,7 +407,7 @@ import org.gradle.api.JavaVersion
 plugins {
    alias(libs.plugins.android.application) apply false
 
-   // Ab AGP 9 wird Kotlin direkt durch das Android-Gradle-Plug-in unterstützt.
+   // Ab AGP 9 nicht mehr erforderlich:
    // alias(libs.plugins.kotlin.android) apply false
 
    alias(libs.plugins.kotlin.compose) apply false
@@ -569,11 +568,9 @@ subprojects {
 
       // Material Design 3
       add("implementation", sharedLibs.androidx.material3)
+      add("implementation", sharedLibs.material3.adaptive)
+      add("implementation", sharedLibs.material3.windowsizeclass)
       add("implementation", sharedLibs.androidx.material.icons.extended)
-
-      // Adaptive Layouts
-      add("implementation", sharedLibs.androidx.material3.adaptive)
-      add("implementation", sharedLibs.androidx.material3.windowsizeclass)
 
       // -----------------------------------------------------------------------
       // UI: Lifecycle
