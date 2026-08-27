@@ -5,10 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
@@ -61,7 +61,11 @@ class PeopleScreenRestoreTest {
          people.value = allPeople.drop(1)
       }
       composeRule.waitForIdle()
-      composeRule.onNodeWithText("Person 0").assertDoesNotExist()
+      assertEquals(
+         0,
+         composeRule.onAllNodesWithText("Person 0")
+            .fetchSemanticsNodes().size,
+      )
 
       // Simulates Undo: the same stable key is inserted again at index 0.
       composeRule.runOnIdle {
@@ -111,7 +115,11 @@ class PeopleScreenRestoreTest {
          people.value = allPeople.dropLast(1)
       }
       composeRule.waitForIdle()
-      composeRule.onNodeWithText("Person 9").assertDoesNotExist()
+      assertEquals(
+         0,
+         composeRule.onAllNodesWithText("Person 9")
+            .fetchSemanticsNodes().size,
+      )
 
       // Undo reinserts the item below the current lower edge.
       composeRule.runOnIdle {
