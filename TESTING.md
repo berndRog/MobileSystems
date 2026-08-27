@@ -1,4 +1,4 @@
-# Teststruktur A3_01 bis A3_05
+# Teststruktur A3_01 bis A4_01
 
 Die Tests folgen den normalen Gradle/Android-Source-Sets eines Moduls:
 
@@ -6,7 +6,7 @@ Die Tests folgen den normalen Gradle/Android-Source-Sets eines Moduls:
   für Mapping, Validatoren, ViewModels, Effects und Repository-Fakes.
 - `src/androidTest/java` für instrumentierte Tests auf Emulator/Gerät. Diese
   werden nur dort eingesetzt, wo Android-/Compose-Verhalten selbst geprüft
-  werden soll, hier insbesondere die Swipe-Gesten in A3_05.
+  werden soll, hier insbesondere die Swipe-Gesten in A3_04.
 
 Die Testpackages spiegeln die fachlichen Production-Packages. Gemeinsame
 Testhilfen eines Moduls liegen unter `de.rogallab.mobile.testing`.
@@ -19,10 +19,12 @@ Testhilfen eines Moduls liegen unter `de.rogallab.mobile.testing`.
 - A3_03_Navigation: NavigateTo/NavigateBack-Effects und Navigation 3. Die
   Snackbar-Infrastruktur benötigt keinen eigenen Coordinator-Test mehr, weil
   die Anwendung Material3 `SnackbarHostState` direkt verwendet.
-- A3_04_ImagePicker: Bildpfad-State und Lebenszyklus temporärer/ersetzter Bilder,
-  einschließlich erfolgreichem und fehlgeschlagenem Speichern.
-- A3_05_SwipeGestures: visuelles Entfernen, Undo, verzögertes Repository-Commit,
-  Fehler beim Commit und instrumentierte Swipe-Richtungen.
+- A3_04_SwipeGestures: visuelles Entfernen, Undo, verzögertes Repository-Commit,
+  Fehler beim Commit und instrumentierte Swipe-Richtungen. Damit endet Kapitel 3
+  mit einem Compose-nahen Thema aus Gesten, State und Animation.
+- A4_01_ImagePicker: baut auf A3_04 auf und ergänzt Bildauswahl, Bildpfad-State
+  und den Lebenszyklus temporärer/ersetzter Bilder, einschließlich erfolgreichem
+  und fehlgeschlagenem Speichern.
 - Shared: `SnackbarController` und `EffectDelegate` als
   wiederverwendbare Basis. Neben dem Effect-Transport werden auch die direkten
   Message-/Error-Aufrufe sowie beide Action-Ergebnisse (`performAction`/`dismiss`) des
