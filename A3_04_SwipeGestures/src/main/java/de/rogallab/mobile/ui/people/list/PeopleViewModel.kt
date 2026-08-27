@@ -23,15 +23,18 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
+   // Holds the persistent UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
 
+   // Exposes the state as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
+   // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
 
-   // Keeps the unfiltered repository result. Visual removal is intentionally
+   // Keeps the complete repository result. Visual removal is intentionally
    // separated from persistence during the Undo window.
    private var _repositoryPeople: List<Person> = emptyList()
 
@@ -47,6 +50,7 @@ class PeopleViewModel(
       observePeople()
    }
 
+   // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -59,6 +63,7 @@ class PeopleViewModel(
       }
    }
 
+   // Emits the navigation effect. A null id opens the create destination.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
          _effectDelegate.emit(
@@ -67,14 +72,19 @@ class PeopleViewModel(
       }
    }
 
+   // Observes the repository and combines its persistent data with the current
+   // set of items that are hidden only for the active Undo operation.
    private fun observePeople() {
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
+
+         // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
             state.copy(isLoading = true)
          }
 
+         // Simulate a longer loading operation.
          delay(1000)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
@@ -111,6 +121,7 @@ class PeopleViewModel(
    // Removes a person only from the visible state. The repository is not
    // touched while the user can still select Undo.
    private fun removeVisually(person: Person) {
+      // Repeated events for the same item must not create multiple Undo windows.
       if (_pendingRemovals.containsKey(person.id)) return
 
       _pendingRemovals[person.id] = person
@@ -120,7 +131,10 @@ class PeopleViewModel(
       viewModelScope.launch {
          _effectDelegate.emit(
             PeopleEffect.ShowUndo(
-               message = _stringProvider.getString(R.string.message_person_removed, person.fullName),
+               message = _stringProvider.getString(
+                  R.string.message_person_removed,
+                  person.fullName,
+               ),
                actionLabel = _stringProvider.getString(R.string.action_undo),
                personId = person.id,
             )
@@ -167,6 +181,8 @@ class PeopleViewModel(
       }
    }
 
+   // Publishes the repository result after applying the temporary UI-only
+   // removal filter. This is the single place that derives the visible list.
    private fun publishVisiblePeople(
       isLoading: Boolean = _stateFlow.value.isLoading,
    ) {
@@ -190,29 +206,36 @@ class PeopleViewModel(
 /*
  * Didaktik und Lernziele
  *
- * - Swipe-to-Delete löscht in diesem Schritt bewusst noch nicht sofort aus dem
- *   Repository. Zuerst wird die Person nur aus PeopleUiState ausgeblendet.
+ * - PeopleUiState bleibt der dauerhafte, von der UI beobachtete State. Wie in
+ *   den vorherigen Beispielen wird er über ein internes MutableStateFlow
+ *   geschrieben und nach außen nur als StateFlow veröffentlicht.
  *
- * - Während die Action-Snackbar sichtbar ist, liegen drei Informationen vor:
+ * - Neu ist die Trennung zwischen Repository-State und vorübergehend sichtbarem
+ *   UI-State. Während des Undo-Fensters werden drei Informationen gehalten:
  *
- *      _repositoryPeople      -> unveränderter Repository-Stand
+ *      _repositoryPeople      -> vollständiger Repository-Stand
  *      _visuallyRemovedIds    -> nur in der UI ausgeblendete Personen
  *      _pendingRemovals       -> mögliche spätere Repository-Löschungen
  *
+ * - Remove verändert deshalb zunächst nur den sichtbaren State und erzeugt
+ *   anschließend ShowUndo als einmaligen Effect. Die Snackbar selbst gehört
+ *   nicht in den State, weil sie kein dauerhaftes Abbild des Screens ist.
+ *
  * - Wird "Rückgängig" gewählt, entfernt UndoRemove die id aus dem visuellen
- *   Filter. Die Person erscheint wieder, ohne dass das Repository angefasst
- *   werden musste.
+ *   Filter. Die Person erscheint wieder, ohne dass eine Repository-Operation
+ *   rückgängig gemacht werden müsste.
  *
  * - Erst wenn die Action-Snackbar ohne Undo endet, führt CommitRemove die
- *   eigentliche Repository-Operation aus.
+ *   eigentliche Repository-Operation aus. Schlägt sie fehl, wird der sichtbare
+ *   State wiederhergestellt und ShowError erzeugt.
  *
- * - Schlägt dieses endgültige Löschen fehl, wird die Person wieder sichtbar
- *   gemacht und ein ShowError-Effect erzeugt.
+ * - Create und Detail bleiben unverändert: Beide erzeugen NavigateTo und bauen
+ *   damit auf der bereits eingeführten Navigation-3-Struktur auf.
  *
  * Lernziele:
  *
- * - Visuellen UI-State von persistiertem Repository-State unterscheiden.
+ * - State, Intent und Effect konsequent voneinander unterscheiden.
+ * - Visuellen UI-State von persistiertem Repository-State trennen.
  * - Undo vor einer destruktiven Persistenzoperation ermöglichen.
- * - Swipe-Geste, Animation, Effect und Repository-Operation zeitlich trennen.
- * - Mehrere gleichzeitig wartende Undo-Vorgänge über IDs auseinanderhalten.
+ * - Neue Gestenfunktionalität ergänzen, ohne bestehende Navigation umzubauen.
  */
