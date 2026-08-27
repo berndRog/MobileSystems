@@ -85,8 +85,8 @@ class SwipePersonCardTest {
    }
 
    @Test
-   fun restoredItem_doesNotDeleteAgainWithoutNewSwipe() {
-      val visibleIds = mutableStateOf(listOf("p1"))
+   fun restoredAnimatedItem_doesNotDeleteAgainWithoutNewSwipe() {
+      val visibleIds = mutableStateOf(listOf("p1", "p2"))
       var deleteCount = 0
 
       composeRule.setContent {
@@ -97,8 +97,8 @@ class SwipePersonCardTest {
                   key = { id -> id },
                ) { id ->
                   SwipePersonCard(
-                     firstName = "Ada",
-                     lastName = "Lovelace",
+                     firstName = "Person",
+                     lastName = id,
                      email = null,
                      phone = null,
                      imagePath = null,
@@ -106,9 +106,10 @@ class SwipePersonCardTest {
                      onEdit = {},
                      onDelete = {
                         deleteCount++
-                        visibleIds.value = emptyList()
+                        visibleIds.value = visibleIds.value.filterNot { it == id }
                      },
                      modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
                         .height(80.dp)
                         .testTag("personSwipe_$id"),
@@ -123,9 +124,9 @@ class SwipePersonCardTest {
       composeRule.waitForIdle()
       assertEquals(1, deleteCount)
 
-      // Simulates Undo: the same stable item key returns to the LazyColumn.
+      // Simulates Undo while LazyColumn uses the same stable key and item animation.
       composeRule.runOnIdle {
-         visibleIds.value = listOf("p1")
+         visibleIds.value = listOf("p1", "p2")
       }
       composeRule.waitForIdle()
 
