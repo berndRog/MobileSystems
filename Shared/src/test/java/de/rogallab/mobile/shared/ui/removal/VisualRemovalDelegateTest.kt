@@ -68,6 +68,21 @@ class VisualRemovalDelegateTest {
    }
 
    @Test
+   fun commit_releasesHiddenStateWhenSourceConfirmedRemovalFirst() {
+      val delegate = createDelegate()
+      delegate.update(listOf(ada, grace))
+      delegate.remove(ada)
+
+      // The repository may emit its updated list before remove(...) returns.
+      delegate.update(listOf(grace))
+      delegate.commit("p1")
+
+      // Re-adding the same id later must not keep it hidden accidentally.
+      delegate.update(listOf(ada, grace))
+      assertEquals(listOf(ada, grace), delegate.visibleItems())
+   }
+
+   @Test
    fun restore_makesItemVisibleAfterFailedPersistence() {
       val delegate = createDelegate()
       delegate.update(listOf(ada, grace))
