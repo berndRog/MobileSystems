@@ -25,7 +25,7 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the persistent UI state of the people screen.
+   // Holds the observable UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
 
@@ -50,6 +50,7 @@ class PeopleViewModel(
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> removeVisually(intent.person)
          is PeopleIntent.UndoRemove -> undoRemove(intent.personId)
+         PeopleIntent.RestoreHandled -> restoreHandled()
          is PeopleIntent.CommitRemove -> commitRemove(intent.personId)
       }
    }
@@ -108,7 +109,7 @@ class PeopleViewModel(
       // Repeated events for the same item must not create another Undo effect.
       if (!_visualRemoval.remove(person)) return
 
-      publishVisiblePeople()
+      publishVisiblePeople(restoredPersonId = null)
 
       viewModelScope.launch {
          _effectDelegate.emit(
@@ -129,8 +130,19 @@ class PeopleViewModel(
    private fun undoRemove(personId: String) {
       if (!_visualRemoval.undo(personId)) return
 
-      publishVisiblePeople()
+      // The restored id lets the LazyColumn make the item visible when Undo
+      // reinserts it just outside the current viewport.
+      publishVisiblePeople(restoredPersonId = personId)
       Alog.d(TAG, "undoRemove: personId=$personId")
+   }
+
+   // Clears the one-time restore target after the UI handled the scroll check.
+   private fun restoreHandled() {
+      if (_stateFlow.value.restoredPersonId == null) return
+
+      _stateFlow.update { state: PeopleUiState ->
+         state.copy(restoredPersonId = null)
+      }
    }
 
    // Deletes from the repository only after the Action Snackbar was dismissed
@@ -149,7 +161,7 @@ class PeopleViewModel(
             .onFailure { throwable ->
                // Persistence failed: restore the visual item and report error.
                _visualRemoval.restore(personId)
-               publishVisiblePeople()
+               publishVisiblePeople(restoredPersonId = personId)
 
                Alog.e(TAG, "commitRemove failed: ${throwable.message}")
                _effectDelegate.emit(
@@ -165,11 +177,13 @@ class PeopleViewModel(
    // UI-only removal filter.
    private fun publishVisiblePeople(
       isLoading: Boolean = _stateFlow.value.isLoading,
+      restoredPersonId: String? = _stateFlow.value.restoredPersonId,
    ) {
       _stateFlow.update { state: PeopleUiState ->
          state.copy(
             people = _visualRemoval.visibleItems(),
             isLoading = isLoading,
+            restoredPersonId = restoredPersonId,
          )
       }
    }
@@ -205,24 +219,23 @@ class PeopleViewModel(
  *   Das Repository bleibt während des Undo-Fensters unverändert. ShowUndo wird
  *   als einmaliger Effect erzeugt und gehört deshalb nicht in PeopleUiState.
  *
- * - UndoRemove hebt nur den temporären Filter im VisualRemovalDelegate auf.
- *   Eine Repository-Operation muss nicht rückgängig gemacht werden, weil die
- *   persistente Löschung zu diesem Zeitpunkt noch gar nicht erfolgt ist.
+ * - UndoRemove hebt den temporären Filter im VisualRemovalDelegate auf und setzt
+ *   zusätzlich restoredPersonId. Dieser kurzlebige State erlaubt der LazyColumn,
+ *   ein am oberen oder unteren Rand wiederhergestelltes Element sichtbar zu machen.
+ *
+ * - RestoreHandled bestätigt anschließend den einmaligen Scroll-Auftrag und setzt
+ *   restoredPersonId wieder auf null. Der eigentliche Scrollvorgang bleibt damit
+ *   eine UI-Aufgabe; das ViewModel kennt keinen LazyListState.
  *
  * - Erst CommitRemove führt _repository.remove(...) aus. Nach Erfolg beendet
  *   commit(...) den Pending-Zustand; nach Fehler stellt restore(...) das Element
  *   wieder her und das ViewModel erzeugt zusätzlich ShowError.
- *
- * - Der Delegate kennt weder Repository, StateFlow, Coroutines, Strings noch
- *   Effects. Diese Verantwortungen bleiben im ViewModel. Dadurch wird das
- *   ViewModel kürzer, ohne die eigentliche Anwendungslogik zu verstecken.
  *
  * Lernziele:
  *
  * - State, Intent und Effect weiterhin konsequent voneinander unterscheiden.
  * - Temporären UI-Zustand von persistiertem Repository-State trennen.
  * - Kotlin Interface Delegation und Delegation durch Komposition unterscheiden.
- * - Dependency Injection zur Bereitstellung eines Delegationsobjekts nutzen.
+ * - Einen einmaligen UI-Auftrag über State plus Acknowledge modellieren.
  * - Undo vor einer destruktiven Persistenzoperation implementieren.
- * - ViewModels durch klar abgegrenzte, testbare Verantwortlichkeiten lesbar halten.
  */
