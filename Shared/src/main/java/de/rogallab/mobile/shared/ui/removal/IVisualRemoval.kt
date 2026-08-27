@@ -24,8 +24,8 @@ interface IVisualRemoval<T> {
    // Returns the item that still waits for the final persistence operation.
    fun pending(id: String): T?
 
-   // Marks a successful persistence operation as completed. The item remains
-   // hidden until update(...) confirms that it disappeared from the source.
+   // Marks a successful persistence operation as completed. The temporary
+   // hidden state ends once the source list has confirmed the removal.
    fun commit(id: String)
 
    // Restores an item after the persistence operation failed.
