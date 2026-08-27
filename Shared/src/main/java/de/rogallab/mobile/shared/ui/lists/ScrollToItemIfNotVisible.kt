@@ -27,8 +27,10 @@ fun <T, K> ScrollToItemIfNotVisible(
       }
 
       if (index >= 0) {
+         // Compare stable item keys instead of indices. After remove/restore,
+         // the same index may temporarily refer to a different visible item.
          val isVisible = listState.layoutInfo.visibleItemsInfo.any { itemInfo ->
-            itemInfo.index == index
+            itemInfo.key == key
          }
 
          if (!isVisible) {
@@ -50,9 +52,12 @@ fun <T, K> ScrollToItemIfNotVisible(
  *   entfernte Eintrag wieder sichtbar sein. Die Funktion sucht dazu den Index
  *   des Elements in der aktuellen Liste.
  *
- * - Über LazyListState.layoutInfo.visibleItemsInfo wird zuerst geprüft, ob das
- *   Ziel bereits im sichtbaren Bereich liegt. Nur wenn es außerhalb liegt,
- *   wird mit animateScrollToItem(...) gescrollt.
+ * - Die Sichtbarkeitsprüfung verwendet den stabilen Item-Key. Ein Index reicht
+ *   nach Remove/Undo nicht aus, weil sich die Personen an derselben Position
+ *   verschieben können, während LazyListState noch Layoutinformationen enthält.
+ *
+ * - Nur wenn der konkrete Key außerhalb des sichtbaren Bereichs liegt, wird
+ *   mit animateScrollToItem(...) zu seinem aktuellen Index gescrollt.
  *
  * - onHandled() bestätigt die Verarbeitung des Auftrags. Das ViewModel kann
  *   anschließend den targetKey wieder auf null setzen und verhindert damit,
@@ -61,6 +66,7 @@ fun <T, K> ScrollToItemIfNotVisible(
  * Lernziele:
  *
  * - LazyListState zur gezielten Steuerung einer LazyColumn verwenden.
+ * - Stabile Keys auch für die Zuordnung sichtbarer LazyList-Elemente verwenden.
  * - Einmalige UI-Aufträge über State und anschließendes Acknowledge modellieren.
  * - Generische UI-Hilfsfunktionen unabhängig von konkreten Entities entwerfen.
  */
