@@ -33,66 +33,46 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
-   // Normalize the optional navigation parameter.
    // A null or blank id means that a new person is being created.
-   private val _personId =
-      personId?.takeUnless(String::isBlank)
-
-   private val _isNew =
-      _personId == null
+   private val _personId = personId?.takeUnless(String::isBlank)
+   private val _isNew = _personId == null
 
    // Prevent duplicate repository writes while a Save operation is running.
    // This is internal processing state and therefore not part of PersonUiState.
    private var _isSaving = false
 
-   // A new person can be edited immediately.
-   // An existing person has to be loaded from the repository first.
+   // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew)
-         PersonUiState(
-            isNew = true,
-            isLoading = false
-         )
-      else
-         PersonUiState(
-            isNew = false,
-            isLoading = true
-         )
+      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      else PersonUiState(isNew = false, isLoading = true)
 
-   // Mutable state is kept private inside the ViewModel.
+   // Mutable PersonUiState is kept private inside the ViewModel.
    private val _stateFlow: MutableStateFlow<PersonUiState> =
       MutableStateFlow(_initialState)
-
-   // The UI observes only the read-only StateFlow.
+   // Exposes the PersonUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PersonUiState> =
       _stateFlow.asStateFlow()
 
+   // Load the existing person when the ViewModel is detail mode.
    init {
-      // Existing persons are loaded automatically when the ViewModel is created.
-      if (!_isNew) {
-         loadPerson(_personId!!)
-      }
+      if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person and initializes the image edit session
-   // with the image currently stored by the entity.
+   // Loads an existing person from the repository
    private fun loadPerson(id: String) {
       viewModelScope.launch {
-
-         // Keep the current state and only switch the loading flag.
+         // Indicate that the loading operation is in progress.
          _stateFlow.update { state: PersonUiState ->
             state.copy(isLoading = true)
          }
 
-         // Simulate a visible loading operation for the teaching example.
+         // Simulate a longer loading operation.
          delay(1000)
 
          _repository.findById(id)
             .onSuccess { person ->
                // A successful repository call may still return no matching person.
                if (person == null) {
-                  // Errors are one-time UI effects and therefore do not belong
-                  // to the persistent PersonUiState.
                   val error = _stringProvider.getString(R.string.error_person_not_found)
                   _effectDelegate.emit(PersonEffect.ShowError(error))
 
@@ -106,7 +86,7 @@ class PersonViewModel(
                // The delegate remembers this image as the original selection.
                _imageEdit.start(listOfNotNull(person.imagePath))
 
-               // Publish the loaded person as the new persistent UI state.
+               // Store the loaded person and finish the loading operation.
                _stateFlow.update { state: PersonUiState ->
                   state.copy(person = person, isLoading = false)
                }
@@ -125,8 +105,7 @@ class PersonViewModel(
       }
    }
 
-   // Single public entry point for all events coming from the UI layer.
-   // The dispatcher forwards every intent to a private ViewModel function.
+   // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -162,7 +141,7 @@ class PersonViewModel(
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
-   // Convert an empty input field back to the nullable domain representation.
+   // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty())  emailNullable = email.trim()
@@ -171,7 +150,7 @@ class PersonViewModel(
       }
    }
 
-   // Convert an empty input field back to the nullable domain representation.
+   // Updates the optional phone number while keeping all other state values.
    private fun changePhone(phone: String) {
       var phoneNullable: String? = null
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
@@ -240,7 +219,7 @@ class PersonViewModel(
    // Validate and persist the current person.
    private fun save() {
 
-      // Ignore another Save request while a repository write is still running.
+      // Prevent multiple concurrent save operations.
       if (_isSaving) return
 
       // Normalize all form values before validation and persistence.
@@ -281,16 +260,16 @@ class PersonViewModel(
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = person)
       }
+
+      // Update: save operation is in progress.
       _isSaving = true
 
       viewModelScope.launch {
 
          // New entities are inserted, existing entities are updated.
          val result =
-            if (_isNew)
-               _repository.create(person)
-            else
-               _repository.update(person)
+            if (_isNew) _repository.create(person)
+            else _repository.update(person)
 
          result
             .onSuccess {
@@ -313,6 +292,7 @@ class PersonViewModel(
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 
+         // Update: save operation is finished
          _isSaving = false
       }
    }

@@ -75,7 +75,7 @@ class PeopleViewModel(
             state.copy(isLoading = true)
          }
 
-         delay(2500)
+         delay(1000)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result

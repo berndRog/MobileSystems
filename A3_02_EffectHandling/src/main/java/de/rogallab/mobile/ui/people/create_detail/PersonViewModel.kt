@@ -27,24 +27,23 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
-   // Normalize the optional person id.
    // A null or blank id means that a new person is created.
    private val _personId = personId?.takeUnless(String::isBlank)
    private val _isNew = _personId == null
+
+   // Prevent duplicate repository writes while a Save operation is running.
+   // This is internal processing state and therefore not part of PersonUiState.
    private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew)
-         PersonUiState(isNew = true, isLoading = false)
-      else
-         PersonUiState(isNew = false, isLoading = true)
+      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      else PersonUiState(isNew = false, isLoading = true)
 
-   // Holds the persistent UI state of the person screen.
+   // Mutable PersonUiState is kept private inside the ViewModel.
    private val _stateFlow: MutableStateFlow<PersonUiState> =
       MutableStateFlow(_initialState)
-
-   // Exposes the state as a read-only StateFlow to the UI.
+   // Exposes the PersonUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PersonUiState> =
       _stateFlow.asStateFlow()
 
@@ -53,7 +52,7 @@ class PersonViewModel(
       if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person from the repository.
+   // Load the existing person when the ViewModel is detail mode.
    private fun loadPerson(id: String) {
       viewModelScope.launch {
          // Indicate that the loading operation is in progress.
@@ -67,7 +66,6 @@ class PersonViewModel(
          // Find the person by id.
          _repository.findById(id)
             .onSuccess { person ->
-
                // A successful Result may still contain null if no person exists.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
@@ -85,6 +83,7 @@ class PersonViewModel(
                }
             }
             .onFailure { throwable ->
+               // Repository failures are converted into a localized UI effect.
                val error = _stringProvider.getString(R.string.error_person_load)
                _effectDelegate.emit(PersonEffect.ShowError(error))
 
@@ -96,7 +95,7 @@ class PersonViewModel(
       }
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
+   // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -110,13 +109,13 @@ class PersonViewModel(
       }
    }
 
-   // Updates the first name in the current UI state.
+   // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
-   // Updates the last name in the current UI state.
+   // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
@@ -148,6 +147,7 @@ class PersonViewModel(
       // Prevent multiple concurrent save operations.
       if (_isSaving) return
 
+      // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
 
       // Sanitize the email address before final validation.
@@ -172,13 +172,18 @@ class PersonViewModel(
          }
       }
 
-      // Perform final validation before writing to the repository.
-      val errorMessage = _validator.validatePerson(person)
-      if (errorMessage != null) {
+      // Validate the complete entity before accessing the repository.
+      val error = _validator.validatePerson(person)
+      if (error != null) {
          viewModelScope.launch {
-            _effectDelegate.emit(PersonEffect.ShowError(errorMessage))
+            _effectDelegate.emit(PersonEffect.ShowError(error))
          }
          return
+      }
+
+      // Publish the normalized and validated person before saving it.
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(person = person)
       }
 
       // Update: save operation is in progress.
@@ -186,13 +191,14 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // Create a new person or update the existing person.
+         // New entities are inserted, existing entities are updated.
          val result =
             if (_isNew) _repository.create(person)
             else _repository.update(person)
 
          result
             .onSuccess {
+               // First show the success message...
                val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
             }

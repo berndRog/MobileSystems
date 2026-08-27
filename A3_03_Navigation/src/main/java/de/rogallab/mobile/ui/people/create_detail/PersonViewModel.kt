@@ -27,28 +27,27 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
-   // Normalize the optional person id.
-   // A null or blank id means that a new person is created.
+   // A null or blank id means that a new person is being created.
    private val _personId = personId?.takeUnless(String::isBlank)
    private val _isNew = _personId == null
+
+   // Prevent duplicate repository writes while a Save operation is running.
+   // This is internal processing state and therefore not part of PersonUiState.
    private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew)
-         PersonUiState(isNew = true, isLoading = false)
-      else
-         PersonUiState(isNew = false, isLoading = true)
+      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      else PersonUiState(isNew = false, isLoading = true)
 
-   // Holds the persistent UI state of the person screen.
+   // Mutable PersonUiState is kept private inside the ViewModel.
    private val _stateFlow: MutableStateFlow<PersonUiState> =
       MutableStateFlow(_initialState)
-
-   // Exposes the state as a read-only StateFlow to the UI.
+   // Exposes the PersonUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PersonUiState> =
       _stateFlow.asStateFlow()
 
-   // Load the existing person when the ViewModel is created in edit mode.
+   // Load the existing person when the ViewModel is detail mode.
    init {
       if (!_isNew) loadPerson(_personId!!)
    }
@@ -56,7 +55,6 @@ class PersonViewModel(
    // Loads an existing person from the repository.
    private fun loadPerson(id: String) {
       viewModelScope.launch {
-
          // Indicate that the loading operation is in progress.
          _stateFlow.update { state: PersonUiState ->
             state.copy(isLoading = true)
@@ -73,6 +71,7 @@ class PersonViewModel(
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
                   _effectDelegate.emit(PersonEffect.ShowError(error))
+
                   _stateFlow.update { state: PersonUiState ->
                      state.copy(isLoading = false)
                   }
@@ -85,8 +84,10 @@ class PersonViewModel(
                }
             }
             .onFailure { throwable ->
+               // Repository failures are converted into a localized UI effect.
                val error = _stringProvider.getString(R.string.error_person_load)
                _effectDelegate.emit(PersonEffect.ShowError(error))
+
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isLoading = false)
                }
@@ -108,19 +109,19 @@ class PersonViewModel(
       }
    }
 
-   // Updates the first name in the current UI state.
+   // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
-   // Updates the last name in the current UI state.
+   // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
-   // Updates the optional email address in the current UI state.
+   // Updates the optional email address while keeping the current UI state.
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty()) emailNullable = email.trim()
@@ -130,7 +131,7 @@ class PersonViewModel(
       }
    }
 
-   // Updates the optional phone number in the current UI state.
+   // Updates the optional phone number while keeping the current UI state.
    private fun changePhone(phone: String) {
       var phoneNullable: String? = null
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
@@ -146,6 +147,7 @@ class PersonViewModel(
       // Prevent multiple concurrent save operations.
       if (_isSaving) return
 
+      // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
 
       // Sanitize the email address before final validation.
@@ -171,10 +173,10 @@ class PersonViewModel(
       }
 
       // Perform final validation before writing to the repository.
-      val errorMessage = _validator.validatePerson(person)
-      if (errorMessage != null) {
+      val error = _validator.validatePerson(person)
+      if (error != null) {
          viewModelScope.launch {
-            _effectDelegate.emit(PersonEffect.ShowError(errorMessage))
+            _effectDelegate.emit(PersonEffect.ShowError(error))
          }
          return
       }
@@ -184,7 +186,7 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // Create a new person or update the existing person.
+         // New entities are inserted, existing entities are updated.
          val result =
             if (_isNew) _repository.create(person)
             else _repository.update(person)
@@ -215,6 +217,7 @@ class PersonViewModel(
          )
       }
 
+      // Navigation is emitted
       viewModelScope.launch {
          // The adapter translates this effect into a Navigation 3 operation.
          _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
