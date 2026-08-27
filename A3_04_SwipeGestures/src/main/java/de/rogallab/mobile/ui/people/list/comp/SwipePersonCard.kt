@@ -15,14 +15,13 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
-import kotlinx.coroutines.launch
 
 @Composable
 fun SwipePersonCard(
@@ -37,7 +36,22 @@ fun SwipePersonCard(
    modifier: Modifier = Modifier,
 ) {
    val swipeState = rememberSwipeToDismissBoxState()
-   val coroutineScope = rememberCoroutineScope()
+
+   // Handle a completed swipe in one coroutine. Reset the Material state first
+   // so a restored list item cannot replay the previous dismiss direction.
+   LaunchedEffect(swipeState.settledValue) {
+      val direction = swipeState.settledValue
+      if (direction == SwipeToDismissBoxValue.Settled)
+         return@LaunchedEffect
+
+      swipeState.snapTo(SwipeToDismissBoxValue.Settled)
+
+      when (direction) {
+         SwipeToDismissBoxValue.StartToEnd -> onEdit()
+         SwipeToDismissBoxValue.EndToStart -> onDelete()
+         SwipeToDismissBoxValue.Settled -> Unit
+      }
+   }
 
    SwipeToDismissBox(
       state = swipeState,
@@ -92,19 +106,6 @@ fun SwipePersonCard(
             }
          }
       },
-      onDismiss = { direction ->
-         coroutineScope.launch {
-            // The swipe is only an input trigger. Reset the Material swipe state
-            // before navigation or visual removal changes the surrounding UI.
-            swipeState.snapTo(SwipeToDismissBoxValue.Settled)
-
-            when (direction) {
-               SwipeToDismissBoxValue.StartToEnd -> onEdit()
-               SwipeToDismissBoxValue.EndToStart -> onDelete()
-               SwipeToDismissBoxValue.Settled -> Unit
-            }
-         }
-      },
    ) {
       PersonCard(
          firstName = firstName,
@@ -128,13 +129,13 @@ fun SwipePersonCard(
  * - backgroundContent macht die beiden möglichen Aktionen bereits während
  *   der Geste sichtbar. Farbe und Symbol ändern sich abhängig von targetValue.
  *
- * - Die Swipe-Geste ist nur ein Eingabe-Trigger. Vor onEdit() oder onDelete()
- *   wird der SwipeToDismissBoxState deshalb mit snapTo(Settled) zurückgesetzt.
- *   Die Card bleibt nicht im internen Material-Dismiss-Zustand hängen.
+ * - Die fachliche Aktion wird erst verarbeitet, wenn settledValue eine
+ *   abgeschlossene Swipe-Richtung meldet. Ein eigener LaunchedEffect kann den
+ *   suspendierenden Reset und den anschließenden Callback sequenziell ausführen.
  *
- * - Das ist für Undo besonders wichtig: Wird dieselbe Person wieder in die
- *   LazyColumn eingefügt, darf ein alter EndToStart-Zustand nicht unmittelbar
- *   einen zweiten Delete-Callback auslösen.
+ * - Vor onEdit() oder onDelete() wird der SwipeToDismissBoxState immer mit
+ *   snapTo(Settled) zurückgesetzt. Dadurch kann ein per Undo wieder eingefügter
+ *   Eintrag keinen alten EndToStart-Zustand als neue Löschgeste wiederholen.
  *
  * Lernziele:
  *
