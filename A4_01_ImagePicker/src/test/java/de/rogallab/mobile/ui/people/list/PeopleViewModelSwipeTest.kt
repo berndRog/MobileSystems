@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.removal.VisualRemovalDelegate
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -25,10 +26,19 @@ class PeopleViewModelSwipeTest {
    private val grace = Person(firstName = "Grace", lastName = "Hopper", id = "p2")
    private val stringProvider = FakeStringProvider()
 
+   // Creates a ViewModel with its own temporary removal state for every test.
+   private fun createViewModel(repository: FakePersonRepository) =
+      PeopleViewModel(
+         _repository = repository,
+         _stringProvider = stringProvider,
+         _visualRemoval = VisualRemovalDelegate<Person> { person -> person.id },
+         _effectDelegate = EffectDelegate(),
+      )
+
    @Test
    fun remove_hidesPersonButDoesNotTouchRepository() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.effects.test {
@@ -52,7 +62,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun undoRemove_restoresPersonWithoutRepositoryDelete() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.onIntent(PeopleIntent.Remove(ada))
@@ -67,7 +77,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun commitRemove_deletesFromRepositoryOnlyAfterUndoWindow() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.onIntent(PeopleIntent.Remove(ada))
@@ -86,7 +96,7 @@ class PeopleViewModelSwipeTest {
       val repository = FakePersonRepository(listOf(ada, grace)).apply {
          removeResult = Result.failure(IllegalStateException("delete failed"))
       }
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.onIntent(PeopleIntent.Remove(ada))
@@ -109,7 +119,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun removingSamePersonTwice_createsOnlyOnePendingUndo() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.effects.test {
@@ -128,7 +138,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun commitUnknownPerson_doesNotTouchRepository() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+      val viewModel = createViewModel(repository)
       advanceUntilIdle()
 
       viewModel.onIntent(PeopleIntent.CommitRemove("unknown"))
