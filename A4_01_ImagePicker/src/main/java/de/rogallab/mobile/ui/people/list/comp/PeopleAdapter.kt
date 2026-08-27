@@ -96,6 +96,10 @@ fun PeopleAdapter(
 
             PeopleScreen(
                people = people,
+               restoredPersonId = peopleUiState.restoredPersonId,
+               onRestoreHandled = {
+                  viewModel.onIntent(PeopleIntent.RestoreHandled)
+               },
                onDetail = { personId ->
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
@@ -167,10 +171,11 @@ private fun PeopleCreateButton(
  *      NavigateBack -> onBack()
  *      NavigateTo   -> onNavigateTo()
  *
- * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
- *   nicht die spätere Navigationsimplementierung.
+ * - restoredPersonId wird als State an PeopleScreen weitergegeben. Nachdem der
+ *   Screen geprüft hat, ob das wiederhergestellte Element sichtbar ist, sendet
+ *   der Adapter RestoreHandled zurück an das ViewModel.
  *
- * - ShowUndo wird jetzt als Action-Snackbar weitergereicht. Die eigentliche
+ * - ShowUndo wird als Action-Snackbar weitergereicht. Die eigentliche
  *   Entscheidung Undo oder Commit erfolgt oberhalb des Adapters, nachdem die
  *   Snackbar beendet wurde.
  *
@@ -178,6 +183,6 @@ private fun PeopleCreateButton(
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
- * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
+ * - Einmalige UI-Aufträge über State plus Intent bestätigen.
  * - Swipe, Undo und Navigation über klar getrennte Callbacks verbinden.
  */
