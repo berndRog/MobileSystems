@@ -12,6 +12,9 @@ sealed interface PeopleIntent {
    // Restores a visually removed person while the Undo action is still valid.
    data class UndoRemove(val personId: String) : PeopleIntent
 
+   // Acknowledges that the restored item has been made visible by the UI.
+   data object RestoreHandled : PeopleIntent
+
    // Persists the deletion only after the Undo action was not selected.
    data class CommitRemove(val personId: String) : PeopleIntent
 }
