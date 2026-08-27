@@ -15,13 +15,16 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun SwipePersonCard(
@@ -36,20 +39,26 @@ fun SwipePersonCard(
    modifier: Modifier = Modifier,
 ) {
    val swipeState = rememberSwipeToDismissBoxState()
+   val coroutineScope = rememberCoroutineScope()
 
-   // Handle a completed swipe in one coroutine. Reset the Material state first
-   // so a restored list item cannot replay the previous dismiss direction.
-   LaunchedEffect(swipeState.settledValue) {
-      val direction = swipeState.settledValue
-      if (direction == SwipeToDismissBoxValue.Settled)
-         return@LaunchedEffect
+   // Keep the dismiss handler stable across recompositions. The latest callbacks
+   // are read through rememberUpdatedState without replacing the handler itself.
+   val onEditState = rememberUpdatedState(onEdit)
+   val onDeleteState = rememberUpdatedState(onDelete)
 
-      swipeState.snapTo(SwipeToDismissBoxValue.Settled)
+   val onDismiss = remember(swipeState, coroutineScope) {
+      { direction: SwipeToDismissBoxValue ->
+         coroutineScope.launch {
+            // Reset the Material state before navigation or visual removal changes
+            // the surrounding composition.
+            swipeState.snapTo(SwipeToDismissBoxValue.Settled)
 
-      when (direction) {
-         SwipeToDismissBoxValue.StartToEnd -> onEdit()
-         SwipeToDismissBoxValue.EndToStart -> onDelete()
-         SwipeToDismissBoxValue.Settled -> Unit
+            when (direction) {
+               SwipeToDismissBoxValue.StartToEnd -> onEditState.value()
+               SwipeToDismissBoxValue.EndToStart -> onDeleteState.value()
+               SwipeToDismissBoxValue.Settled -> Unit
+            }
+         }
       }
    }
 
@@ -106,6 +115,7 @@ fun SwipePersonCard(
             }
          }
       },
+      onDismiss = onDismiss,
    ) {
       PersonCard(
          firstName = firstName,
@@ -129,13 +139,18 @@ fun SwipePersonCard(
  * - backgroundContent macht die beiden möglichen Aktionen bereits während
  *   der Geste sichtbar. Farbe und Symbol ändern sich abhängig von targetValue.
  *
- * - Die fachliche Aktion wird erst verarbeitet, wenn settledValue eine
- *   abgeschlossene Swipe-Richtung meldet. Ein eigener LaunchedEffect kann den
- *   suspendierenden Reset und den anschließenden Callback sequenziell ausführen.
+ * - onDismiss wird als stabiler Callback mit remember(...) gehalten. Dadurch
+ *   erzeugt eine Recomposition nicht während eines abgeschlossenen Swipes einen
+ *   neuen Dismiss-Handler. rememberUpdatedState stellt trotzdem sicher, dass
+ *   immer die aktuellen onEdit- und onDelete-Callbacks verwendet werden.
  *
  * - Vor onEdit() oder onDelete() wird der SwipeToDismissBoxState immer mit
- *   snapTo(Settled) zurückgesetzt. Dadurch kann ein per Undo wieder eingefügter
- *   Eintrag keinen alten EndToStart-Zustand als neue Löschgeste wiederholen.
+ *   snapTo(Settled) zurückgesetzt. Erst danach darf Navigation oder eine
+ *   sichtbare Listenänderung die umgebende Composition verändern.
+ *
+ * - Das ist für Undo besonders wichtig: Wird dieselbe Person mit ihrem stabilen
+ *   Key wieder eingefügt, darf der vorherige EndToStart-Zustand keinen zweiten
+ *   Delete-Callback auslösen.
  *
  * Lernziele:
  *
