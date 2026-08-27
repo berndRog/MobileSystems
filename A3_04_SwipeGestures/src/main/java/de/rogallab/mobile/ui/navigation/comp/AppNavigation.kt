@@ -47,7 +47,7 @@ fun AppNavigation() {
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
-   // Creates the standard saveable Navigation 3 back stack.
+   // Reuse the saveable Navigation 3 back stack introduced in A3_03.
    val backStack = rememberNavBackStack(PeopleKey)
 
    // The list ViewModel is kept above NavDisplay so pending visual removals
@@ -101,7 +101,7 @@ fun AppNavigation() {
             rememberViewModelStoreNavEntryDecorator(),
          ),
 
-         // Keeps the visible navigation animations from the previous project.
+         // Navigation animations remain unchanged from the preceding step.
          transitionSpec = NavigationAnimations.enterTransitionSpec,
          popTransitionSpec =
             NavigationAnimations.popTransitionSpec(currentPopReason),
@@ -122,8 +122,8 @@ fun AppNavigation() {
                   onMessage = snackbarController::showMessage,
                   onError = snackbarController::showError,
 
-                  // The person is only hidden from the UI at this point.
-                  // The Snackbar result decides between Undo and repository commit.
+                  // Remove is visual first. The Snackbar result decides whether
+                  // the item is restored or finally removed from the repository.
                   onUndo = { message, actionLabel, personId ->
                      snackbarController.showAction(
                         message = message,
@@ -156,7 +156,8 @@ fun AppNavigation() {
                )
             }
 
-            // Shared destination for create and edit.
+            // Person editing is unchanged from A3_03. A3_04 adds Swipe only to
+            // the list feature; image selection is intentionally not introduced yet.
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
@@ -168,12 +169,10 @@ fun AppNavigation() {
                      .padding(contentPadding)
                      .fillMaxSize(),
 
-                  // showMessage() starts its coroutine in this navigation-level
-                  // controller before NavigateBack removes the Person destination.
                   onMessage = snackbarController::showMessage,
                   onError = snackbarController::showError,
 
-                  onBack = { reason ->
+                  onNavigateBack = { reason ->
                      currentPopReason =
                         when (reason) {
                            BackReason.Save -> PopReason.SAVE
@@ -245,48 +244,38 @@ private fun logNavigationOperation(
 /*
  * Didaktik und Lernziele
  *
- * - A3_05_SwipeGestures verwendet den standardmäßigen saveable Navigation-3-Back-Stack:
+ * - A3_04_SwipeGestures baut unmittelbar auf A3_03_Navigation auf. Der
+ *   Navigation-3-Back-Stack, die Effects und die Navigationsanimationen bleiben
+ *   erhalten; neu hinzu kommen Gesten, Listenanimation und Undo.
  *
- *      val backStack = rememberNavBackStack(PeopleKey)
+ * - Die Person-Bearbeitung bleibt gegenüber A3_03 unverändert. Insbesondere
+ *   enthält dieses Beispiel noch keine Gallery-/Camera-Auswahl und keinen
+ *   Lebenszyklus temporärer Bilddateien. Dieses Thema beginnt erst mit A4_01.
  *
  * - Navigation und Meldungsausgabe bleiben bewusst getrennt:
  *
  *      NavigateTo / NavigateBack -> Navigation-3-Back-Stack
  *      ShowMessage / ShowError   -> SnackbarController
- *
- * - Der SnackbarController wird oberhalb des NavDisplay erzeugt. Sein
- *   CoroutineScope bleibt deshalb bei einem Destination-Wechsel bestehen.
- *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
- *   People-Liste weiter angezeigt werden.
- *
- * - Ein Ladefehler im PersonScreen erzeugt dagegen nur ShowError. Es findet
- *   keine Navigation statt und die Fehlermeldung erscheint im selben Screen.
- *
- * - Eine eigene Coordinator-Queue ist nicht erforderlich. SnackbarHostState
- *   serialisiert gleichzeitig angeforderte Snackbars bereits selbst.
- *
- * - Save und Cancel setzen unterschiedliche PopReason-Werte. Die vorhandenen
- *   Animationen machen damit die Art der Rücknavigation sichtbar.
+ *      ShowUndo                  -> Action-Snackbar
  *
  * - PeopleViewModel wird oberhalb des NavDisplay erzeugt. Dadurch bleiben
  *   pending Removals und die Undo-Zuordnung erhalten, auch wenn zwischenzeitlich
  *   zum PersonScreen navigiert wird.
  *
- * - Die beiden Ergebnisse der Action-Snackbar werden getrennt behandelt:
+ * - Swipe-to-Delete verändert zunächst nur den sichtbaren UI-State. Die beiden
+ *   Ergebnisse der Action-Snackbar werden anschließend getrennt behandelt:
  *
  *      ActionPerformed -> PeopleIntent.UndoRemove
  *      Dismissed       -> PeopleIntent.CommitRemove
  *
- *   Das Repository wird damit erst angefasst, wenn die Undo-Möglichkeit nicht
- *   genutzt wurde.
+ *   Das Repository wird erst angefasst, wenn die Undo-Möglichkeit nicht genutzt
+ *   wurde. Damit bleibt die destruktive Änderung bis zum Ende des Undo-Fensters
+ *   reversibel.
  *
  * Lernziele:
  *
- * - Navigation 3 mit rememberNavBackStack, NavDisplay und NavKey einsetzen.
- * - Screenübergreifende Meldungen mit einem navigationweit lebenden
- *   SnackbarController darstellen.
- * - Navigation und globale UI-Meldungen als getrennte Verantwortlichkeiten
- *   verstehen.
- * - Vorhandene Material-3-Infrastruktur statt einer eigenen Message-Queue nutzen.
- * - Unterschiedliche Navigationsarten über Animationen sichtbar machen.
+ * - Den in A3_03 aufgebauten State-/Effect-/Navigation-Fluss weiterverwenden.
+ * - Swipe-Gesten und Listenanimationen als Compose-nahe Erweiterung ergänzen.
+ * - Visuellen UI-State und persistierten Repository-State unterscheiden.
+ * - Undo vor der endgültigen Persistenz einer Löschung ermöglichen.
  */

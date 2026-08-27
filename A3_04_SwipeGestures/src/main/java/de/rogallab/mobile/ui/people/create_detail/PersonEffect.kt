@@ -14,7 +14,5 @@ sealed interface PersonEffect {
    data class ShowError(val message: String) : PersonEffect
 
    // Navigates back to the previous screen. Handled by the Navigation 3 layer.
-   data class NavigateBack(
-      val reason: BackReason,
-   ) : PersonEffect
+   data class NavigateBack(val reason: BackReason) : PersonEffect
 }

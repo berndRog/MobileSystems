@@ -5,5 +5,5 @@ import de.rogallab.mobile.domain.entities.Person
 data class PersonUiState(
    val person: Person = Person(),
    val isNew: Boolean = true,
-   val isLoading: Boolean = false,
+   val isLoading: Boolean = false
 )

@@ -42,6 +42,7 @@ fun PeopleAdapter(
    modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
+   onUndo: (String, String, String) -> Unit,
    onBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
@@ -50,14 +51,19 @@ fun PeopleAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the persistent UI state from the ViewModel.
-   val peopleUiState: PeopleUiState
-      by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val peopleUiState: PeopleUiState by
+   viewModel.stateFlow.collectAsStateWithLifecycle()
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
+         is PeopleEffect.ShowUndo -> onUndo(
+            peopleEffect.message,
+            peopleEffect.actionLabel,
+            peopleEffect.personId,
+         )
          PeopleEffect.NavigateBack -> onBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
@@ -81,6 +87,7 @@ fun PeopleAdapter(
                verticalArrangement = Arrangement.Top,
                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+               Alog.d(tag, "Loading People...")
                CircularProgressIndicator(modifier = Modifier.size(64.dp))
             }
          }
@@ -90,9 +97,15 @@ fun PeopleAdapter(
             PeopleScreen(
                people = people,
                onDetail = { personId ->
+                  Alog.d(tag, "Navigate to Detail: $personId")
+                  viewModel.onIntent(PeopleIntent.Detail(personId))
+               },
+               onEdit = { personId ->
+                  Alog.d(tag, "Swipe edit: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
                onDelete = { personId ->
+                  Alog.d(tag, "Delete: $personId")
                   val person = people.find { it.id == personId }
                   if (person != null)
                      viewModel.onIntent(PeopleIntent.Remove(person))
@@ -104,6 +117,7 @@ fun PeopleAdapter(
 
       PeopleCreateButton(
          onCreate = {
+            Alog.d(tag, "Create new person")
             viewModel.onIntent(PeopleIntent.Create)
          }
       )
@@ -156,13 +170,14 @@ private fun PeopleCreateButton(
  * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
  *   nicht die spätere Navigationsimplementierung.
  *
- * - Undo und Navigation sind bereits in der Schnittstelle vorbereitet. Die
- *   eigentliche Funktion wird erst in späteren Lernschritten ergänzt.
+ * - ShowUndo wird jetzt als Action-Snackbar weitergereicht. Die eigentliche
+ *   Entscheidung Undo oder Commit erfolgt oberhalb des Adapters, nachdem die
+ *   Snackbar beendet wurde.
  *
  * Lernziele:
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
  * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
- * - Spätere Erweiterungen wie Undo und Navigation vorbereiten.
+ * - Swipe, Undo und Navigation über klar getrennte Callbacks verbinden.
  */

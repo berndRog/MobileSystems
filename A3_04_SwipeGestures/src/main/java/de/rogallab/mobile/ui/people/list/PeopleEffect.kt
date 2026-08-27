@@ -8,7 +8,8 @@ sealed interface PeopleEffect {
    // Shows an error message that must be acknowledged by the user.
    data class ShowError(val message: String) : PeopleEffect
 
-   // Shows a message with an Undo action. The action is activated in A3_05.
+   // Requests an Action Snackbar for a person that is currently hidden only
+   // from the visible UI state. The result decides between Undo and CommitRemove.
    data class ShowUndo(
       val message: String,
       val actionLabel: String,

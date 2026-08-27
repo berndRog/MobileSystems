@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">A3_04 ImagePicker</string>
+  <string name="app_name">A4_01 ImagePicker</string>
 
   <string name="person_create">Person hinzufügen</string>
   <string name="person_detail">Person bearbeiten</string>
@@ -18,6 +18,7 @@
   <string name="action_send">Senden</string>
   <string name="action_save">Speichern</string>
   <string name="action_cancel">Abbrechen</string>
+  <string name="action_edit">Bearbeiten</string>
   <string name="action_delete">Löschen</string>
   <string name="action_back">Zurück</string>
   <string name="action_undo">Rückgängig</string>
