@@ -8,21 +8,26 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.components.SwipeCard
 
 @Composable
 fun PeopleScreen(
    people: List<Person>,
    onDetail: (String) -> Unit,
-   onEdit: (String) -> Unit,
    onDelete: (String) -> Unit,
    modifier: Modifier = Modifier,
 ) {
    val tag = "<-PeopleScreen"
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
+
+   val detailContentDescription = stringResource(R.string.person_detail)
+   val deleteContentDescription = stringResource(R.string.action_delete)
 
    LazyColumn(
       modifier = modifier,
@@ -33,17 +38,22 @@ fun PeopleScreen(
          key = { person: Person -> person.id },
       ) { person ->
 
-         SwipePersonCard(
-            firstName = person.firstName,
-            lastName = person.lastName,
-            email = person.email,
-            phone = person.phone,
-            imagePath = person.imagePath,
+         SwipeCard(
             onDetail = { onDetail(person.id) },
-            onEdit = { onEdit(person.id) },
             onDelete = { onDelete(person.id) },
+            detailContentDescription = detailContentDescription,
+            deleteContentDescription = deleteContentDescription,
             modifier = Modifier.animateItem(),
-         )
+         ) {
+            PersonCard(
+               firstName = person.firstName,
+               lastName = person.lastName,
+               email = person.email,
+               phone = person.phone,
+               imagePath = person.imagePath,
+               onDetail = { onDetail(person.id) },
+            )
+         }
       }
    }
 }
@@ -51,11 +61,15 @@ fun PeopleScreen(
 /*
  * Didaktik und Lernziele
  *
- * - A3_04 ersetzt die normale PersonCard in der LazyColumn durch
- *   SwipePersonCard. Der Screen erhält dadurch zwei zusätzliche Aktionen:
+ * - A3_04 ergänzt die PersonCard in der LazyColumn um die gemeinsame SwipeCard
+ *   aus Shared. Die konkrete PersonCard wird als content-Lambda übergeben.
  *
- *      StartToEnd -> onEdit
+ *      StartToEnd -> onDetail
  *      EndToStart -> onDelete
+ *
+ * - Ein Tap auf PersonCard und ein Swipe von StartToEnd öffnen beide denselben
+ *   PersonScreen im Modus Detail. Das Anlegen einer neuen Person bleibt davon
+ *   getrennt und wird ausschließlich über den FAB ausgelöst.
  *
  * - Die LazyColumn verwendet stabile Person-IDs als Keys. Dadurch kann Compose
  *   Listeneinträge auch nach Änderungen der Repository-Liste eindeutig
@@ -74,7 +88,7 @@ fun PeopleScreen(
  *
  * Lernziele:
  *
- * - Swipe-Gesten in einem wiederverwendbaren Listenelement kapseln.
- * - Stabile Keys und animateItem() bei dynamischen LazyColumn-Inhalten nutzen.
+ * - Eine gemeinsame Swipe-Komponente mit einem fachlichen content-Lambda nutzen.
+ * - Stabile Keys und animateItem() bei dynamischen LazyColumn-Inhalten einsetzen.
  * - UI-Geste und fachliche Aktion über Callback-Funktionen entkoppeln.
  */
