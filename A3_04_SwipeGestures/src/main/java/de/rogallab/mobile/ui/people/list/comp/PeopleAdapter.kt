@@ -42,6 +42,7 @@ fun PeopleAdapter(
    modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
+   onConfirmRemove: (String, String, String) -> Unit,
    onBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
@@ -56,10 +57,24 @@ fun PeopleAdapter(
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
-         is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
-         is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         PeopleEffect.NavigateBack -> onBack()
-         is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
+         is PeopleEffect.ShowMessage ->
+            onMessage(peopleEffect.message)
+
+         is PeopleEffect.ShowError ->
+            onError(peopleEffect.message)
+
+         is PeopleEffect.ConfirmRemove ->
+            onConfirmRemove(
+               peopleEffect.message,
+               peopleEffect.actionLabel,
+               peopleEffect.personId,
+            )
+
+         PeopleEffect.NavigateBack ->
+            onBack()
+
+         is PeopleEffect.NavigateTo ->
+            onNavigateTo(peopleEffect.personId)
       }
    }
 
@@ -86,20 +101,15 @@ fun PeopleAdapter(
             }
          }
          else {
-            val people = peopleUiState.people
-
             PeopleScreen(
-               people = people,
+               people = peopleUiState.people,
                onDetail = { personId ->
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
                onDelete = { personId ->
-                  Alog.d(tag, "Swipe delete: $personId")
-                  val person = people.find { it.id == personId }
-                  if (person != null) {
-                     viewModel.onIntent(PeopleIntent.Remove(person))
-                  }
+                  Alog.d(tag, "Request delete: $personId")
+                  viewModel.onIntent(PeopleIntent.RequestRemove(personId))
                },
                modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -151,19 +161,20 @@ private fun PeopleCreateButton(
  *   PeopleIntent.Detail abgebildet. Die Navigation muss deshalb nicht wissen,
  *   wodurch der Detail-Screen geöffnet wurde.
  *
+ * - Swipe EndToStart sendet zunächst PeopleIntent.RequestRemove. Das ViewModel
+ *   erzeugt daraufhin PeopleEffect.ConfirmRemove. Der Adapter reicht diesen
+ *   einmaligen Effect über onConfirmRemove an die Navigationsebene weiter.
+ *
+ * - Erst die Action der Bestätigungs-Snackbar führt zu ConfirmRemove und damit
+ *   zur Repository-Operation. Ein Dismiss der Snackbar verändert keine Daten.
+ *
  * - Das Anlegen einer neuen Person bleibt eine eigene Aktion und wird über den
  *   FAB als PeopleIntent.Create ausgelöst.
  *
- * - Swipe EndToStart sucht die Person anhand ihrer stabilen ID und sendet
- *   PeopleIntent.Remove an das ViewModel. In A3_04 wird damit unmittelbar aus
- *   dem Repository gelöscht.
- *
- * - Effects bleiben auf Meldungen und Navigation beschränkt. Einen ShowUndo-
- *   Effect gibt es in diesem Schritt bewusst noch nicht.
- *
  * Lernziele:
  *
- * - Neue UI-Interaktionen auf bestehende Intents abbilden.
+ * - Neue UI-Interaktionen auf Intents abbilden.
+ * - Destruktive Aktionen über einen Effect bestätigen lassen.
  * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
  * - Create und Detail als unterschiedliche fachliche Vorgänge benennen.
  */
