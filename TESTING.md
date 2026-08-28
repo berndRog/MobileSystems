@@ -19,7 +19,8 @@ Testhilfen eines Moduls liegen unter `de.rogallab.mobile.testing`.
 - A3_03_Navigation: NavigateTo/NavigateBack-Effects und Navigation 3. Die
   Snackbar-Infrastruktur benötigt keinen eigenen Coordinator-Test mehr, weil
   die Anwendung Material3 `SnackbarHostState` direkt verwendet.
-- A3_04_SwipeGestures: Swipe-to-Edit und Swipe-to-Delete. Delete wird noch
+- A3_04_SwipeGestures: Swipe-to-Detail und Swipe-to-Delete. StartToEnd öffnet
+  den PersonScreen für eine bestehende Person im Modus Detail; Delete wird noch
   unmittelbar im Repository ausgeführt. Instrumentierte Tests prüfen gezielt
   beide Swipe-Richtungen; Undo gehört bewusst noch nicht zu diesem Schritt.
 - A3_05_SwipeDeleteUndo: baut auf A3_04 auf und ergänzt visuelles Entfernen,
@@ -29,7 +30,9 @@ Testhilfen eines Moduls liegen unter `de.rogallab.mobile.testing`.
 - A4_01_ImagePicker: baut auf A3_05 auf und ergänzt Bildauswahl, Bildpfad-State
   und den Lebenszyklus temporärer/ersetzter Bilder, einschließlich erfolgreichem
   und fehlgeschlagenem Speichern.
-- Shared: `SnackbarController` und `EffectDelegate` als wiederverwendbare Basis.
+- Shared: `SnackbarController`, `EffectDelegate` und `SwipeCard` als
+  wiederverwendbare Basis. `SwipeCard` kapselt die Gestenerkennung; der konkrete
+  Karteninhalt wird vom jeweiligen Beispiel als `content`-Lambda übergeben.
   Neben dem Effect-Transport werden auch die direkten Message-/Error-Aufrufe
   sowie beide Action-Ergebnisse (`performAction`/`dismiss`) des
   `SnackbarController` lokal getestet.
