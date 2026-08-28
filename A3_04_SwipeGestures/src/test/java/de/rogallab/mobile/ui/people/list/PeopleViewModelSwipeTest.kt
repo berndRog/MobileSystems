@@ -32,13 +32,45 @@ class PeopleViewModelSwipeTest {
       )
 
    @Test
-   fun remove_deletesPersonImmediatelyAndUpdatesState() =
+   fun requestRemove_emitsConfirmationWithoutDeleting() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakePersonRepository(listOf(ada, grace))
          val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
-         viewModel.onIntent(PeopleIntent.Remove(ada))
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.RequestRemove(ada.id))
+            advanceUntilIdle()
+
+            val effect = awaitItem() as PeopleEffect.ConfirmRemove
+            assertEquals(ada.id, effect.personId)
+            assertEquals(
+               stringProvider.getString(
+                  R.string.message_person_remove_confirm,
+                  ada.firstName,
+                  ada.lastName,
+               ),
+               effect.message,
+            )
+            assertEquals(
+               stringProvider.getString(R.string.action_delete),
+               effect.actionLabel,
+            )
+            assertEquals(emptyList<Person>(), repository.removed)
+            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun confirmRemove_deletesPersonAndUpdatesState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository(listOf(ada, grace))
+         val viewModel = createViewModel(repository)
+         advanceUntilIdle()
+
+         viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
          advanceUntilIdle()
 
          assertEquals(listOf(ada), repository.removed)
@@ -46,7 +78,7 @@ class PeopleViewModelSwipeTest {
       }
 
    @Test
-   fun failedRemove_emitsErrorAndKeepsPerson() =
+   fun failedConfirmRemove_emitsErrorAndKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakePersonRepository(listOf(ada, grace)).apply {
             removeResult = Result.failure(IllegalStateException("delete failed"))
@@ -55,7 +87,7 @@ class PeopleViewModelSwipeTest {
          advanceUntilIdle()
 
          viewModel.effects.test {
-            viewModel.onIntent(PeopleIntent.Remove(ada))
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
             advanceUntilIdle()
 
             val error = awaitItem() as PeopleEffect.ShowError
@@ -65,6 +97,7 @@ class PeopleViewModelSwipeTest {
             )
             assertEquals(emptyList<Person>(), repository.removed)
             assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+
             cancelAndIgnoreRemainingEvents()
          }
       }
