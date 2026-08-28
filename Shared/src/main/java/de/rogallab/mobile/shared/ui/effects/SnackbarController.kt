@@ -38,7 +38,7 @@ class SnackbarController(
       }
    }
 
-   // Shows a message with an action, for example Undo.
+   // Shows a message with an action, for example Delete or Undo.
    fun showAction(
       message: String,
       actionLabel: String,
@@ -87,7 +87,7 @@ fun rememberSnackbarController(
  *
  *      showMessage() -> kurze Informationsmeldung
  *      showError()   -> Fehlermeldung mit Dismiss-Schaltfläche
- *      showAction()  -> Meldung mit Aktion, z. B. Undo
+ *      showAction()  -> Meldung mit Aktion, z. B. Delete oder Undo
  *
  *   Ein zusätzliches Nachrichtenobjekt mit eigenem Typ ist deshalb nicht
  *   erforderlich. Die Information wäre sonst doppelt modelliert.
@@ -107,8 +107,9 @@ fun rememberSnackbarController(
  *      ActionPerformed -> onAction()
  *      Dismissed       -> onDismiss()
  *
- *   In A3_05 wird damit Undo ausgeführt oder die Löschung erst nach Ablauf der
- *   Undo-Möglichkeit im Repository festgeschrieben.
+ *   In A3_04 bestätigt ActionPerformed eine angeforderte Löschung; Dismissed
+ *   lässt den Datensatz unverändert. In A3_05 wird dieselbe Infrastruktur für
+ *   Undo bzw. das endgültige Repository-Commit verwendet.
  *
  * Lernziele:
  *
@@ -116,5 +117,5 @@ fun rememberSnackbarController(
  * - SnackbarHostState als vorhandene Material-3-Infrastruktur wiederverwenden.
  * - Screenübergreifende Meldungen ohne Coordinator-ViewModel anzeigen.
  * - Unterschiedliche Snackbar-Varianten durch klar benannte Funktionen abbilden.
- * - Undo und endgültiges Commit über SnackbarResult unterscheiden.
+ * - Bestätigung und Undo über dieselbe Action-Snackbar-Infrastruktur abbilden.
  */
