@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">A3_04 SwipeGestures</string>
+  <string name="app_name">A3_05 SwipeDeleteUndo</string>
 
   <string name="person_create">Add person</string>
   <string name="person_detail">Edit person</string>
