@@ -47,7 +47,6 @@ class PeopleScreenRestoreTest {
                   restoredPersonId.value = null
                },
                onDetail = {},
-               onEdit = {},
                onDelete = {},
                modifier = Modifier
                   .height(180.dp)
@@ -97,7 +96,6 @@ class PeopleScreenRestoreTest {
                   restoredPersonId.value = null
                },
                onDetail = {},
-               onEdit = {},
                onDelete = {},
                modifier = Modifier
                   .height(180.dp)
