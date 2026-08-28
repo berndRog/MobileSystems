@@ -52,8 +52,8 @@ fun SwipePersonCard(
    ) {
       { direction: SwipeToDismissBoxValue ->
          coroutineScope.launch {
-            // Reset the Material state before navigation or visual removal changes
-            // the surrounding composition.
+            // Reset the Material state before navigation or a list change
+            // modifies the surrounding composition.
             swipeState.snapTo(SwipeToDismissBoxValue.Settled)
 
             when (direction) {
@@ -137,7 +137,7 @@ fun SwipePersonCard(
  * - SwipeToDismissBox wertet die horizontale Wischrichtung aus:
  *
  *      StartToEnd -> Bearbeiten
- *      EndToStart -> visuelles Löschen
+ *      EndToStart -> Löschen
  *
  * - backgroundContent macht die beiden möglichen Aktionen bereits während
  *   der Geste sichtbar. Farbe und Symbol ändern sich abhängig von targetValue.
@@ -147,13 +147,16 @@ fun SwipePersonCard(
  *   neuen Dismiss-Handler. rememberUpdatedState stellt trotzdem sicher, dass
  *   immer die aktuellen onEdit- und onDelete-Callbacks verwendet werden.
  *
- * - Vor onEdit() oder onDelete() wird der SwipeToDismissBoxState immer mit
+ * - Vor onEdit() oder onDelete() wird SwipeToDismissBoxState mit
  *   snapTo(Settled) zurückgesetzt. Erst danach darf Navigation oder eine
- *   sichtbare Listenänderung die umgebende Composition verändern.
+ *   Listenänderung die umgebende Composition verändern.
  *
- * - Das ist für Undo besonders wichtig: Wird dieselbe Person mit ihrem stabilen
- *   Key wieder eingefügt, darf der vorherige EndToStart-Zustand keinen zweiten
- *   Delete-Callback auslösen.
+ * - SwipePersonCard entscheidet nicht selbst, wie bearbeitet oder gelöscht
+ *   wird. Die Komponente meldet nur die erkannte Richtung über Callbacks.
+ *   Dadurch bleibt die Gestenerkennung von Navigation und Repository getrennt.
+ *
+ * - Undo ist bewusst noch kein Thema dieses Schritts. In A3_05 wird auf derselben
+ *   Swipe-Komponente aufgebaut und die Delete-Aktion um Undo erweitert.
  *
  * Lernziele:
  *
