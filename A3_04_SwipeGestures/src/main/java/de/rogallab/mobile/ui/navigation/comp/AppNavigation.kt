@@ -34,6 +34,7 @@ import de.rogallab.mobile.ui.navigation.PopReason
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
+import de.rogallab.mobile.ui.people.list.PeopleIntent
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
 import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
 import org.koin.compose.viewmodel.koinViewModel
@@ -118,12 +119,25 @@ fun AppNavigation() {
                   onMessage = snackbarController::showMessage,
                   onError = snackbarController::showError,
 
+                  // Confirm the destructive action before the repository is changed.
+                  onConfirmRemove = { message, actionLabel, personId ->
+                     snackbarController.showAction(
+                        message = message,
+                        actionLabel = actionLabel,
+                        onAction = {
+                           peopleViewModel.onIntent(
+                              PeopleIntent.ConfirmRemove(personId)
+                           )
+                        },
+                     )
+                  },
+
                   onBack = {
                      currentPopReason = PopReason.CANCEL
                      pop(backStack)
                   },
 
-                  // null -> create, id -> detail/edit.
+                  // null -> create, id -> detail.
                   onNavigateTo = { personId ->
                      push(
                         destination = PersonKey(personId),
@@ -223,30 +237,29 @@ private fun logNavigationOperation(
  *
  * - A3_04_SwipeGestures baut unmittelbar auf A3_03_Navigation auf. Der
  *   Navigation-3-Back-Stack, die Effects und die Navigationsanimationen bleiben
- *   erhalten. Neu hinzu kommen ausschließlich die Swipe-Gesten in der Liste.
+ *   erhalten. Neu hinzu kommen die Swipe-Gesten und die Bestätigung vor Delete.
  *
  * - Navigation und Meldungsausgabe bleiben bewusst getrennt:
  *
  *      NavigateTo / NavigateBack -> Navigation-3-Back-Stack
  *      ShowMessage / ShowError   -> SnackbarController
+ *      ConfirmRemove             -> Action-Snackbar
  *
- * - Swipe-to-Edit wird bereits im PeopleAdapter in denselben NavigateTo-Fluss
- *   übersetzt, den auch die bisherige Detail-Navigation verwendet.
+ * - Swipe-to-Detail verwendet denselben NavigateTo-Fluss wie ein Tap auf eine
+ *   PersonCard. Swipe-to-Delete fordert dagegen zunächst nur die Bestätigung an.
  *
- * - Swipe-to-Delete benötigt auf Navigationsebene keine Sonderbehandlung. Das
- *   ViewModel löscht direkt im Repository; dessen Flow aktualisiert die Liste.
+ * - Die Action-Snackbar führt nur bei ActionPerformed zu
+ *   PeopleIntent.ConfirmRemove. Wird sie verworfen oder läuft sie ab, bleibt das
+ *   Repository unverändert.
  *
- * - PeopleViewModel kann deshalb wie in A3_03 innerhalb des PeopleKey-Eintrags
- *   erzeugt werden. Erst A3_05 hebt es über NavDisplay, weil dort ausstehende
- *   Undo-Vorgänge eine Navigation überleben sollen.
- *
- * - Eine Action-Snackbar gehört bewusst noch nicht zu A3_04. Dadurch bleibt der
- *   erste Gesten-Schritt auf Richtungserkennung, Callback und direkte Aktion
- *   konzentriert.
+ * - PeopleViewModel kann weiterhin innerhalb des PeopleKey-Eintrags erzeugt
+ *   werden. A3_04 hält keinen pending Delete-State. Erst A3_05 benötigt einen
+ *   länger lebenden ViewModel-State für visuelles Entfernen und Undo.
  *
  * Lernziele:
  *
  * - Den in A3_03 aufgebauten State-/Effect-/Navigation-Fluss weiterverwenden.
- * - Swipe-Gesten als kleine Compose-nahe Erweiterung ergänzen.
- * - Swipe-to-Edit und Swipe-to-Delete ohne Undo-Infrastruktur implementieren.
+ * - Swipe-Gesten als Compose-nahe Erweiterung ergänzen.
+ * - Eine destruktive Aktion mit einer Action-Snackbar bestätigen.
+ * - Delete-Bestätigung von Undo klar unterscheiden.
  */
