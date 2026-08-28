@@ -119,13 +119,9 @@ subprojects {
             versionCode = 1
             versionName = "1.0"
 
-            // Standard-TestRunner:
-            // testInstrumentationRunner =
-            //    "androidx.test.runner.AndroidJUnitRunner"
-
-            // Eigener TestRunner für alle Instrumentation Tests.
+            // Standard-TestRunner für alle Instrumentation Tests.
             testInstrumentationRunner =
-               "de.rogallab.mobile.androidTest.TestRunner"
+               "androidx.test.runner.AndroidJUnitRunner"
          }
 
          testOptions {
