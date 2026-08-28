@@ -46,7 +46,8 @@ class PeopleViewModel(
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
-         is PeopleIntent.Remove -> remove(intent.person)
+         is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
+         is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
       }
    }
 
@@ -57,6 +58,49 @@ class PeopleViewModel(
             PeopleEffect.NavigateTo(personId)
          )
       }
+   }
+
+   // Requests confirmation before the repository is changed.
+   private fun requestRemove(personId: String) {
+      val person = _stateFlow.value.people.find { person: Person ->
+         person.id == personId
+      }
+
+      if (person == null) {
+         emitPersonNotFound()
+         return
+      }
+
+      viewModelScope.launch {
+         val message = _stringProvider.getString(
+            R.string.message_person_remove_confirm,
+            person.firstName,
+            person.lastName,
+         )
+         val actionLabel = _stringProvider.getString(R.string.action_delete)
+
+         _effectDelegate.emit(
+            PeopleEffect.ConfirmRemove(
+               message = message,
+               actionLabel = actionLabel,
+               personId = person.id,
+            )
+         )
+      }
+   }
+
+   // Deletes the person only after the confirmation action was selected.
+   private fun confirmRemove(personId: String) {
+      val person = _stateFlow.value.people.find { person: Person ->
+         person.id == personId
+      }
+
+      if (person == null) {
+         emitPersonNotFound()
+         return
+      }
+
+      remove(person)
    }
 
    // Observes the repository and publishes its current list as UI state.
@@ -80,28 +124,37 @@ class PeopleViewModel(
                      state.copy(people = people, isLoading = false)
                   }
                }
-               .onFailure { throwable ->
+               .onFailure {
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  val error =
+                     _stringProvider.getString(R.string.error_people_observe)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
       }
    }
 
-   // Deletes the person immediately
+   // Deletes the confirmed person from the repository.
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
-            .onSuccess {
-            }
-            .onFailure { throwable ->
-               var error = _stringProvider.getString(R.string.error_person_remove)
+            .onFailure {
+               val error =
+                  _stringProvider.getString(R.string.error_person_remove)
                _effectDelegate.emit(PeopleEffect.ShowError(error))
             }
+      }
+   }
+
+   // Reports that the requested person is no longer available.
+   private fun emitPersonNotFound() {
+      viewModelScope.launch {
+         val error =
+            _stringProvider.getString(R.string.error_person_not_found)
+         _effectDelegate.emit(PeopleEffect.ShowError(error))
       }
    }
 
@@ -118,23 +171,24 @@ class PeopleViewModel(
  *   Intents.
  *
  * - Swipe-to-Detail wird wie ein normaler Detail-Aufruf behandelt und erzeugt
- *   NavigateTo. Swipe-to-Delete erzeugt PeopleIntent.Remove.
+ *   NavigateTo. Swipe-to-Delete erzeugt zunächst RequestRemove.
  *
- * - Remove ruft in diesem Schritt _repository.remove(...) unmittelbar auf.
- *   Nach erfolgreichem Löschen liefert observeAll() die geänderte persistierte
- *   Liste und PeopleUiState wird aktualisiert.
+ * - RequestRemove verändert das Repository noch nicht. Das ViewModel erzeugt
+ *   stattdessen ConfirmRemove als einmaligen Effect mit fertigem Meldungstext,
+ *   Action-Label und Person-ID.
  *
- * - Schlägt das Löschen fehl, bleibt der Repository-State unverändert und das
- *   ViewModel erzeugt ShowError als einmaligen Effect.
+ * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
+ *   PeopleIntent.ConfirmRemove. Danach wird _repository.remove(...) ausgeführt.
+ *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person unverändert.
  *
- * - Einen zusätzlichen temporären Löschzustand gibt es bewusst noch nicht.
- *   Visuelles Entfernen, Undo und verzögertes Persistieren werden erst in
+ * - A3_04 benötigt dafür keinen zusätzlichen temporären UI-State. Visuelles
+ *   Entfernen, Undo und verzögertes Persistieren werden erst in
  *   A3_05_SwipeDeleteUndo ergänzt.
  *
  * Lernziele:
  *
  * - UI-Gesten in fachliche Intents übersetzen.
- * - Swipe-to-Detail über den bestehenden Navigation-Effect weiterleiten.
- * - Swipe-to-Delete zunächst als direkte Repository-Operation implementieren.
+ * - Eine destruktive Aktion vor der Repository-Änderung bestätigen.
  * - State und einmalige Effects weiterhin klar voneinander trennen.
+ * - Delete-Bestätigung und Undo als unterschiedliche Konzepte verstehen.
  */
