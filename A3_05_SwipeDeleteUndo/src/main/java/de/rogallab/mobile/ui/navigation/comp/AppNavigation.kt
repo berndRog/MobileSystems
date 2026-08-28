@@ -156,8 +156,8 @@ fun AppNavigation() {
                )
             }
 
-            // Person editing is unchanged from A3_03. A3_04 adds Swipe only to
-            // the list feature; image selection is intentionally not introduced yet.
+            // Person editing remains unchanged. A3_05 extends the list behavior
+            // with Undo; image selection is intentionally not introduced yet.
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
@@ -244,11 +244,11 @@ private fun logNavigationOperation(
 /*
  * Didaktik und Lernziele
  *
- * - A3_04_SwipeGestures baut unmittelbar auf A3_03_Navigation auf. Der
- *   Navigation-3-Back-Stack, die Effects und die Navigationsanimationen bleiben
- *   erhalten; neu hinzu kommen Gesten, Listenanimation und Undo.
+ * - A3_05_SwipeDeleteUndo baut unmittelbar auf A3_04_SwipeGestures auf. Die
+ *   beiden Swipe-Richtungen und die Navigation bleiben erhalten. Neu hinzu
+ *   kommen visuelles Entfernen, Undo und verzögertes Persistieren.
  *
- * - Die Person-Bearbeitung bleibt gegenüber A3_03 unverändert. Insbesondere
+ * - Die Person-Bearbeitung bleibt gegenüber A3_04 unverändert. Insbesondere
  *   enthält dieses Beispiel noch keine Gallery-/Camera-Auswahl und keinen
  *   Lebenszyklus temporärer Bilddateien. Dieses Thema beginnt erst mit A4_01.
  *
@@ -258,7 +258,7 @@ private fun logNavigationOperation(
  *      ShowMessage / ShowError   -> SnackbarController
  *      ShowUndo                  -> Action-Snackbar
  *
- * - PeopleViewModel wird oberhalb des NavDisplay erzeugt. Dadurch bleiben
+ * - PeopleViewModel wird jetzt oberhalb des NavDisplay erzeugt. Dadurch bleiben
  *   pending Removals und die Undo-Zuordnung erhalten, auch wenn zwischenzeitlich
  *   zum PersonScreen navigiert wird.
  *
@@ -274,8 +274,8 @@ private fun logNavigationOperation(
  *
  * Lernziele:
  *
- * - Den in A3_03 aufgebauten State-/Effect-/Navigation-Fluss weiterverwenden.
- * - Swipe-Gesten und Listenanimationen als Compose-nahe Erweiterung ergänzen.
- * - Visuellen UI-State und persistierten Repository-State unterscheiden.
+ * - Den in A3_04 aufgebauten Swipe-Fluss weiterverwenden.
+ * - Temporären sichtbaren UI-State und persistierten Repository-State trennen.
+ * - Action-Snackbar als Entscheidung zwischen Undo und Commit einsetzen.
  * - Undo vor der endgültigen Persistenz einer Löschung ermöglichen.
  */
