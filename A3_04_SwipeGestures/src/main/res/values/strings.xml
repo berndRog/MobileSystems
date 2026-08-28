@@ -23,6 +23,7 @@
   <string name="action_back">Back</string>
 
   <string name="message_person_saved">%1$s was saved.</string>
+  <string name="message_person_remove_confirm">Really delete %1$s %2$s?</string>
 
   <string name="error_people_observe">People could not be loaded.</string>
   <string name="error_person_not_found">Person was not found.</string>
