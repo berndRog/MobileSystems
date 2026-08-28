@@ -85,19 +85,14 @@ class PeopleViewModel(
                   // Pass the latest persistent source list to the delegate.
                   _visualRemoval.update(people)
                   publishVisiblePeople(isLoading = false)
-                  Alog.d(TAG, "observePeople: people=${people.size}")
                }
                .onFailure { throwable ->
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  Alog.e(TAG, "observePeople failed: ${throwable.message}")
-                  _effectDelegate.emit(
-                     PeopleEffect.ShowError(
-                        _stringProvider.getString(R.string.error_people_observe)
-                     )
-                  )
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
       }

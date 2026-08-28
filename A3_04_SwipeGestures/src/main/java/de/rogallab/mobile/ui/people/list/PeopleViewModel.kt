@@ -77,44 +77,30 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(
-                        people = people,
-                        isLoading = false,
-                     )
+                     state.copy(people = people, isLoading = false)
                   }
-                  Alog.d(TAG, "observePeople: people=${people.size}")
                }
                .onFailure { throwable ->
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  Alog.e(TAG, "observePeople failed: ${throwable.message}")
-                  _effectDelegate.emit(
-                     PeopleEffect.ShowError(
-                        _stringProvider.getString(R.string.error_people_observe)
-                     )
-                  )
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
       }
    }
 
-   // Deletes the person immediately. The repository Flow publishes the changed
-   // list again after a successful operation.
+   // Deletes the person immediately
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
             .onSuccess {
-               Alog.d(TAG, "remove: personId=${person.id}")
             }
             .onFailure { throwable ->
-               Alog.e(TAG, "remove failed: ${throwable.message}")
-               _effectDelegate.emit(
-                  PeopleEffect.ShowError(
-                     _stringProvider.getString(R.string.error_person_remove)
-                  )
-               )
+               var error = _stringProvider.getString(R.string.error_person_remove)
+               _effectDelegate.emit(PeopleEffect.ShowError(error))
             }
       }
    }
