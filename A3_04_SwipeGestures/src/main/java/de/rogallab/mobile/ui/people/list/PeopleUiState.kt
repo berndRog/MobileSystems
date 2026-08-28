@@ -7,24 +7,23 @@ import de.rogallab.mobile.domain.entities.Person
 data class PeopleUiState(
    val isLoading: Boolean = false,
    val people: List<Person> = emptyList(),
-   val restoredPersonId: String? = null,
 )
 
 /*
  * Didaktik und Lernziele
  *
- * - people enthält weiterhin die aktuell sichtbare Liste der Personen.
+ * - PeopleUiState enthält weiterhin ausschließlich den beobachtbaren Zustand
+ *   der Personenliste.
  *
- * - restoredPersonId ist ein kurzlebiger UI-State-Trigger. Nach Undo enthält er
- *   die ID der wieder eingeblendeten Person, damit die LazyColumn sicherstellen
- *   kann, dass dieses Element auch im sichtbaren Viewport liegt.
+ * - Swipe-Gesten benötigen in diesem Schritt keinen zusätzlichen Screen-State.
+ *   Swipe-to-Edit erzeugt Navigation; Swipe-to-Delete führt unmittelbar zu
+ *   einer Repository-Operation. Die aktualisierte Liste kommt anschließend
+ *   wieder über observeAll() in den State.
  *
- * - Nachdem die UI den Scroll-Auftrag verarbeitet hat, wird restoredPersonId
- *   über einen Intent wieder auf null gesetzt.
+ * - Ein temporärer Zustand für Undo wird bewusst erst in A3_05 eingeführt.
  *
  * Lernziele:
  *
- * - Dauerhaften Screen-State und kurzlebige UI-Aufträge im selben State klar
- *   voneinander unterscheiden.
- * - Einen UI-Auftrag nach seiner Verarbeitung explizit bestätigen.
+ * - Gesten als Events verstehen, ohne dafür unnötigen State einzuführen.
+ * - Persistierten Repository-State weiterhin als Quelle der Listenanzeige nutzen.
  */
