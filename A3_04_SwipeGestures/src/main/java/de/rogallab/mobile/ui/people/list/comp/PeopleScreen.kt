@@ -3,7 +3,6 @@ package de.rogallab.mobile.ui.people.list.comp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -12,13 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.lists.ScrollToItemIfNotVisible
 
 @Composable
 fun PeopleScreen(
    people: List<Person>,
-   restoredPersonId: String?,
-   onRestoreHandled: () -> Unit,
    onDetail: (String) -> Unit,
    onEdit: (String) -> Unit,
    onDelete: (String) -> Unit,
@@ -28,20 +24,7 @@ fun PeopleScreen(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   val listState = rememberLazyListState()
-
-   // Undo may restore an item just outside the current viewport. Scroll only
-   // when necessary and acknowledge the one-time restore target afterwards.
-   ScrollToItemIfNotVisible(
-      listState = listState,
-      targetKey = restoredPersonId,
-      items = people,
-      keyOf = { person: Person -> person.id },
-      onHandled = onRestoreHandled,
-   )
-
    LazyColumn(
-      state = listState,
       modifier = modifier,
       verticalArrangement = Arrangement.spacedBy(8.dp),
    ) {
@@ -68,28 +51,30 @@ fun PeopleScreen(
 /*
  * Didaktik und Lernziele
  *
- * - Die LazyColumn verwendet stabile Person-IDs als Keys und einen eigenen
- *   LazyListState. Dadurch kann die aktuelle Scrollposition beobachtet und bei
- *   Bedarf gezielt verändert werden.
+ * - A3_04 ersetzt die normale PersonCard in der LazyColumn durch
+ *   SwipePersonCard. Der Screen erhält dadurch zwei zusätzliche Aktionen:
  *
- * - Modifier.animateItem() animiert das Entfernen, Wiedereinfügen und
- *   Verschieben der Listeneinträge, wenn sich die sichtbare People-Liste ändert.
+ *      StartToEnd -> onEdit
+ *      EndToStart -> onDelete
  *
- * - Nach Undo kann ein wieder eingefügtes Element außerhalb des Viewports
- *   liegen, insbesondere am oberen oder unteren Rand der Liste. Die generische
- *   Funktion ScrollToItemIfNotVisible prüft deshalb restoredPersonId und scrollt
- *   nur dann, wenn das Element aktuell nicht sichtbar ist.
+ * - Die LazyColumn verwendet stabile Person-IDs als Keys. Dadurch kann Compose
+ *   Listeneinträge auch nach Änderungen der Repository-Liste eindeutig
+ *   zuordnen.
  *
- * - Nach der Verarbeitung bestätigt onRestoreHandled den einmaligen Auftrag.
- *   Der ViewModel kann restoredPersonId anschließend wieder auf null setzen.
+ * - Modifier.animateItem() animiert das Entfernen und Verschieben der
+ *   Listeneinträge, wenn observeAll() nach einem erfolgreichen Delete eine neue
+ *   Liste liefert.
  *
- * - SwipePersonCard kapselt weiterhin die Gestenerkennung. PeopleScreen kennt
- *   nur die resultierenden Events onEdit und onDelete.
+ * - PeopleScreen bleibt stateless bezüglich der fachlichen Daten. Er erkennt
+ *   weder Repository noch Navigation und reicht nur die resultierenden Gesten
+ *   über Callback-Funktionen nach außen weiter.
+ *
+ * - Undo und das gezielte Scrollen zu einem wiederhergestellten Eintrag sind
+ *   noch nicht Bestandteil dieses Schritts. Sie folgen erst in A3_05.
  *
  * Lernziele:
  *
- * - Gesten in wiederverwendbare Listenelemente auslagern.
- * - Listenänderungen mit stabilen Keys animieren.
- * - LazyListState zur gezielten Sichtbarmachung eines Elements verwenden.
- * - Einen einmaligen UI-Auftrag über State und Acknowledge verarbeiten.
+ * - Swipe-Gesten in einem wiederverwendbaren Listenelement kapseln.
+ * - Stabile Keys und animateItem() bei dynamischen LazyColumn-Inhalten nutzen.
+ * - UI-Geste und fachliche Aktion über Callback-Funktionen entkoppeln.
  */
