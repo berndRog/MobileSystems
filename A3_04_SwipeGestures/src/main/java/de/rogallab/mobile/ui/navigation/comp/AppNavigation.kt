@@ -34,7 +34,6 @@ import de.rogallab.mobile.ui.navigation.PopReason
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
-import de.rogallab.mobile.ui.people.list.PeopleIntent
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
 import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
 import org.koin.compose.viewmodel.koinViewModel
@@ -49,10 +48,6 @@ fun AppNavigation() {
 
    // Reuse the saveable Navigation 3 back stack introduced in A3_03.
    val backStack = rememberNavBackStack(PeopleKey)
-
-   // The list ViewModel is kept above NavDisplay so pending visual removals
-   // and Undo callbacks survive navigation to a person destination.
-   val peopleViewModel = koinViewModel<PeopleViewModel>()
 
    // One SnackbarHostState is shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
@@ -112,6 +107,7 @@ fun AppNavigation() {
 
             // Root destination: list of people.
             entry<PeopleKey> {
+               val peopleViewModel = koinViewModel<PeopleViewModel>()
 
                PeopleAdapter(
                   viewModel = peopleViewModel,
@@ -121,25 +117,6 @@ fun AppNavigation() {
 
                   onMessage = snackbarController::showMessage,
                   onError = snackbarController::showError,
-
-                  // Remove is visual first. The Snackbar result decides whether
-                  // the item is restored or finally removed from the repository.
-                  onUndo = { message, actionLabel, personId ->
-                     snackbarController.showAction(
-                        message = message,
-                        actionLabel = actionLabel,
-                        onAction = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.UndoRemove(personId)
-                           )
-                        },
-                        onDismiss = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.CommitRemove(personId)
-                           )
-                        },
-                     )
-                  },
 
                   onBack = {
                      currentPopReason = PopReason.CANCEL
@@ -246,36 +223,30 @@ private fun logNavigationOperation(
  *
  * - A3_04_SwipeGestures baut unmittelbar auf A3_03_Navigation auf. Der
  *   Navigation-3-Back-Stack, die Effects und die Navigationsanimationen bleiben
- *   erhalten; neu hinzu kommen Gesten, Listenanimation und Undo.
- *
- * - Die Person-Bearbeitung bleibt gegenüber A3_03 unverändert. Insbesondere
- *   enthält dieses Beispiel noch keine Gallery-/Camera-Auswahl und keinen
- *   Lebenszyklus temporärer Bilddateien. Dieses Thema beginnt erst mit A4_01.
+ *   erhalten. Neu hinzu kommen ausschließlich die Swipe-Gesten in der Liste.
  *
  * - Navigation und Meldungsausgabe bleiben bewusst getrennt:
  *
  *      NavigateTo / NavigateBack -> Navigation-3-Back-Stack
  *      ShowMessage / ShowError   -> SnackbarController
- *      ShowUndo                  -> Action-Snackbar
  *
- * - PeopleViewModel wird oberhalb des NavDisplay erzeugt. Dadurch bleiben
- *   pending Removals und die Undo-Zuordnung erhalten, auch wenn zwischenzeitlich
- *   zum PersonScreen navigiert wird.
+ * - Swipe-to-Edit wird bereits im PeopleAdapter in denselben NavigateTo-Fluss
+ *   übersetzt, den auch die bisherige Detail-Navigation verwendet.
  *
- * - Swipe-to-Delete verändert zunächst nur den sichtbaren UI-State. Die beiden
- *   Ergebnisse der Action-Snackbar werden anschließend getrennt behandelt:
+ * - Swipe-to-Delete benötigt auf Navigationsebene keine Sonderbehandlung. Das
+ *   ViewModel löscht direkt im Repository; dessen Flow aktualisiert die Liste.
  *
- *      ActionPerformed -> PeopleIntent.UndoRemove
- *      Dismissed       -> PeopleIntent.CommitRemove
+ * - PeopleViewModel kann deshalb wie in A3_03 innerhalb des PeopleKey-Eintrags
+ *   erzeugt werden. Erst A3_05 hebt es über NavDisplay, weil dort ausstehende
+ *   Undo-Vorgänge eine Navigation überleben sollen.
  *
- *   Das Repository wird erst angefasst, wenn die Undo-Möglichkeit nicht genutzt
- *   wurde. Damit bleibt die destruktive Änderung bis zum Ende des Undo-Fensters
- *   reversibel.
+ * - Eine Action-Snackbar gehört bewusst noch nicht zu A3_04. Dadurch bleibt der
+ *   erste Gesten-Schritt auf Richtungserkennung, Callback und direkte Aktion
+ *   konzentriert.
  *
  * Lernziele:
  *
  * - Den in A3_03 aufgebauten State-/Effect-/Navigation-Fluss weiterverwenden.
- * - Swipe-Gesten und Listenanimationen als Compose-nahe Erweiterung ergänzen.
- * - Visuellen UI-State und persistierten Repository-State unterscheiden.
- * - Undo vor der endgültigen Persistenz einer Löschung ermöglichen.
+ * - Swipe-Gesten als kleine Compose-nahe Erweiterung ergänzen.
+ * - Swipe-to-Edit und Swipe-to-Delete ohne Undo-Infrastruktur implementieren.
  */
