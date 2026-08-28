@@ -51,7 +51,7 @@ fun AppNavigation() {
    val backStack = rememberNavBackStack(PeopleKey)
 
    // Keep PeopleViewModel above NavDisplay. A4_01 retains the Swipe/Undo
-   // behavior from A3_04, so pending visual removals must survive navigation.
+   // behavior from A3_05, so pending visual removals must survive navigation.
    val peopleViewModel = koinViewModel<PeopleViewModel>()
 
    // One SnackbarHostState is shared by all destinations.
@@ -111,7 +111,7 @@ fun AppNavigation() {
          entryProvider = entryProvider {
 
             // Root destination: list of people. Swipe and Undo are deliberately
-            // retained so A4_01 builds on A3_04 instead of replacing it.
+            // retained so A4_01 builds on A3_05 instead of replacing it.
             entry<PeopleKey> {
 
                PeopleAdapter(
@@ -236,7 +236,7 @@ private fun logNavigationOperation(
  * Didaktik und Lernziele
  *
  * - A4_01_ImagePicker beginnt ein neues Kapitel, baut technisch aber bewusst
- *   vollständig auf A3_04_SwipeGestures auf. Navigation, Effects, Swipe,
+ *   vollständig auf A3_05_SwipeDeleteUndo auf. Navigation, Effects, Swipe,
  *   animateItem() und Undo bleiben erhalten. Neu ist ausschließlich der
  *   Bild-Lebenszyklus im Person-Feature.
  *
@@ -246,7 +246,10 @@ private fun logNavigationOperation(
  *         -> Navigation 3, Effects und Navigationsanimationen
  *
  *      A3_04_SwipeGestures
- *         -> zusätzlich Swipe, Listenanimation und Undo
+ *         -> zusätzlich Swipe-to-Edit und direktes Swipe-to-Delete
+ *
+ *      A3_05_SwipeDeleteUndo
+ *         -> zusätzlich visuelles Entfernen, Undo und verzögertes Commit
  *
  *      A4_01_ImagePicker
  *         -> zusätzlich Gallery/Camera und temporäre Bilddateien
