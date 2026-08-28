@@ -8,6 +8,13 @@ sealed interface PeopleEffect {
    // Shows an error message that must be acknowledged by the user.
    data class ShowError(val message: String) : PeopleEffect
 
+   // Requests a confirmation Snackbar before deleting an existing person.
+   data class ConfirmRemove(
+      val message: String,
+      val actionLabel: String,
+      val personId: String,
+   ) : PeopleEffect
+
    // Navigates back to the previous screen. Handled by the Navigation 3 layer.
    data object NavigateBack : PeopleEffect
 
