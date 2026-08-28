@@ -94,7 +94,7 @@ fun appModule(): Module = module {
 /*
  * Didaktik und Lernziele
  *
- * - A4_01 übernimmt die in A3_04 eingeführte Delegation des temporären
+ * - A4_01 übernimmt die in A3_05 eingeführte Delegation des temporären
  *   Löschzustands unverändert. IVisualRemoval<Person> wird weiterhin per
  *   Constructor Injection an PeopleViewModel übergeben.
  *
