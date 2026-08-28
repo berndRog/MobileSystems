@@ -42,7 +42,6 @@ fun PeopleAdapter(
    modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
-   onUndo: (String, String, String) -> Unit,
    onBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
@@ -59,11 +58,6 @@ fun PeopleAdapter(
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         is PeopleEffect.ShowUndo -> onUndo(
-            peopleEffect.message,
-            peopleEffect.actionLabel,
-            peopleEffect.personId,
-         )
          PeopleEffect.NavigateBack -> onBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
@@ -96,10 +90,6 @@ fun PeopleAdapter(
 
             PeopleScreen(
                people = people,
-               restoredPersonId = peopleUiState.restoredPersonId,
-               onRestoreHandled = {
-                  viewModel.onIntent(PeopleIntent.RestoreHandled)
-               },
                onDetail = { personId ->
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
@@ -109,10 +99,11 @@ fun PeopleAdapter(
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
                onDelete = { personId ->
-                  Alog.d(tag, "Delete: $personId")
+                  Alog.d(tag, "Swipe delete: $personId")
                   val person = people.find { it.id == personId }
-                  if (person != null)
+                  if (person != null) {
                      viewModel.onIntent(PeopleIntent.Remove(person))
+                  }
                },
                modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -157,32 +148,23 @@ private fun PeopleCreateButton(
 /*
  * Didaktik und Lernziele
  *
- * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen.
+ * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen wie bereits
+ *   in A3_03. Neu sind die beiden Swipe-Callbacks onEdit und onDelete.
  *
- * - Dauerhafter State wird mit collectAsStateWithLifecycle() beobachtet.
- *   Einmalige Effects werden getrennt mit dem generischen EffectHandler
- *   gesammelt.
+ * - Swipe-to-Edit wird auf denselben PeopleIntent.Detail abgebildet wie ein
+ *   normaler Detail-Aufruf. Die Navigation muss deshalb nicht wissen, ob das
+ *   Bearbeiten durch Tap oder Swipe ausgelöst wurde.
  *
- * - Der Adapter übersetzt feature-spezifische Effects in einfache Callbacks:
+ * - Swipe-to-Delete sucht die Person anhand ihrer stabilen ID und sendet
+ *   PeopleIntent.Remove an das ViewModel. In A3_04 wird damit unmittelbar aus
+ *   dem Repository gelöscht.
  *
- *      ShowMessage  -> onMessage()
- *      ShowError    -> onError()
- *      ShowUndo     -> onUndo()
- *      NavigateBack -> onBack()
- *      NavigateTo   -> onNavigateTo()
- *
- * - restoredPersonId wird als State an PeopleScreen weitergegeben. Nachdem der
- *   Screen geprüft hat, ob das wiederhergestellte Element sichtbar ist, sendet
- *   der Adapter RestoreHandled zurück an das ViewModel.
- *
- * - ShowUndo wird als Action-Snackbar weitergereicht. Die eigentliche
- *   Entscheidung Undo oder Commit erfolgt oberhalb des Adapters, nachdem die
- *   Snackbar beendet wurde.
+ * - Effects bleiben auf Meldungen und Navigation beschränkt. Einen ShowUndo-
+ *   Effect gibt es in diesem Schritt bewusst noch nicht.
  *
  * Lernziele:
  *
- * - State und Effects getrennt verarbeiten.
- * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
- * - Einmalige UI-Aufträge über State plus Intent bestätigen.
- * - Swipe, Undo und Navigation über klar getrennte Callbacks verbinden.
+ * - Neue UI-Interaktionen auf bestehende Intents abbilden.
+ * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
+ * - Einen kleinen Gesten-Schritt ohne zusätzliche Undo-Infrastruktur aufbauen.
  */
