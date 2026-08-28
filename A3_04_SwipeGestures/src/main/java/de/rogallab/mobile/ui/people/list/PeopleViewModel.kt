@@ -131,7 +131,7 @@ class PeopleViewModel(
  *   bleibt in der Compose-UI; das ViewModel erhält nur die daraus entstandenen
  *   Intents.
  *
- * - Swipe-to-Edit wird wie ein normaler Detail-Aufruf behandelt und erzeugt
+ * - Swipe-to-Detail wird wie ein normaler Detail-Aufruf behandelt und erzeugt
  *   NavigateTo. Swipe-to-Delete erzeugt PeopleIntent.Remove.
  *
  * - Remove ruft in diesem Schritt _repository.remove(...) unmittelbar auf.
@@ -148,7 +148,7 @@ class PeopleViewModel(
  * Lernziele:
  *
  * - UI-Gesten in fachliche Intents übersetzen.
- * - Swipe-to-Edit über den bestehenden Navigation-Effect weiterleiten.
+ * - Swipe-to-Detail über den bestehenden Navigation-Effect weiterleiten.
  * - Swipe-to-Delete zunächst als direkte Repository-Operation implementieren.
  * - State und einmalige Effects weiterhin klar voneinander trennen.
  */
