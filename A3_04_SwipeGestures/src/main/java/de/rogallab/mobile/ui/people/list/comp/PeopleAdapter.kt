@@ -94,10 +94,6 @@ fun PeopleAdapter(
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
-               onEdit = { personId ->
-                  Alog.d(tag, "Swipe edit: $personId")
-                  viewModel.onIntent(PeopleIntent.Detail(personId))
-               },
                onDelete = { personId ->
                   Alog.d(tag, "Swipe delete: $personId")
                   val person = people.find { it.id == personId }
@@ -149,13 +145,16 @@ private fun PeopleCreateButton(
  * Didaktik und Lernziele
  *
  * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen wie bereits
- *   in A3_03. Neu sind die beiden Swipe-Callbacks onEdit und onDelete.
+ *   in A3_03. Neu ist die Swipe-Unterstützung für Detail und Delete.
  *
- * - Swipe-to-Edit wird auf denselben PeopleIntent.Detail abgebildet wie ein
- *   normaler Detail-Aufruf. Die Navigation muss deshalb nicht wissen, ob das
- *   Bearbeiten durch Tap oder Swipe ausgelöst wurde.
+ * - Ein Tap auf die PersonCard und Swipe StartToEnd werden auf denselben
+ *   PeopleIntent.Detail abgebildet. Die Navigation muss deshalb nicht wissen,
+ *   wodurch der Detail-Screen geöffnet wurde.
  *
- * - Swipe-to-Delete sucht die Person anhand ihrer stabilen ID und sendet
+ * - Das Anlegen einer neuen Person bleibt eine eigene Aktion und wird über den
+ *   FAB als PeopleIntent.Create ausgelöst.
+ *
+ * - Swipe EndToStart sucht die Person anhand ihrer stabilen ID und sendet
  *   PeopleIntent.Remove an das ViewModel. In A3_04 wird damit unmittelbar aus
  *   dem Repository gelöscht.
  *
@@ -166,5 +165,5 @@ private fun PeopleCreateButton(
  *
  * - Neue UI-Interaktionen auf bestehende Intents abbilden.
  * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
- * - Einen kleinen Gesten-Schritt ohne zusätzliche Undo-Infrastruktur aufbauen.
+ * - Create und Detail als unterschiedliche fachliche Vorgänge benennen.
  */
