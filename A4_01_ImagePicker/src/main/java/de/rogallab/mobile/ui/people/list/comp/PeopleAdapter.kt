@@ -104,10 +104,6 @@ fun PeopleAdapter(
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
-               onEdit = { personId ->
-                  Alog.d(tag, "Swipe edit: $personId")
-                  viewModel.onIntent(PeopleIntent.Detail(personId))
-               },
                onDelete = { personId ->
                   Alog.d(tag, "Delete: $personId")
                   val person = people.find { it.id == personId }
@@ -171,6 +167,9 @@ private fun PeopleCreateButton(
  *      NavigateBack -> onBack()
  *      NavigateTo   -> onNavigateTo()
  *
+ * - Ein Tap auf eine Person und Swipe StartToEnd werden beide als Detail-
+ *   Navigation behandelt. Create bleibt eine separate FAB-Aktion.
+ *
  * - restoredPersonId wird als State an PeopleScreen weitergegeben. Nachdem der
  *   Screen geprüft hat, ob das wiederhergestellte Element sichtbar ist, sendet
  *   der Adapter RestoreHandled zurück an das ViewModel.
@@ -184,5 +183,5 @@ private fun PeopleCreateButton(
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
  * - Einmalige UI-Aufträge über State plus Intent bestätigen.
- * - Swipe, Undo und Navigation über klar getrennte Callbacks verbinden.
+ * - Detail, Delete, Undo und Navigation über klar benannte Callbacks verbinden.
  */
