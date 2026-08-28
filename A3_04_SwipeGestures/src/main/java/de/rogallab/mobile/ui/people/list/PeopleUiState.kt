@@ -16,7 +16,7 @@ data class PeopleUiState(
  *   der Personenliste.
  *
  * - Swipe-Gesten benötigen in diesem Schritt keinen zusätzlichen Screen-State.
- *   Swipe-to-Edit erzeugt Navigation; Swipe-to-Delete führt unmittelbar zu
+ *   Swipe-to-Detail erzeugt Navigation; Swipe-to-Delete führt unmittelbar zu
  *   einer Repository-Operation. Die aktualisierte Liste kommt anschließend
  *   wieder über observeAll() in den State.
  *
