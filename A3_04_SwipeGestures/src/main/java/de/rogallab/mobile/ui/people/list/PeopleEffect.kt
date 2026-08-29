@@ -19,7 +19,5 @@ sealed interface PeopleEffect {
    data object NavigateBack : PeopleEffect
 
    // Opens the person destination. A null id represents create mode.
-   data class NavigateTo(
-      val personId: String? = null,
-   ) : PeopleEffect
+   data class NavigateTo(val personId: String? = null) : PeopleEffect
 }

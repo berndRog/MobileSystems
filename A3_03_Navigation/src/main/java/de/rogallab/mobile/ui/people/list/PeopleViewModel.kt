@@ -23,10 +23,10 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the persistent UI state of the people screen.
+   // Holds the observable PeopleUIState
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
-   // Exposes the state as a read-only StateFlow to the UI.
+   // Exposes the PeopleUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
@@ -38,27 +38,10 @@ class PeopleViewModel(
       observePeople()
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
-   fun onIntent(intent: PeopleIntent) {
-      Alog.d(TAG, "intent: $intent")
-
-      when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
-         is PeopleIntent.Remove -> remove(intent.person)
-      }
-   }
-
-   // Emits the prepared navigation effect.
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         // The adapter translates this effect into a Navigation 3 operation.
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
-      }
-   }
-
    // Observes the repository and updates the list state.
    private fun observePeople() {
+
+      // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
@@ -90,12 +73,34 @@ class PeopleViewModel(
       }
    }
 
+
+   // Dispatches incoming UI intents to the corresponding action.
+   fun onIntent(intent: PeopleIntent) {
+      Alog.d(TAG, "intent: $intent")
+
+      when (intent) {
+         PeopleIntent.Create -> navigateToPerson(null)
+         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         is PeopleIntent.Remove -> remove(intent.person)
+      }
+   }
+
+   // Emits the prepared navigation effect.
+   private fun navigateToPerson(personId: String?) {
+      viewModelScope.launch {
+         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
+      }
+   }
+
+
    // Removes a person from the repository.
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
             .onSuccess {
-
+               val message = _stringProvider.getString(
+                  R.string.message_person_removed, person.fullName)
+               _effectDelegate.emit(PeopleEffect.ShowMessage(message))
             }
             .onFailure { throwable ->
                val error = _stringProvider.getString(R.string.error_person_remove)

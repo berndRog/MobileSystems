@@ -132,7 +132,7 @@ fun AppNavigation() {
                      )
                   },
 
-                  onBack = {
+                  onNavigateBack = {
                      currentPopReason = PopReason.CANCEL
                      pop(backStack)
                   },

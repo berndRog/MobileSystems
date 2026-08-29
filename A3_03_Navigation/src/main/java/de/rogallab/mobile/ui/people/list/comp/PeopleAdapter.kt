@@ -50,8 +50,8 @@ fun PeopleAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the persistent UI state from the ViewModel.
-   val peopleUiState: PeopleUiState by
-   viewModel.stateFlow.collectAsStateWithLifecycle()
+   val peopleUiState: PeopleUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
@@ -69,22 +69,20 @@ fun PeopleAdapter(
       Column {
          TopAppBar(
             windowInsets = WindowInsets(0),
-            title = {
-               Text(text = stringResource(R.string.people_list))
-            },
+            title = { Text(text = stringResource(R.string.people_list)) },
          )
 
-         // Show either a loading indicator or the stateless PeopleScreen.
+         // Show either a loading indicator
          if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
             Column(
                modifier = Modifier.fillMaxWidth(),
                verticalArrangement = Arrangement.Top,
                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-               Alog.d(tag, "Loading People...")
                CircularProgressIndicator(modifier = Modifier.size(64.dp))
             }
          }
+         // Or the stateless PeopleScreen
          else {
             val people = peopleUiState.people
 

@@ -43,7 +43,7 @@ object NavigationAnimations {
             )
          }
 
-         PopReason.CANCEL -> {
+         PopReason.Cancel -> {
             fadeIn(
                animationSpec = tween(animationDuration)
             ) togetherWith (

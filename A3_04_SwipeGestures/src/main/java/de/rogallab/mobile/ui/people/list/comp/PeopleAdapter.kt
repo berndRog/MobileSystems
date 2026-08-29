@@ -43,38 +43,27 @@ fun PeopleAdapter(
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
-   onBack: () -> Unit,
+   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Collect the persistent UI state from the ViewModel.
-   val peopleUiState: PeopleUiState by
-   viewModel.stateFlow.collectAsStateWithLifecycle()
+   // Collect the PeopleUiState from the ViewModel.
+   val peopleUiState: PeopleUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
-         is PeopleEffect.ShowMessage ->
-            onMessage(peopleEffect.message)
-
-         is PeopleEffect.ShowError ->
-            onError(peopleEffect.message)
-
+         is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
+         is PeopleEffect.ShowError -> onError(peopleEffect.message)
          is PeopleEffect.ConfirmRemove ->
-            onConfirmRemove(
-               peopleEffect.message,
-               peopleEffect.actionLabel,
-               peopleEffect.personId,
-            )
-
-         PeopleEffect.NavigateBack ->
-            onBack()
-
-         is PeopleEffect.NavigateTo ->
-            onNavigateTo(peopleEffect.personId)
+            onConfirmRemove(peopleEffect.message, peopleEffect.actionLabel,
+               peopleEffect.personId)
+         PeopleEffect.NavigateBack -> onNavigateBack()
+         is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
 
@@ -84,31 +73,27 @@ fun PeopleAdapter(
       Column {
          TopAppBar(
             windowInsets = WindowInsets(0),
-            title = {
-               Text(text = stringResource(R.string.people_list))
-            },
+            title = { Text(text = stringResource(R.string.people_list)) },
          )
 
-         // Show either a loading indicator or the stateless PeopleScreen.
+         // Show either a loading indicator
          if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
             Column(
                modifier = Modifier.fillMaxWidth(),
                verticalArrangement = Arrangement.Top,
                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-               Alog.d(tag, "Loading People...")
                CircularProgressIndicator(modifier = Modifier.size(64.dp))
             }
          }
+         // Or the stateless PeopleScreen
          else {
             PeopleScreen(
                people = peopleUiState.people,
                onDetail = { personId ->
-                  Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
                onDelete = { personId ->
-                  Alog.d(tag, "Request delete: $personId")
                   viewModel.onIntent(PeopleIntent.RequestRemove(personId))
                },
                modifier = Modifier.padding(horizontal = 16.dp),
@@ -118,7 +103,6 @@ fun PeopleAdapter(
 
       PeopleCreateButton(
          onCreate = {
-            Alog.d(tag, "Create new person")
             viewModel.onIntent(PeopleIntent.Create)
          }
       )

@@ -25,11 +25,10 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the observable UI state of the people screen.
+   // Holds the observable PeopleUIState
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
-
-   // Exposes the state as a read-only StateFlow to the UI.
+   // Exposes the PeopleUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
@@ -41,32 +40,11 @@ class PeopleViewModel(
       observePeople()
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
-   fun onIntent(intent: PeopleIntent) {
-      Alog.d(TAG, "intent: $intent")
-
-      when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
-         is PeopleIntent.Remove -> removeVisually(intent.person)
-         is PeopleIntent.UndoRemove -> undoRemove(intent.personId)
-         PeopleIntent.RestoreHandled -> restoreHandled()
-         is PeopleIntent.CommitRemove -> commitRemove(intent.personId)
-      }
-   }
-
-   // Emits the navigation effect. A null id opens the create destination.
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         _effectDelegate.emit(
-            PeopleEffect.NavigateTo(personId)
-         )
-      }
-   }
-
    // Observes the repository. The delegate combines this persistent source
    // list with the temporary items that are hidden during an Undo operation.
    private fun observePeople() {
+
+      // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
@@ -85,21 +63,39 @@ class PeopleViewModel(
                   // Pass the latest persistent source list to the delegate.
                   _visualRemoval.update(people)
                   publishVisiblePeople(isLoading = false)
-                  Alog.d(TAG, "observePeople: people=${people.size}")
+
                }
                .onFailure { throwable ->
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  Alog.e(TAG, "observePeople failed: ${throwable.message}")
-                  _effectDelegate.emit(
-                     PeopleEffect.ShowError(
-                        _stringProvider.getString(R.string.error_people_observe)
-                     )
-                  )
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
+      }
+   }
+
+
+   // Dispatches incoming UI intents to the corresponding action.
+   fun onIntent(intent: PeopleIntent) {
+      Alog.d(TAG, "intent: $intent")
+
+      when (intent) {
+         PeopleIntent.Create -> navigateToPerson(null)
+         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         is PeopleIntent.Remove -> removeVisually(intent.person)
+         is PeopleIntent.UndoRemove -> undoRemove(intent.personId)
+         PeopleIntent.RestoreHandled -> restoreHandled()
+         is PeopleIntent.CommitRemove -> commitRemove(intent.personId)
+      }
+   }
+
+   // Emits the navigation effect. A null id opens the create destination.
+   private fun navigateToPerson(personId: String?) {
+      viewModelScope.launch {
+         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
       }
    }
 
@@ -112,12 +108,10 @@ class PeopleViewModel(
       publishVisiblePeople(restoredPersonId = null)
 
       viewModelScope.launch {
+         val message = _stringProvider.getString(R.string.message_person_removed, person.fullName)
          _effectDelegate.emit(
             PeopleEffect.ShowUndo(
-               message = _stringProvider.getString(
-                  R.string.message_person_removed,
-                  person.fullName,
-               ),
+               message = message,
                actionLabel = _stringProvider.getString(R.string.action_undo),
                personId = person.id,
             )
@@ -163,12 +157,8 @@ class PeopleViewModel(
                _visualRemoval.restore(personId)
                publishVisiblePeople(restoredPersonId = personId)
 
-               Alog.e(TAG, "commitRemove failed: ${throwable.message}")
-               _effectDelegate.emit(
-                  PeopleEffect.ShowError(
-                     _stringProvider.getString(R.string.error_person_remove)
-                  )
-               )
+               var error = _stringProvider.getString(R.string.error_person_remove)
+               _effectDelegate.emit(PeopleEffect.ShowError(error))
             }
       }
    }

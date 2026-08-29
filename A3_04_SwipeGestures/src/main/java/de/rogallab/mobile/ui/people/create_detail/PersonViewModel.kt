@@ -219,7 +219,6 @@ class PersonViewModel(
 
       // Navigation is emitted
       viewModelScope.launch {
-         // The adapter translates this effect into a Navigation 3 operation.
          _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
       }
    }

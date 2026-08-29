@@ -34,50 +34,56 @@ fun SwipeCard(
    modifier: Modifier = Modifier,
    content: @Composable () -> Unit,
 ) {
+   // Holds the current Material swipe state of the card.
    val swipeState = rememberSwipeToDismissBoxState()
+
+   // Used to reset the swipe state before executing the resulting action.
    val coroutineScope = rememberCoroutineScope()
 
-   // Keep the dismiss handler stable across recompositions. The latest callbacks
-   // are read through rememberUpdatedState without replacing the handler itself.
+   // Keep the latest callbacks without recreating the dismiss handler
+   // when the surrounding composition changes.
    val onDetailState = rememberUpdatedState(onDetail)
    val onDeleteState = rememberUpdatedState(onDelete)
 
+   // Keep the dismiss handler stable across recompositions.
    val onDismiss = remember<(SwipeToDismissBoxValue) -> Unit>(
       swipeState,
       coroutineScope,
    ) {
       { direction: SwipeToDismissBoxValue ->
+
          coroutineScope.launch {
-            // Reset the Material state before navigation or a list change
+            // Reset the Material swipe state before navigation or a list change
             // modifies the surrounding composition.
             swipeState.snapTo(SwipeToDismissBoxValue.Settled)
 
+            // Map the completed swipe direction to the corresponding action.
             when (direction) {
-               SwipeToDismissBoxValue.StartToEnd -> onDetailState.value()
-               SwipeToDismissBoxValue.EndToStart -> onDeleteState.value()
+               SwipeToDismissBoxValue.StartToEnd -> onDetailState.value() // onDetail() is called
+               SwipeToDismissBoxValue.EndToStart -> onDeleteState.value() // onDelete() is called
                SwipeToDismissBoxValue.Settled -> Unit
             }
          }
       }
    }
 
+   // Wrap the supplied card content with horizontal swipe gestures.
    SwipeToDismissBox(
       state = swipeState,
       modifier = modifier,
       enableDismissFromStartToEnd = true,
       enableDismissFromEndToStart = true,
+
+      // Draw the action background behind the moving card.
       backgroundContent = {
+
+         // Change the background immediately when the swipe direction changes.
          val backgroundColor by animateColorAsState(
             targetValue =
                when (swipeState.dismissDirection) {
-                  SwipeToDismissBoxValue.StartToEnd ->
-                     MaterialTheme.colorScheme.primaryContainer
-
-                  SwipeToDismissBoxValue.EndToStart ->
-                     MaterialTheme.colorScheme.errorContainer
-
-                  SwipeToDismissBoxValue.Settled ->
-                     MaterialTheme.colorScheme.surfaceVariant
+                  SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                  SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                  SwipeToDismissBoxValue.Settled -> MaterialTheme.colorScheme.surfaceVariant
                },
             label = "swipeBackgroundColor",
          )
@@ -87,7 +93,11 @@ fun SwipeCard(
                .fillMaxSize()
                .background(backgroundColor),
          ) {
+
+            // Show the action icon on the side revealed by the swipe.
             when (swipeState.dismissDirection) {
+
+               // StartToEnd opens the detail screen of the existing item.
                SwipeToDismissBoxValue.StartToEnd ->
                   Icon(
                      imageVector = Icons.Default.Edit,
@@ -100,6 +110,7 @@ fun SwipeCard(
                      tint = MaterialTheme.colorScheme.onPrimaryContainer,
                   )
 
+               // EndToStart requests deletion of the existing item.
                SwipeToDismissBoxValue.EndToStart ->
                   Icon(
                      imageVector = Icons.Default.Delete,
@@ -112,16 +123,21 @@ fun SwipeCard(
                      tint = MaterialTheme.colorScheme.onErrorContainer,
                   )
 
-               SwipeToDismissBoxValue.Settled -> Unit
+               // No action indicator is shown while the card is settled.
+               SwipeToDismissBoxValue.Settled ->
+                  Unit
             }
          }
       },
+
+      // Handle the action after Material has completed the swipe.
       onDismiss = onDismiss,
    ) {
+      // The concrete card is supplied by the caller.
+      // SwipeCard therefore remains independent of Person, Car, or other entities.
       content()
    }
 }
-
 /*
  * Didaktik und Lernziele
  *

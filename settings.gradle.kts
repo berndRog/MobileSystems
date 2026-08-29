@@ -49,4 +49,6 @@ include(":A3_03_Navigation")
 include(":A3_04_SwipeGestures")
 include(":A3_05_SwipeDeleteUndo")
 include(":A4_01_ImagePicker")
+include(":A5_01_PeopleRoom3")
 include(":Shared")
+

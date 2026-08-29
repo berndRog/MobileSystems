@@ -23,11 +23,10 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the persistent UI state of the people screen.
+   // Holds the observable PeopleUIState
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
-
-   // Exposes the state as a read-only StateFlow to the UI.
+   // Exposes the PeopleUiState as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
@@ -39,19 +38,10 @@ class PeopleViewModel(
       observePeople()
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
-   fun onIntent(intent: PeopleIntent) {
-      Alog.d(TAG, "intent: $intent")
-
-      when (intent) {
-         PeopleIntent.Create -> {}     //navigateToPerson(null)
-         is PeopleIntent.Detail -> {}  //navigateToPerson(intent.personId)
-         is PeopleIntent.Remove -> remove(intent.person)
-      }
-   }
-
    // Observes the repository and updates the list state.
    private fun observePeople() {
+
+      // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
@@ -75,12 +65,25 @@ class PeopleViewModel(
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
+
                   val error = _stringProvider.getString(R.string.error_people_observe)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
       }
    }
+
+   // Dispatches incoming UI intents to the corresponding action.
+   fun onIntent(intent: PeopleIntent) {
+      Alog.d(TAG, "intent: $intent")
+
+      when (intent) {
+         PeopleIntent.Create -> {}     //navigateToPerson(null)
+         is PeopleIntent.Detail -> {}  //navigateToPerson(intent.personId)
+         is PeopleIntent.Remove -> remove(intent.person)
+      }
+   }
+
 
    // Removes a person from the repository.
    private fun remove(person: Person) {

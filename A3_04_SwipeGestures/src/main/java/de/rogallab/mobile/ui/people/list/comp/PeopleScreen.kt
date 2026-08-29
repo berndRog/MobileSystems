@@ -50,8 +50,7 @@ fun PeopleScreen(
                lastName = person.lastName,
                email = person.email,
                phone = person.phone,
-               imagePath = person.imagePath,
-               onDetail = { onDetail(person.id) },
+               imagePath = person.imagePath
             )
          }
       }

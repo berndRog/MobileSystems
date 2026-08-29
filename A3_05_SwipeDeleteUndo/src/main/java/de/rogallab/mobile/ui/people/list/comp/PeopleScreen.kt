@@ -20,10 +20,10 @@ import de.rogallab.mobile.shared.ui.lists.ScrollToItemIfNotVisible
 @Composable
 fun PeopleScreen(
    people: List<Person>,
-   restoredPersonId: String?,
-   onRestoreHandled: () -> Unit,
    onDetail: (String) -> Unit,
    onDelete: (String) -> Unit,
+   restoredPersonId: String?,
+   onRestoreHandled: () -> Unit,
    modifier: Modifier = Modifier,
 ) {
    val tag = "<-PeopleScreen"

@@ -63,7 +63,7 @@ fun AppNavigation() {
    )
 
    // Selects the visible pop animation for Save or Cancel.
-   var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
+   var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
 
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
@@ -89,7 +89,7 @@ fun AppNavigation() {
 
          // Handles system back navigation as a cancel operation.
          onBack = {
-            currentPopReason = PopReason.CANCEL
+            currentPopReason = PopReason.Cancel
             pop(backStack)
          },
 
@@ -129,29 +129,22 @@ fun AppNavigation() {
                         message = message,
                         actionLabel = actionLabel,
                         onAction = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.UndoRemove(personId)
-                           )
+                           peopleViewModel.onIntent(PeopleIntent.UndoRemove(personId))
                         },
                         onDismiss = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.CommitRemove(personId)
-                           )
+                           peopleViewModel.onIntent(PeopleIntent.CommitRemove(personId))
                         },
                      )
                   },
 
-                  onBack = {
-                     currentPopReason = PopReason.CANCEL
+                  onNavigateBack = {
+                     currentPopReason = PopReason.Cancel
                      pop(backStack)
                   },
 
                   // null -> create, id -> detail/edit.
                   onNavigateTo = { personId ->
-                     push(
-                        destination = PersonKey(personId),
-                        backStack = backStack,
-                     )
+                     push(PersonKey(personId), backStack)
                   },
                )
             }
@@ -176,7 +169,7 @@ fun AppNavigation() {
                      currentPopReason =
                         when (reason) {
                            BackReason.Save -> PopReason.SAVE
-                           BackReason.Cancel -> PopReason.CANCEL
+                           BackReason.Cancel -> PopReason.Cancel
                         }
                      pop(backStack)
                   },

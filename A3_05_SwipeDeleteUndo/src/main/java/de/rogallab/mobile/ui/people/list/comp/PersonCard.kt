@@ -31,7 +31,6 @@ fun PersonCard(
    email: String?,
    phone: String?,
    imagePath: String?,
-   onDetail: () -> Unit,
    modifier: Modifier = Modifier,
 ) {
    val tag = "<-PersonCard"
@@ -43,7 +42,6 @@ fun PersonCard(
          .height(80.dp)
          .fillMaxWidth(),
       shape = RoundedCornerShape(percent = 10),
-      onClick = onDetail,
    ) {
       Row(
          modifier = Modifier
