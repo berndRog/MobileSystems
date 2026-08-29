@@ -35,7 +35,7 @@ dependencyResolutionManagement {
 }
 
 // Name des gesamten Vorlesungsprojekts.
-rootProject.name = "MobileSystems"
+rootProject.name = "MobileSysgit tems"
 
 // Eigenständig startbare Android-Beispielmodule.
 include(":A2_01_Count")
