@@ -1,3 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">A5_02_PeopleRoom3</string>
+   <string name="app_name">People Room 3</string>
+
+   <integer name="person_name_char_min">2</integer>
+   <integer name="person_name_char_max">50</integer>
+
+   <string name="people_title">Personen</string>
+   <string name="person_create_title">Neue Person</string>
+   <string name="person_edit_title">Person ändern</string>
+
+   <string name="person_field_first_name">Vorname</string>
+   <string name="person_field_last_name">Nachname</string>
+   <string name="person_field_email">E-Mail</string>
+   <string name="person_field_phone">Telefon</string>
+
+   <string name="person_full_name">%1$s %2$s</string>
+   <string name="person_image">Foto der Person</string>
+   <string name="person_image_named">Foto von %1$s</string>
+   <string name="person_image_list">Bild der Person</string>
+
+   <string name="action_create">Neu</string>
+   <string name="action_save">Speichern</string>
+   <string name="action_cancel">Abbrechen</string>
+   <string name="action_undo">Rückgängig</string>
+   <string name="action_select_photo">Foto auswählen </string>
+   <string name="action_take_photo">Kamera starten</string>
+   <string name="action_remove_photo">Foto entfernen</string>
+
+   <string name="accessibility_delete_person">Person löschen</string>
+   <string name="accessibility_edit_person">Person ändern</string>
+
+   <string name="message_person_saved">%1$s wurde gespeichert.</string>
+   <string name="message_person_removed">%1$s wurde entfernt.</string>
+
+   <string name="error_people_load">Personen konnten nicht geladen werden.</string>
+   <string name="error_person_not_found">Person wurde nicht gefunden.</string>
+   <string name="error_person_load">Person konnte nicht geladen werden.</string>
+   <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
+   <string name="error_person_delete">Person konnte nicht gelöscht werden.</string>
+   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+
+   <string name="error_first_name_too_short">Vorname ist zu kurz.</string>
+   <string name="error_first_name_too_long">Vorname ist zu lang.</string>
+   <string name="error_last_name_too_short">Nachname ist zu kurz.</string>
+   <string name="error_last_name_too_long">Nachname ist zu lang.</string>
+   <string name="error_email">E-Mail-Adresse ist ungültig.</string>
+   <string name="error_phone">Telefonnummer ist ungültig.</string>
 </resources>
