@@ -4,7 +4,6 @@ import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.removal.VisualRemovalDelegate
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -12,8 +11,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -27,147 +24,81 @@ class PeopleViewModelSwipeTest {
    private val grace = Person(firstName = "Grace", lastName = "Hopper", id = "p2")
    private val stringProvider = FakeStringProvider()
 
-   // Creates a ViewModel with its own temporary removal state for every test.
    private fun createViewModel(repository: FakePersonRepository) =
       PeopleViewModel(
          _repository = repository,
          _stringProvider = stringProvider,
-         _visualRemoval = VisualRemovalDelegate<Person> { person -> person.id },
          _effectDelegate = EffectDelegate(),
       )
 
    @Test
-   fun remove_hidesPersonButDoesNotTouchRepository() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.effects.test {
-         viewModel.onIntent(PeopleIntent.Remove(ada))
+   fun requestRemove_emitsConfirmationWithoutDeleting() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository(listOf(ada, grace))
+         val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.RequestRemove(ada.id))
+            advanceUntilIdle()
+
+            val effect = awaitItem() as PeopleEffect.ConfirmRemove
+            assertEquals(ada.id, effect.personId)
+            assertEquals(
+               stringProvider.getString(
+                  R.string.message_person_remove_confirm,
+                  ada.firstName,
+                  ada.lastName,
+               ),
+               effect.message,
+            )
+            assertEquals(
+               stringProvider.getString(R.string.action_delete),
+               effect.actionLabel,
+            )
+            assertEquals(emptyList<Person>(), repository.removed)
+            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun confirmRemove_deletesPersonAndUpdatesState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository(listOf(ada, grace))
+         val viewModel = createViewModel(repository)
+         advanceUntilIdle()
+
+         viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+         advanceUntilIdle()
+
+         assertEquals(listOf(ada), repository.removed)
          assertEquals(listOf(grace), viewModel.stateFlow.value.people)
-         assertNull(viewModel.stateFlow.value.restoredPersonId)
-         assertTrue(repository.removed.isEmpty())
-
-         val effect = awaitItem() as PeopleEffect.ShowUndo
-         assertEquals("p1", effect.personId)
-         assertEquals(
-            stringProvider.getString(R.string.message_person_removed, "Ada Lovelace"),
-            effect.message,
-         )
-         assertEquals(stringProvider.getString(R.string.action_undo), effect.actionLabel)
-         cancelAndIgnoreRemainingEvents()
       }
-   }
 
    @Test
-   fun undoRemove_restoresPersonAndExposesRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.onIntent(PeopleIntent.Remove(ada))
-      advanceUntilIdle()
-      viewModel.onIntent(PeopleIntent.UndoRemove("p1"))
-      advanceUntilIdle()
-
-      assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
-      assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
-      assertTrue(repository.removed.isEmpty())
-   }
-
-   @Test
-   fun restoreHandled_clearsRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.onIntent(PeopleIntent.Remove(ada))
-      advanceUntilIdle()
-      viewModel.onIntent(PeopleIntent.UndoRemove("p1"))
-      advanceUntilIdle()
-      assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
-
-      viewModel.onIntent(PeopleIntent.RestoreHandled)
-      advanceUntilIdle()
-
-      assertNull(viewModel.stateFlow.value.restoredPersonId)
-      assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
-   }
-
-   @Test
-   fun commitRemove_deletesFromRepositoryOnlyAfterUndoWindow() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.onIntent(PeopleIntent.Remove(ada))
-      advanceUntilIdle()
-      assertTrue(repository.removed.isEmpty())
-
-      viewModel.onIntent(PeopleIntent.CommitRemove("p1"))
-      advanceUntilIdle()
-
-      assertEquals(listOf(ada), repository.removed)
-      assertEquals(listOf(grace), viewModel.stateFlow.value.people)
-   }
-
-   @Test
-   fun failedCommit_restoresPersonAndExposesRestoreTarget() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace)).apply {
-         removeResult = Result.failure(IllegalStateException("delete failed"))
-      }
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.onIntent(PeopleIntent.Remove(ada))
-      advanceUntilIdle()
-
-      viewModel.effects.test {
-         // Ignore the already buffered Undo effect from the visual removal.
-         assertTrue(awaitItem() is PeopleEffect.ShowUndo)
-
-         viewModel.onIntent(PeopleIntent.CommitRemove("p1"))
+   fun failedConfirmRemove_emitsErrorAndKeepsPerson() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            removeResult = Result.failure(IllegalStateException("delete failed"))
+         }
+         val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
-         val error = awaitItem() as PeopleEffect.ShowError
-         assertEquals(stringProvider.getString(R.string.error_person_remove), error.message)
-         assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
-         assertEquals("p1", viewModel.stateFlow.value.restoredPersonId)
-         cancelAndIgnoreRemainingEvents()
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+            advanceUntilIdle()
+
+            val error = awaitItem() as PeopleEffect.ShowError
+            assertEquals(
+               stringProvider.getString(R.string.error_person_remove),
+               error.message,
+            )
+            assertEquals(emptyList<Person>(), repository.removed)
+            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+
+            cancelAndIgnoreRemainingEvents()
+         }
       }
-   }
-
-   @Test
-   fun removingSamePersonTwice_createsOnlyOnePendingUndo() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.effects.test {
-         viewModel.onIntent(PeopleIntent.Remove(ada))
-         viewModel.onIntent(PeopleIntent.Remove(ada))
-         advanceUntilIdle()
-
-         assertTrue(awaitItem() is PeopleEffect.ShowUndo)
-         expectNoEvents()
-         assertEquals(listOf(grace), viewModel.stateFlow.value.people)
-         assertTrue(repository.removed.isEmpty())
-         cancelAndIgnoreRemainingEvents()
-      }
-   }
-
-   @Test
-   fun commitUnknownPerson_doesNotTouchRepository() = runTest(mainDispatcherRule.testDispatcher) {
-      val repository = FakePersonRepository(listOf(ada, grace))
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-
-      viewModel.onIntent(PeopleIntent.CommitRemove("unknown"))
-      advanceUntilIdle()
-
-      assertTrue(repository.removed.isEmpty())
-      assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
-   }
 }
