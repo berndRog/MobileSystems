@@ -1,7 +1,7 @@
 package de.rogallab.mobile.di
 
 import androidx.room3.Room
-import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import de.rogallab.mobile.Globals
 import de.rogallab.mobile.data.IPersonDao
 import de.rogallab.mobile.data.local.Seed
@@ -18,6 +18,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -30,12 +31,12 @@ fun appModule(): Module = module {
    // Room-3 infrastructure belongs to A5_01 itself.
    Alog.i(tag, "single    -> AppDatabase")
    single<AppDatabase> {
-      Room.databaseBuilder(
-         androidContext(),
-         AppDatabase::class.java,
-         Globals.databaseName,
+      Room.databaseBuilder<AppDatabase>(
+         context = androidContext(),
+         name = Globals.databaseName,
       )
-         .setDriver(AndroidSQLiteDriver())
+         .setDriver(BundledSQLiteDriver())
+         .setQueryCoroutineContext(Dispatchers.IO)
          .build()
    }
 
@@ -107,6 +108,9 @@ fun appModule(): Module = module {
  *
  * - AppDatabase, IPersonDao, PersonDto und PersonRepository gehören deshalb zum
  *   A5_01-Modul. Ein databaseModule aus Shared wird nicht verwendet.
+ *
+ * - Die Datenbankkonfiguration entspricht weiterhin dem Kursstandard:
+ *   BundledSQLiteDriver und ein eigener IO-Kontext für Room-Abfragen.
  *
  * - Allgemeine Dienste wie IImageFileStorage, IImageEdit und IStringProvider
  *   bleiben Shared-Infrastruktur und werden weiterhin per DI bezogen.
