@@ -27,6 +27,9 @@ object DateTimeText {
    fun parseOrNull(value: String): LocalDateTime? {
       val normalizedValue = value.trim()
       if (normalizedValue.isBlank()) return null
-      return LocalDateTime.parseOrNull(normalizedValue, formatter)
+
+      return runCatching {
+         LocalDateTime.parse(normalizedValue, formatter)
+      }.getOrNull()
    }
 }
