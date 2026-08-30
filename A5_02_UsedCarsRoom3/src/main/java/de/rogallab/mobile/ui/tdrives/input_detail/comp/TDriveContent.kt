@@ -42,7 +42,6 @@ fun TDriveContent(
    val cCount = remember { mutableIntStateOf(0) }
    SideEffect { AppLogger.compose(tag, "Composition #${cCount.intValue++}") }
 
-
    Column(
       modifier = modifier,
       verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -99,7 +98,9 @@ fun TDriveContent(
                onIntent(TDriveIntent.CompletedChanged(isCompleted))
             },
          )
-         Text(text = stringResource(R.string.test_drive_completed))
-      )
+         Text(
+            text = stringResource(R.string.test_drive_completed),
+         )
+      }
    }
 }
