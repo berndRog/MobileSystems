@@ -32,11 +32,11 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Car
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.common.toImageModel
+import de.rogallab.mobile.shared.ui.components.InputValueString
 import de.rogallab.mobile.shared.ui.images.ImageSelectionButtons
 import de.rogallab.mobile.ui.cars.input_detail.CarIntent
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
 import de.rogallab.mobile.ui.cars.input_detail.MAX_CAR_IMAGE_COUNT
-import de.rogallab.mobile.ui.composables.InputValueString
 import de.rogallab.mobile.ui.tdrives.input_detail.comp.PersonSelectionField
 
 @Composable
