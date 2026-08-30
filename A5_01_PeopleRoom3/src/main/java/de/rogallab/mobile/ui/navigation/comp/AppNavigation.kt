@@ -145,8 +145,8 @@ fun AppNavigation() {
                )
             }
 
-            // Shared destination for create and edit. The new part of A4_01 is
-            // gallery/camera image selection and the image edit lifecycle.
+            // Shared destination for create and edit. Image selection and the
+            // image edit lifecycle stay unchanged from A4_01.
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
@@ -225,9 +225,9 @@ private fun logNavigationOperation(
 /*
  * Didaktik und Lernziele
  *
- * - A4_01_ImagePicker baut auf Navigation und Swipe-Gesten auf, übernimmt aber
- *   bewusst nicht die zusätzliche Undo-Mechanik. Neu ist in diesem Schritt der
- *   Bild-Lebenszyklus im Person-Feature.
+ * - A5_01_PeopleRoom3 übernimmt Navigation, Effects, ImagePicker und die einfache
+ *   Löschbestätigung unverändert aus A4_01. Der neue Lernschritt liegt unterhalb
+ *   der UI in der lokalen Room-3-Persistenzschicht.
  *
  * - Navigation und Meldungsausgabe bleiben getrennt:
  *
@@ -236,22 +236,20 @@ private fun logNavigationOperation(
  *      ConfirmRemove             -> Action-Snackbar
  *
  * - Swipe-to-Delete verändert die sichtbare Liste nicht vorzeitig. Das ViewModel
- *   erzeugt ConfirmRemove; nur die Action der Snackbar führt anschließend zu
- *   PeopleIntent.ConfirmRemove und damit zur Repository-Operation.
+ *   erzeugt ConfirmRemove; nur die Action der Snackbar führt zu
+ *   PeopleIntent.ConfirmRemove und anschließend zur Repository-Operation.
  *
- * - Wird die Snackbar verworfen oder läuft sie ab, bleibt das Repository
- *   unverändert. Deshalb werden weder VisualRemovalDelegate noch pending
- *   Removals oder ein Restore-State benötigt.
+ * - AppNavigation kennt weder AppDatabase noch IPersonDao. Die UI arbeitet nur
+ *   mit ViewModels und deren Domain-Repository-Schnittstelle. Dadurch bleibt der
+ *   Wechsel von der bisherigen Persistenz auf den lokalen Room-3-Code unsichtbar
+ *   für die Navigation.
  *
- * - PeopleViewModel kann wieder im PeopleKey-Eintrag erzeugt werden. Erst
- *   A4_02_ImagePickerUndo benötigt den länger lebenden temporären Removal-State.
- *
- * - Der Person-Screen ergänzt unabhängig davon Gallery/Camera und temporäre
- *   Bilddateien. Save bestätigt die Edit-Session, Cancel verwirft sie.
+ * - A5_01 verwendet bewusst nicht den Undo-Zustand aus A4_02. Damit bleibt Room 3
+ *   das zentrale neue Thema dieses Schritts.
  *
  * Lernziele:
  *
- * - ImagePicker und Swipe-to-Delete ohne Undo-Komplexität kombinieren.
- * - Eine destruktive Aktion mit einer Action-Snackbar bestätigen.
- * - Delete-Bestätigung und Undo als unterschiedliche Ausbaustufen verstehen.
+ * - UI-/Navigationsarchitektur beim Wechsel der Persistenz stabil halten.
+ * - SnackbarController statt Coordinator für Meldungen und Bestätigung einsetzen.
+ * - Repository als Trennlinie zwischen UI und Room erkennen.
  */
