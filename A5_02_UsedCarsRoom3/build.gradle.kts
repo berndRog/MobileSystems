@@ -1,5 +1,4 @@
 plugins {
-   alias(libs.plugins.android.application)
 }
 
 android {
@@ -14,24 +13,16 @@ android {
       targetSdk = 37
       versionCode = 1
       versionName = "1.0"
-
       testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
    }
-
    buildTypes {
-      release {
-         optimization {
-            enable = false
-         }
-      }
+      release { optimization { enable = false } }
    }
    compileOptions {
       sourceCompatibility = JavaVersion.VERSION_11
       targetCompatibility = JavaVersion.VERSION_11
    }
-   buildFeatures {
-      compose = true
-   }
+   buildFeatures { compose = true }
 }
 
 dependencies {
@@ -43,6 +34,7 @@ dependencies {
    implementation(libs.androidx.ui)
    implementation(libs.androidx.ui.graphics)
    implementation(libs.androidx.ui.tooling.preview)
+   implementation(libs.androidx.sqlite.bundled)
    testImplementation(libs.junit)
    androidTestImplementation(platform(libs.androidx.compose.bom))
    androidTestImplementation(libs.androidx.test.espresso.core)

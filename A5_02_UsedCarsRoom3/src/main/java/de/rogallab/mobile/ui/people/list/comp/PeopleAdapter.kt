@@ -1,93 +1,179 @@
 package de.rogallab.mobile.ui.people.list.comp
 
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.utilities.AppLogger
-import de.rogallab.mobile.ui.common.UiText
-import de.rogallab.mobile.ui.coordinator.CoordinatorEffect
-import de.rogallab.mobile.ui.people.list.PeopleEfect
+import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.effects.EffectHandler
+import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleIntent
+import de.rogallab.mobile.ui.people.list.PeopleUiState
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
-import kotlinx.coroutines.flow.Flow
 
-// Stateful adapter between the list ViewModel and its stateless screen.
-//
-// It collects state and one-shot events, coordinates the scroll after Undo
-// and forwards only UI callbacks. Koin and ViewModel creation stay in the
-// central Navigation 3 entry provider.
-
-private const val TAG = "<-PeopleAdapter"
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   coordinatorEvents: Flow<CoordinatorEffect.RestorePerson>,
-   contentPadding: PaddingValues,
-   onCreate: () -> Unit,
-   onOpen: (String) -> Unit,
-   onRemove: (Person, Int) -> Unit,
-   onMessage: (UiText) -> Unit,
+   modifier: Modifier = Modifier,
+   onMessage: (String) -> Unit,
+   onError: (String) -> Unit,
+   onConfirmRemove: (String, String, String) -> Unit,
+   onBack: () -> Unit,
+   onNavigateTo: (String?) -> Unit,
 ) {
-   val cCount = remember { mutableIntStateOf(0) }
-   SideEffect { AppLogger.compose(TAG, "Composition #${cCount.intValue++}") }
+   val tag = "<-PeopleAdapter"
+   val nComp = remember { mutableIntStateOf(1) }
+   SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   val peopleUiState by viewModel.state.collectAsStateWithLifecycle()
-   val lazyListState = rememberLazyListState()
+   // Collect the persistent UI state from the ViewModel.
+   val peopleUiState: PeopleUiState by
+   viewModel.stateFlow.collectAsStateWithLifecycle()
 
-   LaunchedEffect(viewModel) {
-      viewModel.events.collect { peopleEvent ->
-         when (peopleEvent) {
-            PeopleEfect.NavigateToCreate -> onCreate()
-            is PeopleEfect.NavigateToDetails ->
-               onOpen(peopleEvent.personId)
-            is PeopleEfect.RequestRemove -> onRemove(
-               peopleEvent.person,
-               peopleEvent.originalIndex,
+   // Collect one-time effects and forward them to simple callbacks.
+   EffectHandler(viewModel.effects) { peopleEffect ->
+      when (peopleEffect) {
+         is PeopleEffect.ShowMessage ->
+            onMessage(peopleEffect.message)
+
+         is PeopleEffect.ShowError ->
+            onError(peopleEffect.message)
+
+         is PeopleEffect.ConfirmRemove ->
+            onConfirmRemove(
+               peopleEffect.message,
+               peopleEffect.actionLabel,
+               peopleEffect.personId,
             )
-            is PeopleEfect.ShowSnackbar ->
-               onMessage(peopleEvent.message)
+
+         PeopleEffect.NavigateBack ->
+            onBack()
+
+         is PeopleEffect.NavigateTo ->
+            onNavigateTo(peopleEffect.personId)
+      }
+   }
+
+   Box(
+      modifier = modifier.fillMaxSize()
+   ) {
+      Column {
+         TopAppBar(
+            windowInsets = WindowInsets(0),
+            title = {
+               Text(text = stringResource(R.string.people_list))
+            },
+         )
+
+         // Show either a loading indicator or the stateless PeopleScreen.
+         if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+            Column(
+               modifier = Modifier.fillMaxWidth(),
+               verticalArrangement = Arrangement.Top,
+               horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+               Alog.d(tag, "Loading People...")
+               CircularProgressIndicator(modifier = Modifier.size(64.dp))
+            }
+         }
+         else {
+            PeopleScreen(
+               people = peopleUiState.people,
+               onDetail = { personId ->
+                  Alog.d(tag, "Navigate to Detail: $personId")
+                  viewModel.onIntent(PeopleIntent.Detail(personId))
+               },
+               onDelete = { personId ->
+                  Alog.d(tag, "Request delete: $personId")
+                  viewModel.onIntent(PeopleIntent.RequestRemove(personId))
+               },
+               modifier = Modifier.padding(horizontal = 16.dp),
+            )
          }
       }
-   }
 
-   LaunchedEffect(viewModel, coordinatorEvents) {
-      coordinatorEvents.collect { coordinatorEvent ->
-         viewModel.onIntent(
-            PeopleIntent.Restore(
-               person = coordinatorEvent.person,
-               originalIndex = coordinatorEvent.originalIndex,
-            )
-         )
-      }
+      PeopleCreateButton(
+         onCreate = {
+            Alog.d(tag, "Create new person")
+            viewModel.onIntent(PeopleIntent.Create)
+         }
+      )
    }
-
-   LaunchedEffect(
-      peopleUiState.restoredPersonId,
-      peopleUiState.people,
-   ) {
-      val restoredPersonId =
-         peopleUiState.restoredPersonId ?: return@LaunchedEffect
-      val restoredIndex = peopleUiState.people.indexOfFirst { person ->
-         person.id == restoredPersonId
-      }
-      if (restoredIndex >= 0) {
-         lazyListState.animateScrollToItem(restoredIndex)
-      }
-      viewModel.onIntent(PeopleIntent.Restored)
-   }
-
-   PeopleScreen(
-      peopleUiState = peopleUiState,
-      lazyListState = lazyListState,
-      contentPadding = contentPadding,
-      onIntent = viewModel::onIntent,
-   )
 }
+
+@Composable
+private fun PeopleCreateButton(
+   onCreate: () -> Unit,
+) {
+   Box(
+      modifier = Modifier
+         .fillMaxSize()
+         .padding(16.dp),
+      contentAlignment = Alignment.BottomEnd,
+   ) {
+      ExtendedFloatingActionButton(
+         containerColor = colorScheme.secondary,
+         onClick = onCreate,
+         icon = {
+            Icon(
+               imageVector = Icons.Default.Add,
+               contentDescription = null,
+            )
+         },
+         text = {
+            Text(text = stringResource(R.string.action_create))
+         },
+      )
+   }
+}
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen. Die bereits
+ *   bekannten Swipe-Gesten bleiben erhalten, Undo gehört aber nicht zu A4_01.
+ *
+ * - Ein Tap auf die PersonCard und Swipe StartToEnd werden auf denselben
+ *   PeopleIntent.Detail abgebildet.
+ *
+ * - Swipe EndToStart sendet zunächst PeopleIntent.RequestRemove. Das ViewModel
+ *   erzeugt daraufhin PeopleEffect.ConfirmRemove. Der Adapter reicht diesen
+ *   einmaligen Effect über onConfirmRemove an die Navigationsebene weiter.
+ *
+ * - Erst die Action der Bestätigungs-Snackbar führt zu ConfirmRemove und damit
+ *   zur Repository-Operation. Ein Dismiss der Snackbar verändert keine Daten.
+ *
+ * - Das Anlegen einer neuen Person bleibt eine eigene Aktion und wird über den
+ *   FAB als PeopleIntent.Create ausgelöst.
+ *
+ * Lernziele:
+ *
+ * - UI-Interaktionen auf Intents abbilden.
+ * - Destruktive Aktionen über einen Effect bestätigen lassen.
+ * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
+ * - Die Undo-Erweiterung bewusst von diesem Grundstand trennen.
+ */

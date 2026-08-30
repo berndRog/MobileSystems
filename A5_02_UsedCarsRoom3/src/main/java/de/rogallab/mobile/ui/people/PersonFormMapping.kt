@@ -1,16 +1,17 @@
 package de.rogallab.mobile.ui.people
 
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.utilities.normalizedImagePath
 
-fun String.toNullableInput(): String? =
-   trim().takeUnless { normalizedValue -> normalizedValue.isBlank() }
+// Maps an empty text-field value back to the nullable domain representation. */
+internal fun String.toNullableInput(): String? =
+   trim().takeUnless(String::isEmpty)
 
-fun Person.normalized(): Person =
+// Normalizes all user-editable values before the final save validation. */
+internal fun Person.normalized(): Person =
    copy(
       firstName = firstName.trim(),
       lastName = lastName.trim(),
-      email = email?.trim()?.takeUnless { normalizedEmail -> normalizedEmail.isBlank() },
-      phone = phone?.trim()?.takeUnless { normalizedPhone -> normalizedPhone.isBlank() },
-      imagePath = imagePath.normalizedImagePath(),
+      email = email?.trim()?.takeUnless(String::isEmpty),
+      phone = phone?.trim()?.takeUnless(String::isEmpty),
+      imagePath = imagePath?.takeUnless(String::isBlank),
    )
