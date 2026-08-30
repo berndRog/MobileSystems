@@ -2,12 +2,26 @@ package de.rogallab.mobile.data.repositories
 
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class PersonRepositoryTest {
+
+   @Before
+   fun setup() {
+      // Local JVM tests must not call the android.util.Log stub.
+      Alog.set(useAndroidLog = false)
+   }
+
+   @After
+   fun tearDown() {
+      Alog.reset()
+   }
 
    @Test
    fun create_emitsPersistedPerson() = runTest {
