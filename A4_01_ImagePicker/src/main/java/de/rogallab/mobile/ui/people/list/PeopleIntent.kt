@@ -1,20 +1,12 @@
 package de.rogallab.mobile.ui.people.list
 
-import de.rogallab.mobile.domain.entities.Person
-
 sealed interface PeopleIntent {
    data object Create : PeopleIntent
    data class Detail(val personId: String) : PeopleIntent
 
-   // Removes the person only from the visible list and starts the Undo window.
-   data class Remove(val person: Person) : PeopleIntent
+   // Requests deletion of an existing person. The repository is not changed yet.
+   data class RequestRemove(val personId: String) : PeopleIntent
 
-   // Restores a visually removed person while the Undo action is still valid.
-   data class UndoRemove(val personId: String) : PeopleIntent
-
-   // Acknowledges that the restored item has been made visible by the UI.
-   data object RestoreHandled : PeopleIntent
-
-   // Persists the deletion only after the Undo action was not selected.
-   data class CommitRemove(val personId: String) : PeopleIntent
+   // Confirms a previously requested deletion and starts the repository operation.
+   data class ConfirmRemove(val personId: String) : PeopleIntent
 }
