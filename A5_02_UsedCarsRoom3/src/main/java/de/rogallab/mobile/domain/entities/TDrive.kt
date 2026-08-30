@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.entities
 
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 data class TDrive(
    val personId: String? = null,
