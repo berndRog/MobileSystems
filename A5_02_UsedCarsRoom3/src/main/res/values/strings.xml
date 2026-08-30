@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">Used Cars Room 3</string>
+  <string name="app_name">A5_02 UsedCarsRoom3</string>
 
   <integer name="person_name_char_min">2</integer>
   <integer name="person_name_char_max">50</integer>
+  <integer name="char_min">2</integer>
+  <integer name="char_max">50</integer>
 
   <string name="navigation_people">Personen</string>
   <string name="navigation_cars">Fahrzeuge</string>
@@ -19,6 +21,16 @@
   <string name="person_no_data">Keine Kontaktdaten</string>
   <string name="person_full_name">%1$s %2$s</string>
   <string name="person_image_list">Bild der Person</string>
+
+  <!-- Names used by the current People/Person feature from A5_01. -->
+  <string name="people_list">Personen</string>
+  <string name="person_create">Person hinzufügen</string>
+  <string name="person_detail">Person bearbeiten</string>
+  <string name="firstname">Vorname</string>
+  <string name="lastname">Nachname</string>
+  <string name="email">E-Mail-Adresse</string>
+  <string name="phone">Telefonnummer</string>
+  <string name="image">Foto der Person</string>
 
   <string name="cars_title">Fahrzeuge</string>
   <string name="car_create_title">Neues Fahrzeug</string>
@@ -54,17 +66,19 @@
   <string name="person_selection_open">Person auswählen</string>
   <string name="person_selection_search">Nachname oder Vorname suchen</string>
   <string name="person_selection_no_results">Keine passende Person gefunden.</string>
-
   <string name="car_selection_label">Fahrzeug auswählen</string>
   <string name="car_selection_none">Kein Fahrzeug</string>
   <string name="car_selection_open">Fahrzeug auswählen</string>
-
   <string name="value_not_available">–</string>
 
   <string name="action_create">Neu</string>
+  <string name="action_send">Senden</string>
   <string name="action_save">Speichern</string>
   <string name="action_cancel">Abbrechen</string>
-  <string name="action_undo">Rückgängig</string>
+  <string name="action_edit">Bearbeiten</string>
+  <string name="action_delete">Löschen</string>
+  <string name="action_back">Zurück</string>
+  <string name="action_confirm">Ja</string>
   <string name="action_select_photo">Foto wählen</string>
   <string name="action_take_photo">Kamera</string>
   <string name="action_remove_photo">Foto entfernen</string>
@@ -82,11 +96,12 @@
   <string name="message_person_saved">%1$s wurde gespeichert.</string>
   <string name="message_car_saved">%1$s wurde gespeichert.</string>
   <string name="message_test_drive_saved">Probefahrt wurde gespeichert.</string>
-  <string name="message_person_removed">%1$s wurde entfernt.</string>
-  <string name="message_car_removed">%1$s wurde entfernt.</string>
-  <string name="message_test_drive_removed">Probefahrt wurde entfernt.</string>
+  <string name="message_person_remove_confirm">%1$s %2$s wirklich löschen?</string>
+  <string name="message_car_remove_confirm">%1$s %2$s wirklich löschen?</string>
+  <string name="message_test_drive_remove_confirm">Probefahrt wirklich löschen?</string>
 
   <string name="error_people_load">Personen konnten nicht geladen werden.</string>
+  <string name="error_people_observe">Personen konnten nicht geladen werden.</string>
   <string name="error_cars_load">Fahrzeuge konnten nicht geladen werden.</string>
   <string name="error_test_drives_load">Probefahrten konnten nicht geladen werden.</string>
   <string name="error_person_not_found">Person wurde nicht gefunden.</string>
@@ -98,6 +113,7 @@
   <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
   <string name="error_car_save">Fahrzeug konnte nicht gespeichert werden.</string>
   <string name="error_test_drive_save">Probefahrt konnte nicht gespeichert werden.</string>
+  <string name="error_person_remove">Person konnte nicht gelöscht werden.</string>
   <string name="error_person_delete">Person konnte nicht gelöscht werden. Prüfen Sie Fahrzeuge und Probefahrten.</string>
   <string name="error_car_delete">Fahrzeug konnte nicht gelöscht werden. Prüfen Sie vorhandene Probefahrten.</string>
   <string name="error_test_drive_delete">Probefahrt konnte nicht gelöscht werden.</string>
@@ -107,6 +123,10 @@
   <string name="error_first_name_too_long">Vorname ist zu lang.</string>
   <string name="error_last_name_too_short">Nachname ist zu kurz.</string>
   <string name="error_last_name_too_long">Nachname ist zu lang.</string>
+  <string name="error_firstname_too_short">Vorname ist zu kurz.</string>
+  <string name="error_firstname_too_long">Vorname ist zu lang.</string>
+  <string name="error_lastname_too_short">Nachname ist zu kurz.</string>
+  <string name="error_lastname_too_long">Nachname ist zu lang.</string>
   <string name="error_email">E-Mail-Adresse ist ungültig.</string>
   <string name="error_phone">Telefonnummer ist ungültig.</string>
   <string name="error_car_manufacturer_required">Hersteller fehlt.</string>

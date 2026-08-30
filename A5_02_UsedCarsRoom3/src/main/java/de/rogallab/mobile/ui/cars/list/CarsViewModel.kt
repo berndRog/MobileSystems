@@ -6,80 +6,89 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Car
-import de.rogallab.mobile.domain.utilities.AppLogger
-import de.rogallab.mobile.ui.common.VisualRemovalController
-import de.rogallab.mobile.ui.common.uiText
+import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CarsViewModel(
    private val _repository: ICarRepository,
    private val _personRepository: IPersonRepository,
-) : ViewModel() {
+   private val _stringProvider: IStringProvider,
+   private val _effectDelegate: EffectDelegate<CarsEffect>,
+) : ViewModel(), IEffectSource<CarsEffect> by _effectDelegate {
 
-   private val _state = MutableStateFlow(CarsUiState())
-   val state: StateFlow<CarsUiState> = _state.asStateFlow()
-
-   private val _events = Channel<CarsEvent>(Channel.BUFFERED)
-   val events = _events.receiveAsFlow()
-
+   private val _stateFlow = MutableStateFlow(CarsUiState())
+   val stateFlow: StateFlow<CarsUiState> = _stateFlow.asStateFlow()
    private var _observeJob: Job? = null
-   private val _visualRemoval = VisualRemovalController<Car>(Car::id)
 
    init {
-      AppLogger.info(TAG, "init: observeCars()")
       observeCars()
       observePeople()
    }
 
    fun onIntent(intent: CarsIntent) {
-      AppLogger.debug(TAG, "onIntent: $intent")
+      Alog.d(TAG, "intent: $intent")
       when (intent) {
-         CarsIntent.Create -> emitEvent(CarsEvent.NavigateToCreate)
-         is CarsIntent.Open -> emitEvent(
-            CarsEvent.NavigateToDetails(intent.carId)
+         CarsIntent.Create -> navigateToCar(null)
+         is CarsIntent.Detail -> navigateToCar(intent.carId)
+         is CarsIntent.RequestRemove -> requestRemove(intent.carId)
+         is CarsIntent.ConfirmRemove -> confirmRemove(intent.carId)
+      }
+   }
+
+   private fun navigateToCar(carId: String?) {
+      viewModelScope.launch { _effectDelegate.emit(CarsEffect.NavigateTo(carId)) }
+   }
+
+   private fun requestRemove(carId: String) {
+      val car = _stateFlow.value.cars.find { it.id == carId }
+      if (car == null) {
+         emitError(R.string.error_car_not_found)
+         return
+      }
+      viewModelScope.launch {
+         val message = _stringProvider.getString(
+            R.string.message_car_remove_confirm,
+            car.manufacturer,
+            car.model,
          )
-         is CarsIntent.Remove -> removeVisually(
-            intent.car,
-            intent.originalIndex,
-         )
-         is CarsIntent.Restore -> restoreVisually(
-            intent.car,
-            intent.originalIndex,
-         )
-         CarsIntent.Restored -> acknowledgeRestoredItem()
+         val actionLabel = _stringProvider.getString(R.string.action_confirm)
+         _effectDelegate.emit(CarsEffect.ConfirmRemove(message, actionLabel, car.id))
+      }
+   }
+
+   private fun confirmRemove(carId: String) {
+      val car = _stateFlow.value.cars.find { it.id == carId }
+      if (car == null) {
+         emitError(R.string.error_car_not_found)
+         return
+      }
+      viewModelScope.launch {
+         _repository.remove(car)
+            .onFailure { emitErrorNow(R.string.error_car_delete) }
       }
    }
 
    private fun observeCars() {
       _observeJob?.cancel()
       _observeJob = viewModelScope.launch {
-         _state.update { currentState -> currentState.copy(isLoading = true) }
-         _repository.observeAll().collect { result ->
-            result
-               .onSuccess { databaseCars ->
-                  val visibleCars = _visualRemoval.visibleItems(databaseCars)
-                  _state.update { currentState ->
-                     currentState.copy(
-                        cars = visibleCars,
-                        isLoading = false,
-                     )
-                  }
+         _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
+         _repository.observeAll().collect { result: Result<List<Car>> ->
+            result.onSuccess { cars ->
+               _stateFlow.update { state: CarsUiState ->
+                  state.copy(cars = cars, isLoading = false)
                }
-               .onFailure {
-                  _state.update { currentState -> currentState.copy(isLoading = false) }
-                  emitEvent(
-                     CarsEvent.ShowSnackbar(
-                        uiText(R.string.error_cars_load)
-                     )
-                  )
-               }
+            }.onFailure {
+               _stateFlow.update { state: CarsUiState -> state.copy(isLoading = false) }
+               emitErrorNow(R.string.error_cars_load)
+            }
          }
       }
    }
@@ -87,61 +96,32 @@ class CarsViewModel(
    private fun observePeople() {
       viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
-            result
-               .onSuccess { people ->
-                  _state.update { currentState ->
-                     currentState.copy(people = people)
-                  }
-               }
-               .onFailure {
-                  emitEvent(
-                     CarsEvent.ShowSnackbar(
-                        uiText(R.string.error_people_load)
-                     )
-                  )
-               }
+            result.onSuccess { people ->
+               _stateFlow.update { state: CarsUiState -> state.copy(people = people) }
+            }.onFailure {
+               emitErrorNow(R.string.error_people_load)
+            }
          }
       }
    }
 
-   private fun removeVisually(car: Car, originalIndex: Int) {
-      val result = _visualRemoval.remove(
-         items = _state.value.cars,
-         item = car,
-         originalIndex = originalIndex,
-      )
-      _state.update { currentState ->
-         currentState.copy(
-            cars = result.items,
-            restoredCarId = null,
-         )
-      }
-      emitEvent(CarsEvent.RequestRemove(car, result.originalIndex))
+   private fun emitError(resourceId: Int) {
+      viewModelScope.launch { emitErrorNow(resourceId) }
    }
 
-   private fun restoreVisually(car: Car, originalIndex: Int) {
-      val restoredCars = _visualRemoval.restore(
-         items = _state.value.cars,
-         item = car,
-         originalIndex = originalIndex,
-      )
-      _state.update { currentState ->
-         currentState.copy(
-            cars = restoredCars,
-            restoredCarId = car.id,
-         )
-      }
+   private suspend fun emitErrorNow(resourceId: Int) {
+      _effectDelegate.emit(CarsEffect.ShowError(_stringProvider.getString(resourceId)))
    }
 
-   private fun acknowledgeRestoredItem() {
-      _state.update { currentState -> currentState.copy(restoredCarId = null) }
-   }
-
-   private fun emitEvent(event: CarsEvent) {
-      viewModelScope.launch { _events.send(event) }
-   }
-
-   companion object {
-      private const val TAG = "<-CarsViewModel"
-   }
+   companion object { private const val TAG = "<-CarsViewModel" }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - CarsViewModel verwendet denselben UDF-Ablauf wie PeopleViewModel.
+ * - Swipe-to-Delete entfernt kein Listenelement vorzeitig. Erst die bestätigte
+ *   Snackbar-Aktion führt über ConfirmRemove zur Repository-Operation.
+ * - Die Verkäuferliste wird separat beobachtet, damit die UI sellerId auf einen
+ *   lesbaren Personennamen abbilden kann.
+ */

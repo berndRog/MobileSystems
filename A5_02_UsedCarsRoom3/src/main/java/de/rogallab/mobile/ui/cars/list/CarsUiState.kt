@@ -7,5 +7,4 @@ data class CarsUiState(
    val cars: List<Car> = emptyList(),
    val people: List<Person> = emptyList(),
    val isLoading: Boolean = false,
-   val restoredCarId: String? = null,
 )

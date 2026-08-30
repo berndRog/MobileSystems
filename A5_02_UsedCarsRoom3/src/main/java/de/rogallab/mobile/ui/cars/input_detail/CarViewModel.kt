@@ -3,233 +3,152 @@ package de.rogallab.mobile.ui.cars.input_detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
-import de.rogallab.mobile.data.local.io.deleteImageFromAppStorage
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Car
-import de.rogallab.mobile.domain.utilities.AppLogger
-import de.rogallab.mobile.domain.utilities.normalizedImagePaths
-import de.rogallab.mobile.ui.common.UiText
-import de.rogallab.mobile.ui.common.uiText
-import java.util.UUID
-import kotlinx.coroutines.channels.Channel
+import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CarViewModel(
-   arguments: CarVmArgs,
+   val carId: String?,
    private val _carRepository: ICarRepository,
    private val _personRepository: IPersonRepository,
+   private val _stringProvider: IStringProvider,
    private val _validator: CarValidator,
-) : ViewModel() {
-   private val _carId = arguments.carId?.takeUnless { carId ->
-      carId.isBlank()
-   }
+   private val _imageEdit: IImageEdit,
+   private val _effectDelegate: EffectDelegate<CarEffect>,
+) : ViewModel(), IEffectSource<CarEffect> by _effectDelegate {
+
+   private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
-   private val _state = MutableStateFlow(
-      if (_isNew) {
-         CarUiState(
-            car = Car(id = UUID.randomUUID().toString()),
-            isNew = true,
-         )
-      }
-      else {
-         CarUiState(isNew = false, isLoading = true)
-      }
+   private var _isSaving = false
+   private val _stateFlow = MutableStateFlow(
+      if (_isNew) CarUiState(car = Car(id = java.util.UUID.randomUUID().toString()), isNew = true)
+      else CarUiState(isNew = false, isLoading = true)
    )
-   val state: StateFlow<CarUiState> = _state.asStateFlow()
-
-   private val _events = Channel<CarEvent>(Channel.BUFFERED)
-   val events = _events.receiveAsFlow()
-
-   private var _originalImagePaths: Set<String> = emptySet()
-   private var _imageOwnershipTransferred = false
+   val stateFlow: StateFlow<CarUiState> = _stateFlow.asStateFlow()
 
    init {
-      AppLogger.debug(TAG, "init: isNew=$_isNew, carId=$_carId")
       observePeople()
-      if (!_isNew) loadCar()
+      if (_isNew) _imageEdit.start(emptyList()) else loadCar(_carId!!)
    }
 
    fun onIntent(intent: CarIntent) {
       when (intent) {
-         is CarIntent.ManufacturerChanged -> updateCar { car ->
-            car.copy(manufacturer = intent.value)
-         }
-         is CarIntent.ModelChanged -> updateCar { car ->
-            car.copy(model = intent.value)
-         }
-         is CarIntent.RegistrationYearChanged -> _state.update { currentState ->
-            currentState.copy(registrationYearInput = intent.value)
-         }
-         is CarIntent.MileageChanged -> _state.update { currentState ->
-            currentState.copy(mileageInput = intent.value)
-         }
-         is CarIntent.PriceChanged -> _state.update { currentState ->
-            currentState.copy(priceInput = intent.value)
-         }
-         is CarIntent.SellerChanged -> updateCar { car ->
-            car.copy(sellerId = intent.personId)
-         }
+         is CarIntent.ManufacturerChanged -> updateCar { it.copy(manufacturer = intent.value) }
+         is CarIntent.ModelChanged -> updateCar { it.copy(model = intent.value) }
+         is CarIntent.RegistrationYearChanged -> _stateFlow.update { state: CarUiState -> state.copy(registrationYearInput = intent.value) }
+         is CarIntent.MileageChanged -> _stateFlow.update { state: CarUiState -> state.copy(mileageInput = intent.value) }
+         is CarIntent.PriceChanged -> _stateFlow.update { state: CarUiState -> state.copy(priceInput = intent.value) }
+         is CarIntent.SellerChanged -> updateCar { it.copy(sellerId = intent.personId) }
          is CarIntent.ImagesAdded -> addImages(intent.imagePaths)
          is CarIntent.ImageRemoved -> removeImage(intent.imagePath)
-         is CarIntent.ImageStorageFailed -> showSnackbar(intent.message)
-         CarIntent.Save -> validateAndRequestSave()
-         CarIntent.Cancel -> cancelEditing()
+         is CarIntent.ImageStorageFailed -> showError(intent.message)
+         CarIntent.Save -> save()
+         CarIntent.Cancel -> cancel()
       }
    }
 
    private fun observePeople() {
       viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
-            result
-               .onSuccess { people ->
-                  _state.update { currentState ->
-                     currentState.copy(people = people)
-                  }
-               }
-               .onFailure {
-                  showSnackbar(uiText(R.string.error_people_load))
-               }
+            result.onSuccess { people ->
+               _stateFlow.update { state: CarUiState -> state.copy(people = people) }
+            }.onFailure { showErrorNow(_stringProvider.getString(R.string.error_people_load)) }
          }
       }
    }
 
-   private fun loadCar() {
-      val carId = _carId ?: return
-      deleteUnsavedImages()
-
+   private fun loadCar(id: String) {
       viewModelScope.launch {
-         _carRepository.findById(carId)
-            .onSuccess { car ->
-               if (car == null) {
-                  _state.update { currentState ->
-                     currentState.copy(isLoading = false)
-                  }
-                  showSnackbarAndNavigateBack(uiText(R.string.error_car_not_found))
-               }
-               else {
-                  _originalImagePaths = car.imagePaths.toSet()
-                  _imageOwnershipTransferred = false
-                  _state.update { currentState ->
-                     currentState.copy(
-                        car = car,
-                        registrationYearInput = car.registrationYear?.toString().orEmpty(),
-                        mileageInput = car.mileage?.toString().orEmpty(),
-                        priceInput = car.priceInEuro?.toString().orEmpty(),
-                        isLoading = false,
-                     )
-                  }
+         _carRepository.findById(id).onSuccess { car ->
+            if (car == null) {
+               _stateFlow.update { state: CarUiState -> state.copy(isLoading = false) }
+               showErrorNow(_stringProvider.getString(R.string.error_car_not_found))
+            } else {
+               _imageEdit.start(car.imagePaths)
+               _stateFlow.update { state: CarUiState ->
+                  state.copy(
+                     car = car,
+                     registrationYearInput = car.registrationYear?.toString().orEmpty(),
+                     mileageInput = car.mileage?.toString().orEmpty(),
+                     priceInput = car.priceInEuro?.toString().orEmpty(),
+                     isLoading = false,
+                  )
                }
             }
-            .onFailure {
-               _state.update { currentState ->
-                  currentState.copy(isLoading = false)
-               }
-               showSnackbarAndNavigateBack(uiText(R.string.error_car_load))
-            }
+         }.onFailure {
+            _stateFlow.update { state: CarUiState -> state.copy(isLoading = false) }
+            showErrorNow(_stringProvider.getString(R.string.error_car_load))
+         }
       }
    }
 
    private fun updateCar(transform: (Car) -> Car) {
-      _state.update { currentState ->
-         val car = currentState.car ?: return@update currentState
-         currentState.copy(car = transform(car))
+      _stateFlow.update { state: CarUiState ->
+         state.car?.let { state.copy(car = transform(it)) } ?: state
       }
    }
 
    private fun addImages(imagePaths: List<String>) {
-      if (imagePaths.isEmpty()) return
-      updateCar { car ->
-         val updatedImagePaths = (car.imagePaths + imagePaths)
-            .normalizedImagePaths()
-            .take(MAX_CAR_IMAGE_COUNT)
-
-         val unusedImagePaths = imagePaths - updatedImagePaths.toSet()
-         unusedImagePaths.forEach { unusedImagePath ->
-            deleteImageFromAppStorage(unusedImagePath)
+      viewModelScope.launch {
+         var images = _imageEdit.add(imagePaths)
+         if (images.size > MAX_CAR_IMAGE_COUNT) {
+            images = _imageEdit.replace(images.take(MAX_CAR_IMAGE_COUNT))
          }
-
-         car.copy(imagePaths = updatedImagePaths)
+         updateCar { it.copy(imagePaths = images) }
       }
    }
 
    private fun removeImage(imagePath: String) {
-      if (imagePath !in _originalImagePaths) {
-         deleteImageFromAppStorage(imagePath)
-      }
-      updateCar { car ->
-         car.copy(imagePaths = car.imagePaths - imagePath)
+      viewModelScope.launch {
+         val images = _imageEdit.remove(imagePath)
+         updateCar { it.copy(imagePaths = images) }
       }
    }
 
-   private fun validateAndRequestSave() {
-      val currentState = _state.value
-      val car = currentState.car ?: return
-      val normalizedCar = car.copy(
+   private fun save() {
+      if (_isSaving) return
+      val state = _stateFlow.value
+      val car = state.car ?: return
+      val normalized = car.copy(
          manufacturer = car.manufacturer.trim(),
          model = car.model.trim(),
-         registrationYear = currentState.registrationYearInput.trim().toIntOrNull(),
-         mileage = currentState.mileageInput.trim().toIntOrNull(),
-         priceInEuro = currentState.priceInput.trim().toIntOrNull(),
-         imagePaths = car.imagePaths.normalizedImagePaths(),
+         registrationYear = state.registrationYearInput.trim().toIntOrNull(),
+         mileage = state.mileageInput.trim().toIntOrNull(),
+         priceInEuro = state.priceInput.trim().toIntOrNull(),
       )
-      val errorMessage = _validator.validateCar(
-         normalizedCar,
-         currentState.registrationYearInput,
-         currentState.mileageInput,
-         currentState.priceInput,
-      )
-      if (errorMessage != null) {
-         showSnackbar(UiText.Resolved(errorMessage))
-         return
-      }
-
-      _state.update { state -> state.copy(car = normalizedCar) }
-      _imageOwnershipTransferred = true
-      emitEvent(CarEvent.RequestSave(normalizedCar, _isNew))
-   }
-
-   private fun cancelEditing() {
-      deleteUnsavedImages()
-      emitEvent(CarEvent.NavigateBack)
-   }
-
-   private fun deleteUnsavedImages() {
-      if (_imageOwnershipTransferred) return
-      val currentImagePaths = _state.value.car?.imagePaths.orEmpty()
-      currentImagePaths
-         .filterNot { imagePath -> _originalImagePaths.contains(imagePath) }
-         .forEach { imagePath ->
-            deleteImageFromAppStorage(imagePath)
-         }
-   }
-
-   private fun showSnackbar(message: UiText) {
-      emitEvent(CarEvent.ShowSnackbar(message))
-   }
-
-   private fun showSnackbarAndNavigateBack(message: UiText) {
+      val error = _validator.validateCar(normalized, state.registrationYearInput, state.mileageInput, state.priceInput)
+      if (error != null) { showError(error); return }
+      _stateFlow.update { current: CarUiState -> current.copy(car = normalized) }
+      _isSaving = true
       viewModelScope.launch {
-         _events.send(CarEvent.ShowSnackbar(message))
-         _events.send(CarEvent.NavigateBack)
+         val result = if (_isNew) _carRepository.create(normalized) else _carRepository.update(normalized)
+         result.onSuccess {
+            _imageEdit.commit()
+            _effectDelegate.emit(CarEffect.ShowMessage(_stringProvider.getString(R.string.message_car_saved, normalized.displayName)))
+            _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Save))
+         }.onFailure {
+            _effectDelegate.emit(CarEffect.ShowError(_stringProvider.getString(R.string.error_car_save)))
+         }
+         _isSaving = false
       }
    }
 
-   private fun emitEvent(event: CarEvent) {
-      viewModelScope.launch { _events.send(event) }
+   private fun cancel() {
+      viewModelScope.launch {
+         _imageEdit.discard()
+         _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Cancel))
+      }
    }
-
-   override fun onCleared() {
-      deleteUnsavedImages()
-      super.onCleared()
-   }
-
-   companion object {
-      private const val TAG = "<-CarViewModel"
-   }
+   private fun showError(message: String) { viewModelScope.launch { showErrorNow(message) } }
+   private suspend fun showErrorNow(message: String) { _effectDelegate.emit(CarEffect.ShowError(message)) }
 }

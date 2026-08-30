@@ -1,7 +1,5 @@
 package de.rogallab.mobile.ui.cars.input_detail
 
-import de.rogallab.mobile.ui.common.UiText
-
 sealed interface CarIntent {
    data class ManufacturerChanged(val value: String) : CarIntent
    data class ModelChanged(val value: String) : CarIntent
@@ -11,7 +9,7 @@ sealed interface CarIntent {
    data class SellerChanged(val personId: String?) : CarIntent
    data class ImagesAdded(val imagePaths: List<String>) : CarIntent
    data class ImageRemoved(val imagePath: String) : CarIntent
-   data class ImageStorageFailed(val message: UiText) : CarIntent
+   data class ImageStorageFailed(val message: String) : CarIntent
    data object Save : CarIntent
    data object Cancel : CarIntent
 }

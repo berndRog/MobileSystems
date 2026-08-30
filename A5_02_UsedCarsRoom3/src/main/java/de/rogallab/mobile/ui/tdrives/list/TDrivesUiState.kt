@@ -9,5 +9,4 @@ data class TDrivesUiState(
    val people: List<Person> = emptyList(),
    val cars: List<Car> = emptyList(),
    val isLoading: Boolean = false,
-   val restoredTDriveId: String? = null,
 )

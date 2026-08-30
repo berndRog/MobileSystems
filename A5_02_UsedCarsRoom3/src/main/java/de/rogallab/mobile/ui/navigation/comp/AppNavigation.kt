@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -8,34 +10,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import de.rogallab.mobile.domain.utilities.AppLogger
-import de.rogallab.mobile.ui.tdrives.input_detail.comp.TDriveAdapter
-import de.rogallab.mobile.ui.tdrives.input_detail.TDriveViewModel
-import de.rogallab.mobile.ui.tdrives.input_detail.TDriveVmArgs
-import de.rogallab.mobile.ui.tdrives.list.comp.TDrivesAdapter
-import de.rogallab.mobile.ui.tdrives.list.TDrivesViewModel
-import de.rogallab.mobile.ui.people.input_detail.comp.PersonAdapter
-import de.rogallab.mobile.ui.people.input_detail.PersonViewModel
-import de.rogallab.mobile.ui.people.input_detail.PersonVmArgs
-import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
-import de.rogallab.mobile.ui.people.list.PeopleViewModel
-import de.rogallab.mobile.ui.coordinator.CoordinatorIntent
-import de.rogallab.mobile.ui.coordinator.CoordinatorViewModel
-import de.rogallab.mobile.ui.cars.input_detail.comp.CarAdapter
+import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.cars.input_detail.CarViewModel
-import de.rogallab.mobile.ui.cars.input_detail.CarVmArgs
-import de.rogallab.mobile.ui.cars.list.comp.CarsAdapter
+import de.rogallab.mobile.ui.cars.input_detail.comp.CarAdapter
+import de.rogallab.mobile.ui.cars.list.CarsIntent
 import de.rogallab.mobile.ui.cars.list.CarsViewModel
-import de.rogallab.mobile.ui.coordinator.CoordinatorEffectHandler
+import de.rogallab.mobile.ui.cars.list.comp.CarsAdapter
 import de.rogallab.mobile.ui.navigation.AppNavigator
 import de.rogallab.mobile.ui.navigation.CarKey
 import de.rogallab.mobile.ui.navigation.CarListKey
@@ -46,45 +34,30 @@ import de.rogallab.mobile.ui.navigation.PersonListKey
 import de.rogallab.mobile.ui.navigation.PopReason
 import de.rogallab.mobile.ui.navigation.TDriveKey
 import de.rogallab.mobile.ui.navigation.TDrivesKey
-import org.koin.compose.viewmodel.koinActivityViewModel
+import de.rogallab.mobile.ui.people.create_detail.BackReason
+import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
+import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
+import de.rogallab.mobile.ui.people.list.PeopleIntent
+import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
+import de.rogallab.mobile.ui.tdrives.input_detail.TDriveViewModel
+import de.rogallab.mobile.ui.tdrives.input_detail.comp.TDriveAdapter
+import de.rogallab.mobile.ui.tdrives.list.TDrivesIntent
+import de.rogallab.mobile.ui.tdrives.list.TDrivesViewModel
+import de.rogallab.mobile.ui.tdrives.list.comp.TDrivesAdapter
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-private const val TAG = "<-AppNavigation"
-
-// Central composition point for top-level navigation, feature navigation,
-// Snackbar messages and the global Undo workflow.
 @Composable
-fun AppNavigation(
-   coordinatorViewModel: CoordinatorViewModel =
-      koinActivityViewModel<CoordinatorViewModel>(),
-) {
-   val cCount = remember { mutableIntStateOf(0) }
-   SideEffect { AppLogger.compose(TAG, "Composition #${cCount.intValue++}") }
-
-   // Holds three independent standard Navigation 3 back stacks.
+fun AppNavigation() {
    val navigationState = rememberAppNavigationState()
-
-   // Executes navigation operations without owning additional state.
-   val navigator = remember(navigationState) {
-      AppNavigator(navigationState)
-   }
-
-   // Shared SnackbarHost for People, Cars and TestDrives.
+   val navigator = remember(navigationState) { AppNavigator(navigationState) }
    val snackbarHostState = remember { SnackbarHostState() }
-
-   // Controls the visually distinct reverse transition after Save or Cancel.
+   val snackbarController = rememberSnackbarController(snackbarHostState)
    var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
 
-   CoordinatorEffectHandler(
-      coordinatorViewModel = coordinatorViewModel,
-      snackbarHostState = snackbarHostState,
-   )
-
    Scaffold(
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState)
-      },
+      snackbarHost = { SnackbarHost(snackbarHostState) },
       bottomBar = {
          AppBottomNavigationBar(
             navItems = navigationState.navItems,
@@ -93,178 +66,97 @@ fun AppNavigation(
          )
       },
    ) { contentPadding ->
-
-      // Maps each serializable key to one stateless screen adapter.
       val appEntryProvider = entryProvider {
          entry<PersonListKey> {
-            val personListViewModel = koinViewModel<PeopleViewModel>()
-
+            val viewModel = koinViewModel<PeopleViewModel>()
             PeopleAdapter(
-               viewModel = personListViewModel,
-               coordinatorEvents = coordinatorViewModel.personEvents,
-               contentPadding = contentPadding,
-               onCreate = {
-                  navigator.push(PersonKey())
-               },
-               onOpen = { personId ->
-                  navigator.push(PersonKey(personId))
-               },
-               onRemove = { person, originalIndex ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.RemovePerson(
-                        person = person,
-                        originalIndex = originalIndex,
-                     )
+               viewModel = viewModel,
+               modifier = Modifier.padding(contentPadding).fillMaxSize(),
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onConfirmRemove = { message, actionLabel, personId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = { viewModel.onIntent(PeopleIntent.ConfirmRemove(personId)) },
                   )
                },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
-               },
+               onBack = navigator::pop,
+               onNavigateTo = { navigator.push(PersonKey(it)) },
             )
          }
-
-         entry<PersonKey> { personKey ->
-            val personViewModel = koinViewModel<PersonViewModel> {
-               parametersOf(PersonVmArgs(personKey.personId))
-            }
-
+         entry<PersonKey> { key ->
+            val viewModel = koinViewModel<PersonViewModel> { parametersOf(key.personId) }
             PersonAdapter(
-               viewModel = personViewModel,
-               contentPadding = contentPadding,
-               onBack = {
-                  currentPopReason = PopReason.CANCEL
+               viewModel = viewModel,
+               modifier = Modifier.padding(contentPadding).fillMaxSize(),
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onNavigateBack = { reason ->
+                  currentPopReason = reason.toPopReason()
                   navigator.pop()
-               },
-               onSave = { person, isNew ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.SavePerson(person, isNew)
-                  )
-                  currentPopReason = PopReason.SAVE
-                  navigator.pop()
-               },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
                },
             )
          }
 
          entry<CarListKey> {
-            val carsViewModel = koinViewModel<CarsViewModel>()
-
+            val viewModel = koinViewModel<CarsViewModel>()
             CarsAdapter(
-               viewModel = carsViewModel,
-               coordinatorEvents = coordinatorViewModel.carEvents,
+               viewModel = viewModel,
                contentPadding = contentPadding,
-               onCreate = {
-                  navigator.push(CarKey())
-               },
-               onOpen = { carId ->
-                  navigator.push(CarKey(carId))
-               },
-               onRemove = { car, originalIndex ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.RemoveCar(car, originalIndex)
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onConfirmRemove = { message, actionLabel, carId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = { viewModel.onIntent(CarsIntent.ConfirmRemove(carId)) },
                   )
                },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
-               },
+               onNavigateTo = { navigator.push(CarKey(it)) },
             )
          }
-
-         entry<CarKey> { carKey ->
-            val carViewModel = koinViewModel<CarViewModel> {
-               parametersOf(CarVmArgs(carKey.carId))
-            }
-
+         entry<CarKey> { key ->
+            val viewModel = koinViewModel<CarViewModel> { parametersOf(key.carId) }
             CarAdapter(
-               viewModel = carViewModel,
+               viewModel = viewModel,
                contentPadding = contentPadding,
-               onBack = {
-                  currentPopReason = PopReason.CANCEL
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onNavigateBack = { reason ->
+                  currentPopReason = reason.toPopReason()
                   navigator.pop()
-               },
-               onSave = { car, isNew ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.SaveCar(car, isNew)
-                  )
-                  currentPopReason = PopReason.SAVE
-                  navigator.pop()
-               },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
                },
             )
          }
 
          entry<TDrivesKey> {
-            val testDriveListViewModel =
-               koinViewModel<TDrivesViewModel>()
-
+            val viewModel = koinViewModel<TDrivesViewModel>()
             TDrivesAdapter(
-               viewModel = testDriveListViewModel,
-               coordinatorEvents = coordinatorViewModel.testDriveEvents,
+               viewModel = viewModel,
                contentPadding = contentPadding,
-               onCreate = {
-                  navigator.push(TDriveKey())
-               },
-               onOpen = { testDriveId ->
-                  navigator.push(TDriveKey(testDriveId))
-               },
-               onRemove = { testDrive, originalIndex ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.RemoveTDrive(
-                        testDrive,
-                        originalIndex,
-                     )
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onConfirmRemove = { message, actionLabel, tDriveId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = { viewModel.onIntent(TDrivesIntent.ConfirmRemove(tDriveId)) },
                   )
                },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
-               },
+               onNavigateTo = { navigator.push(TDriveKey(it)) },
             )
          }
-
-         entry<TDriveKey> { testDriveKey ->
-            val testDriveViewModel = koinViewModel<TDriveViewModel> {
-               parametersOf(
-                  TDriveVmArgs(
-                     testDriveKey.tDriveId
-                  )
-               )
-            }
-
+         entry<TDriveKey> { key ->
+            val viewModel = koinViewModel<TDriveViewModel> { parametersOf(key.tDriveId) }
             TDriveAdapter(
-               viewModel = testDriveViewModel,
+               viewModel = viewModel,
                contentPadding = contentPadding,
-               onBack = {
-                  currentPopReason = PopReason.CANCEL
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+               onNavigateBack = { reason ->
+                  currentPopReason = reason.toPopReason()
                   navigator.pop()
-               },
-               onSave = { testDrive, isNew ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.SaveTDrive(
-                        testDrive,
-                        isNew,
-                     )
-                  )
-                  currentPopReason = PopReason.SAVE
-                  navigator.pop()
-               },
-               onMessage = { message ->
-                  coordinatorViewModel.onIntent(
-                     CoordinatorIntent.ShowMessage(message)
-                  )
                },
             )
          }
@@ -277,15 +169,17 @@ fun AppNavigation(
             navigator.pop()
          },
          transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+         popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
       )
    }
 }
 
-// Renders the single Material 3 NavigationBar of the application.
+private fun BackReason.toPopReason(): PopReason = when (this) {
+   BackReason.Save -> PopReason.SAVE
+   BackReason.Cancel -> PopReason.CANCEL
+}
+
 @Composable
 private fun AppBottomNavigationBar(
    navItems: List<ITopLevelNavItem>,
@@ -293,41 +187,32 @@ private fun AppBottomNavigationBar(
    onTopLevelSelected: (ITopLevelNavItem) -> Unit,
 ) {
    NavigationBar {
-      navItems.forEach { topLevelNavItem ->
-         val isSelected = topLevelNavItem == currentTopLevelNavItem
-         val label = stringResource(topLevelNavItem.labelResourceId)
-
+      navItems.forEach { item ->
+         val selected = item == currentTopLevelNavItem
+         val label = stringResource(item.labelResourceId)
          NavigationBarItem(
-            selected = isSelected,
-            onClick = { onTopLevelSelected(topLevelNavItem) },
+            selected = selected,
+            onClick = { onTopLevelSelected(item) },
             icon = {
                Icon(
-                  imageVector =
-                     if (isSelected) topLevelNavItem.iconActive
-                     else topLevelNavItem.iconOutlined,
+                  imageVector = if (selected) item.iconActive else item.iconOutlined,
                   contentDescription = label,
                )
             },
-            label = {
-               Text(text = label)
-            },
+            label = { Text(label) },
          )
       }
    }
 }
 
-// Lernziele und didaktische Einordnung
-// ------------------------------------
-// - UsedCarsRoom3 verwendet drei standardmäßige Navigation-3-Back-Stacks aus
-//   rememberNavBackStack() und kein eigenes Navigation-ViewModel.
-// - Die Material-3-NavigationBar bildet die obere Navigationsebene.
-// - Jeder Hauptbereich behält seinen eigenen Navigationsverlauf.
-// - AppNavigator protokolliert alle Operationen und Back Stacks für Logcat.
-// - NavigationAnimations macht Push, Save, Cancel und Predictive Back durch
-//   die bewusst lange Animationsdauer visuell unterscheidbar.
-// - Alle sichtbaren Meldungen werden als UiText über den gemeinsamen
-//   SnackbarHost ausgegeben; Listen und Formulare besitzen keine Fehlerseiten.
-// - Create und Edit verwenden innerhalb eines Aspekts denselben Screen und
-//   dieselbe entry-spezifische ViewModel-Klasse.
-// - People, Cars und TestDrives werden nur per Swipe in den Listen
-//   gelöscht. Im Person-Formular kann ausschließlich das Foto entfernt werden.
+/*
+ * Didaktik und Lernziele
+ *
+ * - A5_02 behält drei unabhängige Navigation-3-Back-Stacks für Personen,
+ *   Fahrzeuge und Probefahrten.
+ * - SnackbarController ersetzt den früheren Coordinator vollständig.
+ * - Jede Liste fordert eine Löschung nur an. Erst die Action der Snackbar
+ *   sendet ConfirmRemove an das zuständige ViewModel.
+ * - Save/Cancel und Predictive Back verwenden weiterhin die bekannten
+ *   unterschiedlichen Navigationstransitionen.
+ */
