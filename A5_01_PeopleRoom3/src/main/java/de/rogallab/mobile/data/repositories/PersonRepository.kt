@@ -7,47 +7,74 @@ import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Repository boundary between the Room-3 data model and the domain model.
- *
- * The repository exposes no Room type. It maps PersonDto to Person and wraps
- * database failures in Result so the ViewModels do not need persistence-
- * specific exception handling.
- */
 class PersonRepository(
-   private val _personDao: IPersonDao
+   private val _personDao: IPersonDao,
 ) : IPersonRepository {
 
    override fun observeAll(): Flow<Result<List<Person>>> =
-      _personDao.selectAll()
-         .asResult { dtos: List<PersonDto> ->
-            dtos.map(PersonDto::toPerson)
+      _personDao.observeAll()
+         .map { dtos: List<PersonDto> ->
+            Result.success(dtos.map(PersonDto::toPerson))
+         }
+         .catch { throwable ->
+            if (throwable is CancellationException) throw throwable
+            emit(Result.failure(throwable))
          }
 
    override suspend fun findById(id: String): Result<Person?> =
-      runCatching {
+      resultOf {
          _personDao.findById(id)?.toPerson()
       }
 
    override suspend fun create(person: Person): Result<Unit> =
-      runCatching {
+      resultOf {
          _personDao.insert(person.toPersonDto())
       }
 
    override suspend fun update(person: Person): Result<Unit> =
-      runCatching {
+      resultOf {
          val changedRows = _personDao.update(person.toPersonDto())
          check(changedRows == 1) {
-            "Person ${person.id} wurde nicht gefunden."
+            "Person ${person.id} was not found."
          }
       }
 
    override suspend fun remove(person: Person): Result<Unit> =
-      runCatching {
+      resultOf {
          val changedRows = _personDao.delete(person.toPersonDto())
          check(changedRows == 1) {
-            "Person ${person.id} wurde nicht gefunden."
+            "Person ${person.id} was not found."
          }
       }
+
+   private suspend fun <T> resultOf(
+      block: suspend () -> T,
+   ): Result<T> =
+      try {
+         Result.success(block())
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
+      }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - PersonRepository implementiert dieselbe Domain-Schnittstelle wie in A4_01.
+ *   Für ViewModels ändert sich deshalb beim Wechsel zu Room 3 nichts.
+ *
+ * - Nur innerhalb des Repository werden Person und PersonDto ineinander
+ *   überführt. Datenbankfehler werden als Result an die darüberliegende Schicht
+ *   weitergereicht.
+ *
+ * - CancellationException wird nicht in Result.failure umgewandelt, damit die
+ *   strukturierte Coroutine-Cancellation erhalten bleibt.
+ */

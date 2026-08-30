@@ -9,8 +9,18 @@ import de.rogallab.mobile.data.local.dtos.PersonDto
 @Database(
    entities = [PersonDto::class],
    version = Globals.databaseVersion,
-   exportSchema = false
+   exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
-   abstract fun createPersonDao(): IPersonDao
+   abstract fun personDao(): IPersonDao
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - AppDatabase gehört bewusst zu A5_01 und nicht zu Shared. Das Beispiel zeigt
+ *   damit die vollständige Room-Schicht innerhalb eines konkreten Projekts.
+ *
+ * - Room erzeugt die konkrete Implementierung von AppDatabase und IPersonDao
+ *   zur Compile-Zeit über KSP.
+ */

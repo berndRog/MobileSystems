@@ -9,19 +9,14 @@ import androidx.room3.Update
 import de.rogallab.mobile.data.local.dtos.PersonDto
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Coroutine-based Room-3 DAO.
- *
- * Queries that represent observable UI data return Flow. One-shot operations
- * are suspend functions, as required by the Room-3 coroutine API.
- */
 @Dao
 interface IPersonDao {
-   @Query("SELECT * FROM Person ORDER BY lastName, firstName")
-   fun selectAll(): Flow<List<PersonDto>>
 
-   @Query("SELECT * FROM Person WHERE id = :personId LIMIT 1")
-   suspend fun findById(personId: String): PersonDto?
+   @Query("SELECT * FROM Person ORDER BY lastName, firstName")
+   fun observeAll(): Flow<List<PersonDto>>
+
+   @Query("SELECT * FROM Person WHERE id = :id LIMIT 1")
+   suspend fun findById(id: String): PersonDto?
 
    @Query("SELECT COUNT(*) FROM Person")
    suspend fun count(): Int
@@ -38,3 +33,13 @@ interface IPersonDao {
    @Delete
    suspend fun delete(personDto: PersonDto): Int
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - IPersonDao ist die lokale Room-3-Schnittstelle von A5_01. Observable Daten
+ *   werden als Flow geliefert; einzelne Datenbankoperationen sind suspend.
+ *
+ * - Das DAO arbeitet ausschließlich mit PersonDto. Das Domain-Modell Person
+ *   bleibt dadurch frei von Room-Annotationen.
+ */

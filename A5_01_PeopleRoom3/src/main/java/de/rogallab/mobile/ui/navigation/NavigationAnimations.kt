@@ -11,27 +11,13 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.scene.Scene
-
 import de.rogallab.mobile.Globals.animationDuration
 
 object NavigationAnimations {
 
-   // Standard Android navigation animations
-   // transitionSpec:    New screen slides in from the right ({ it }),
-   //                    old slides out to the left ({ -it }).
-   // popTransitionSpec: New screen slides in from the left ({ -it }),
-   //                    old slides out to the right ({ it }).
-   //
    // Forward navigation:
    // - The new screen enters from the right.
    // - The current screen exits to the left.
-   //
-   // Back navigation:
-   // - The previous screen enters from the left.
-   // - The current screen exits to the right.
-
    val enterTransitionSpec: AnimatedContentTransitionScope<*>.() -> ContentTransform = {
       slideInHorizontally(
          initialOffsetX = { fullWidth -> fullWidth },
@@ -42,11 +28,12 @@ object NavigationAnimations {
       )
    }
 
+   // Back navigation uses a different animation for Save and Cancel.
    fun popTransitionSpec(
-      popReason: PopReason
+      popReason: PopReason,
    ): AnimatedContentTransitionScope<*>.() -> ContentTransform = {
       when (popReason) {
-         PopReason.SAVE -> {
+         PopReason.Save -> {
             slideInHorizontally(
                initialOffsetX = { fullWidth -> -fullWidth },
                animationSpec = tween(animationDuration),
@@ -55,32 +42,58 @@ object NavigationAnimations {
                animationSpec = tween(animationDuration),
             )
          }
-         PopReason.CANCEL -> {
+
+         PopReason.Cancel -> {
             fadeIn(
                animationSpec = tween(animationDuration)
             ) togetherWith (
                slideOutVertically(
                   targetOffsetY = { fullHeight -> fullHeight },
+                  animationSpec = tween(animationDuration),
+               ) + fadeOut(
                   animationSpec = tween(animationDuration)
-               ) + fadeOut(animationSpec = tween(animationDuration))
                )
+            )
          }
       }
    }
 
+   // Predictive back uses scale and fade to make the gesture visible.
    val predictivePopTransitionSpec: AnimatedContentTransitionScope<*>.(Int) -> ContentTransform = { _ ->
-      (scaleIn(
-         initialScale = 0.9f,
-         animationSpec = tween(animationDuration)
-      ) + fadeIn(
-         animationSpec = tween(animationDuration)
-      )) togetherWith (
+      (
+         scaleIn(
+            initialScale = 0.9f,
+            animationSpec = tween(animationDuration),
+         ) + fadeIn(
+            animationSpec = tween(animationDuration),
+         )
+      ) togetherWith (
          scaleOut(
             targetScale = 0.85f,
-            animationSpec = tween(animationDuration)
+            animationSpec = tween(animationDuration),
          ) + fadeOut(
-            animationSpec = tween(animationDuration)
+            animationSpec = tween(animationDuration),
          )
-         )
+      )
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Vorwärts- und Rückwärtsnavigation erhalten bewusst unterschiedliche
+ *   Animationen. Dadurch ist die Richtung einer Navigation sofort sichtbar.
+ *
+ * - Auch Save und Cancel unterscheiden sich beim Zurücknavigieren:
+ *   Save verwendet die klassische horizontale Rückwärtsanimation, Cancel
+ *   blendet den vorherigen Screen ein und lässt den aktuellen nach unten
+ *   verschwinden.
+ *
+ * - Predictive Back besitzt eine eigene Scale-/Fade-Animation.
+ *
+ * Lernziele:
+ *
+ * - Navigationsrichtung über Animationen sichtbar machen.
+ * - transitionSpec, popTransitionSpec und predictivePopTransitionSpec
+ *   unterscheiden.
+ */

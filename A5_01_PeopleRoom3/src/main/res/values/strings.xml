@@ -1,49 +1,41 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-   <string name="app_name">People Room 3</string>
+  <string name="app_name">A5_01 PeopleRoom3</string>
 
-   <integer name="person_name_char_min">2</integer>
-   <integer name="person_name_char_max">50</integer>
+  <string name="person_create">Add person</string>
+  <string name="person_detail">Edit person</string>
+  <string name="people_list">People</string>
 
-   <string name="people_title">Personen</string>
-   <string name="person_create_title">Neue Person</string>
-   <string name="person_edit_title">Person ändern</string>
+  <string name="firstname">First name</string>
+  <string name="lastname">Last name</string>
+  <string name="email">Email address</string>
+  <string name="phone">Phone number</string>
+  <string name="image">Photo of the person</string>
 
-   <string name="person_field_first_name">Vorname</string>
-   <string name="person_field_last_name">Nachname</string>
-   <string name="person_field_email">E-Mail</string>
-   <string name="person_field_phone">Telefon</string>
+  <integer name="char_min">2</integer>
+  <integer name="char_max">16</integer>
 
-   <string name="person_full_name">%1$s %2$s</string>
-   <string name="person_image">Foto der Person</string>
-   <string name="person_image_named">Foto von %1$s</string>
-   <string name="person_image_list">Bild der Person</string>
+  <string name="action_create">New</string>
+  <string name="action_send">Send</string>
+  <string name="action_save">Save</string>
+  <string name="action_cancel">Cancel</string>
+  <string name="action_edit">Edit</string>
+  <string name="action_delete">Delete</string>
+  <string name="action_back">Back</string>
+  <string name="action_confirm">Yes</string>
 
-   <string name="action_create">Neu</string>
-   <string name="action_save">Speichern</string>
-   <string name="action_cancel">Abbrechen</string>
-   <string name="action_undo">Rückgängig</string>
-   <string name="action_select_photo">Foto auswählen </string>
-   <string name="action_take_photo">Kamera starten</string>
-   <string name="action_remove_photo">Foto entfernen</string>
+  <string name="message_person_saved">%1$s was saved.</string>
+  <string name="message_person_remove_confirm">Really delete %1$s %2$s?</string>
 
-   <string name="accessibility_delete_person">Person löschen</string>
-   <string name="accessibility_edit_person">Person ändern</string>
+  <string name="error_people_observe">People could not be loaded.</string>
+  <string name="error_person_not_found">Person was not found.</string>
+  <string name="error_person_load">Person could not be loaded.</string>
+  <string name="error_person_save">Person could not be saved.</string>
+  <string name="error_person_remove">Person could not be deleted.</string>
 
-   <string name="message_person_saved">%1$s wurde gespeichert.</string>
-   <string name="message_person_removed">%1$s wurde entfernt.</string>
-
-   <string name="error_people_load">Personen konnten nicht geladen werden.</string>
-   <string name="error_person_not_found">Person wurde nicht gefunden.</string>
-   <string name="error_person_load">Person konnte nicht geladen werden.</string>
-   <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
-   <string name="error_person_delete">Person konnte nicht gelöscht werden.</string>
-   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
-
-   <string name="error_first_name_too_short">Vorname ist zu kurz.</string>
-   <string name="error_first_name_too_long">Vorname ist zu lang.</string>
-   <string name="error_last_name_too_short">Nachname ist zu kurz.</string>
-   <string name="error_last_name_too_long">Nachname ist zu lang.</string>
-   <string name="error_email">E-Mail-Adresse ist ungültig.</string>
-   <string name="error_phone">Telefonnummer ist ungültig.</string>
+  <string name="error_firstname_too_short">First name is too short.</string>
+  <string name="error_firstname_too_long">First name is too long.</string>
+  <string name="error_lastname_too_short">Last name is too short.</string>
+  <string name="error_lastname_too_long">Last name is too long.</string>
+  <string name="error_email">Email address is invalid.</string>
+  <string name="error_phone">Phone number is invalid.</string>
 </resources>
