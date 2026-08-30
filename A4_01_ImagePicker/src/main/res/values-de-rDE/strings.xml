@@ -21,6 +21,7 @@
   <string name="action_edit">Bearbeiten</string>
   <string name="action_delete">Löschen</string>
   <string name="action_back">Zurück</string>
+  <string name="action_confirm">Ja</string>
 
   <string name="message_person_saved">%1$s wurde gespeichert.</string>
   <string name="message_person_remove_confirm">%1$s %2$s wirklich löschen?</string>
