@@ -34,8 +34,8 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Car
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.entities.TDrive
+import de.rogallab.mobile.shared.ui.components.SwipeCard
 import de.rogallab.mobile.ui.common.DateTimeText
-import de.rogallab.mobile.ui.composables.SwipeEditDeleteItem
 import de.rogallab.mobile.ui.tdrives.list.TDrivesIntent
 import de.rogallab.mobile.ui.tdrives.list.TDrivesUiState
 
@@ -70,18 +70,21 @@ private fun TDrivesList(
    tDrives: List<TDrive>, people: List<Person>, cars: List<Car>,
    lazyListState: LazyListState, onIntent: (TDrivesIntent) -> Unit,
 ) {
+   val detailContentDescription = stringResource(R.string.accessibility_edit_test_drive)
+   val deleteContentDescription = stringResource(R.string.accessibility_delete_test_drive)
+
    LazyColumn(
       state = lazyListState,
       contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp),
    ) {
       items(items = tDrives, key = TDrive::id) { tDrive ->
-         SwipeEditDeleteItem(
-            itemKey = tDrive.id,
-            editContentDescription = R.string.accessibility_edit_test_drive,
-            deleteContentDescription = R.string.accessibility_delete_test_drive,
-            onEdit = { onIntent(TDrivesIntent.Detail(tDrive.id)) },
-            onRemove = { onIntent(TDrivesIntent.RequestRemove(tDrive.id)) },
+         SwipeCard(
+            onDetail = { onIntent(TDrivesIntent.Detail(tDrive.id)) },
+            onDelete = { onIntent(TDrivesIntent.RequestRemove(tDrive.id)) },
+            detailContentDescription = detailContentDescription,
+            deleteContentDescription = deleteContentDescription,
+            modifier = Modifier.animateItem(),
          ) {
             val personName = people.firstOrNull { it.id == tDrive.personId }?.displayName
                ?: stringResource(R.string.value_not_available)
