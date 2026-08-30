@@ -50,10 +50,6 @@ fun AppNavigation() {
    // Reuse the Navigation 3 back stack introduced in the preceding examples.
    val backStack = rememberNavBackStack(PeopleKey)
 
-   // Keep PeopleViewModel above NavDisplay. A4_01 retains the Swipe/Undo
-   // behavior from A3_05, so pending visual removals must survive navigation.
-   val peopleViewModel = koinViewModel<PeopleViewModel>()
-
    // One SnackbarHostState is shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
    // The controller and its CoroutineScope live above NavDisplay. Therefore a
@@ -110,9 +106,9 @@ fun AppNavigation() {
 
          entryProvider = entryProvider {
 
-            // Root destination: list of people. Swipe and Undo are deliberately
-            // retained so A4_01 builds on A3_05 instead of replacing it.
+            // Root destination: list of people.
             entry<PeopleKey> {
+               val peopleViewModel = koinViewModel<PeopleViewModel>()
 
                PeopleAdapter(
                   viewModel = peopleViewModel,
@@ -123,20 +119,15 @@ fun AppNavigation() {
                   onMessage = snackbarController::showMessage,
                   onError = snackbarController::showError,
 
-                  // A swipe delete first changes only the visible list. The
-                  // Action Snackbar decides between Undo and repository commit.
-                  onUndo = { message, actionLabel, personId ->
+                  // A swipe delete requests confirmation first. Only selecting
+                  // the Snackbar action triggers the repository deletion.
+                  onConfirmRemove = { message, actionLabel, personId ->
                      snackbarController.showAction(
                         message = message,
                         actionLabel = actionLabel,
                         onAction = {
                            peopleViewModel.onIntent(
-                              PeopleIntent.UndoRemove(personId)
-                           )
-                        },
-                        onDismiss = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.CommitRemove(personId)
+                              PeopleIntent.ConfirmRemove(personId)
                            )
                         },
                      )
@@ -154,9 +145,8 @@ fun AppNavigation() {
                )
             }
 
-            // Shared destination for create and edit. The Person feature is the
-            // new part of A4_01: it adds gallery/camera image selection and the
-            // image edit lifecycle while keeping the existing navigation flow.
+            // Shared destination for create and edit. The new part of A4_01 is
+            // gallery/camera image selection and the image edit lifecycle.
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
@@ -235,42 +225,33 @@ private fun logNavigationOperation(
 /*
  * Didaktik und Lernziele
  *
- * - A4_01_ImagePicker beginnt ein neues Kapitel, baut technisch aber bewusst
- *   vollständig auf A3_05_SwipeDeleteUndo auf. Navigation, Effects, Swipe,
- *   animateItem() und Undo bleiben erhalten. Neu ist ausschließlich der
+ * - A4_01_ImagePicker baut auf Navigation und Swipe-Gesten auf, übernimmt aber
+ *   bewusst nicht die zusätzliche Undo-Mechanik. Neu ist in diesem Schritt der
  *   Bild-Lebenszyklus im Person-Feature.
  *
- * - Dadurch ist die Lernprogression kumulativ:
+ * - Navigation und Meldungsausgabe bleiben getrennt:
  *
- *      A3_03_Navigation
- *         -> Navigation 3, Effects und Navigationsanimationen
+ *      NavigateTo / NavigateBack -> Navigation-3-Back-Stack
+ *      ShowMessage / ShowError   -> SnackbarController
+ *      ConfirmRemove             -> Action-Snackbar
  *
- *      A3_04_SwipeGestures
- *         -> zusätzlich Swipe-to-Edit und direktes Swipe-to-Delete
+ * - Swipe-to-Delete verändert die sichtbare Liste nicht vorzeitig. Das ViewModel
+ *   erzeugt ConfirmRemove; nur die Action der Snackbar führt anschließend zu
+ *   PeopleIntent.ConfirmRemove und damit zur Repository-Operation.
  *
- *      A3_05_SwipeDeleteUndo
- *         -> zusätzlich visuelles Entfernen, Undo und verzögertes Commit
+ * - Wird die Snackbar verworfen oder läuft sie ab, bleibt das Repository
+ *   unverändert. Deshalb werden weder VisualRemovalDelegate noch pending
+ *   Removals oder ein Restore-State benötigt.
  *
- *      A4_01_ImagePicker
- *         -> zusätzlich Gallery/Camera und temporäre Bilddateien
+ * - PeopleViewModel kann wieder im PeopleKey-Eintrag erzeugt werden. Erst
+ *   A4_02_ImagePickerUndo benötigt den länger lebenden temporären Removal-State.
  *
- * - PeopleViewModel lebt weiterhin oberhalb des NavDisplay, weil pending
- *   Removals zur bereits bekannten Swipe-/Undo-Funktion gehören. Das neue
- *   ImagePicker-Thema verändert diese Verantwortung nicht.
- *
- * - Der Person-Screen ergänzt dagegen einen eigenen Edit-Lebenszyklus für
- *   Bilder: Auswahl bzw. Kameraaufnahme verändern zunächst die laufende
- *   Edit-Session. Erst Save bestätigt die neuen Dateien; Cancel verwirft sie.
- *
- * - Navigation und Meldungsausgabe bleiben getrennt. Der SnackbarController
- *   liegt weiterhin oberhalb des NavDisplay und benötigt keinen Coordinator.
+ * - Der Person-Screen ergänzt unabhängig davon Gallery/Camera und temporäre
+ *   Bilddateien. Save bestätigt die Edit-Session, Cancel verwirft sie.
  *
  * Lernziele:
  *
- * - Ein neues Thema ergänzen, ohne bereits eingeführte Funktionen zurückzubauen.
- * - UI-/Navigation-State und den Lebenszyklus temporärer Dateien unterscheiden.
- * - Bildauswahl als delegierte Infrastruktur in einen bestehenden UDF-Fluss
- *   integrieren.
- * - Kommentare so formulieren, dass sie die aktuelle Verantwortung erklären
- *   und nicht von einer späteren Modulnummer abhängen.
+ * - ImagePicker und Swipe-to-Delete ohne Undo-Komplexität kombinieren.
+ * - Eine destruktive Aktion mit einer Action-Snackbar bestätigen.
+ * - Delete-Bestätigung und Undo als unterschiedliche Ausbaustufen verstehen.
  */
