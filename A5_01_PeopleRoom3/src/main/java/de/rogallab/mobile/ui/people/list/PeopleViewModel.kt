@@ -166,26 +166,28 @@ class PeopleViewModel(
 /*
  * Didaktik und Lernziele
  *
- * - A4_01_ImagePicker behält Swipe-to-Detail und Swipe-to-Delete bei, verzichtet
- *   aber bewusst auf den zusätzlichen Undo-Zustand. Dadurch bleibt der allgemeine
- *   ImagePicker-Schritt unabhängig von der aufwändigeren Undo-Mechanik.
+ * - A5_01_PeopleRoom3 übernimmt den UDF-Ablauf der vorherigen Beispiele
+ *   unverändert: Die UI sendet Intents, PeopleViewModel aktualisiert den State
+ *   beziehungsweise erzeugt einmalige Effects.
  *
- * - Swipe-to-Delete erzeugt zunächst PeopleIntent.RequestRemove. Das Repository
- *   wird dabei noch nicht verändert. Stattdessen erzeugt das ViewModel
- *   PeopleEffect.ConfirmRemove mit Meldung, Action-Label und Person-ID.
+ * - Swipe-to-Delete verwendet weiterhin die einfache Bestätigung aus A4_01.
+ *   RequestRemove verändert die Datenbank noch nicht. Das ViewModel erzeugt
+ *   zunächst ConfirmRemove mit Meldung, Action-Label und Person-ID.
  *
  * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
  *   PeopleIntent.ConfirmRemove. Danach wird _repository.remove(...) ausgeführt.
- *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person unverändert.
+ *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person erhalten.
  *
- * - Ein VisualRemovalDelegate, pending Removals und ein Restore-State sind in
- *   A4_01 deshalb nicht erforderlich. Diese Erweiterungen werden bewusst in
- *   A4_02_ImagePickerUndo eingeführt.
+ * - Neu ist nicht das ViewModel, sondern die Implementierung hinter
+ *   IPersonRepository: PersonRepository greift in A5_01 auf das lokale
+ *   Room-3-DAO zu. Dadurch bleibt die UI unabhängig von der Persistenztechnik.
+ *
+ * - A5_01 verwendet bewusst keinen VisualRemovalDelegate und kein Undo. Die
+ *   komplexere Undo-Variante bleibt als eigener Lernschritt in A4_02 sichtbar.
  *
  * Lernziele:
  *
- * - State, Intent und Effect weiterhin konsequent voneinander unterscheiden.
- * - Eine destruktive Aktion vor der Repository-Änderung bestätigen.
- * - Bestätigungs-Snackbar und Undo als unterschiedliche Konzepte verstehen.
- * - Den ImagePicker ohne zusätzliche Undo-Komplexität weiterverwenden.
+ * - Eine bestehende UI gegen eine neue Persistenzimplementierung weiterverwenden.
+ * - Repository als Grenze zwischen ViewModel und Room verstehen.
+ * - Delete-Bestätigung und persistente Löschung klar voneinander trennen.
  */
