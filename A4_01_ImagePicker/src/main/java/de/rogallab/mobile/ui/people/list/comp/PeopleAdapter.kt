@@ -42,7 +42,7 @@ fun PeopleAdapter(
    modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
-   onUndo: (String, String, String) -> Unit,
+   onConfirmRemove: (String, String, String) -> Unit,
    onBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
@@ -57,15 +57,24 @@ fun PeopleAdapter(
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
-         is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
-         is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         is PeopleEffect.ShowUndo -> onUndo(
-            peopleEffect.message,
-            peopleEffect.actionLabel,
-            peopleEffect.personId,
-         )
-         PeopleEffect.NavigateBack -> onBack()
-         is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
+         is PeopleEffect.ShowMessage ->
+            onMessage(peopleEffect.message)
+
+         is PeopleEffect.ShowError ->
+            onError(peopleEffect.message)
+
+         is PeopleEffect.ConfirmRemove ->
+            onConfirmRemove(
+               peopleEffect.message,
+               peopleEffect.actionLabel,
+               peopleEffect.personId,
+            )
+
+         PeopleEffect.NavigateBack ->
+            onBack()
+
+         is PeopleEffect.NavigateTo ->
+            onNavigateTo(peopleEffect.personId)
       }
    }
 
@@ -92,23 +101,15 @@ fun PeopleAdapter(
             }
          }
          else {
-            val people = peopleUiState.people
-
             PeopleScreen(
-               people = people,
-               restoredPersonId = peopleUiState.restoredPersonId,
-               onRestoreHandled = {
-                  viewModel.onIntent(PeopleIntent.RestoreHandled)
-               },
+               people = peopleUiState.people,
                onDetail = { personId ->
                   Alog.d(tag, "Navigate to Detail: $personId")
                   viewModel.onIntent(PeopleIntent.Detail(personId))
                },
                onDelete = { personId ->
-                  Alog.d(tag, "Delete: $personId")
-                  val person = people.find { it.id == personId }
-                  if (person != null)
-                     viewModel.onIntent(PeopleIntent.Remove(person))
+                  Alog.d(tag, "Request delete: $personId")
+                  viewModel.onIntent(PeopleIntent.RequestRemove(personId))
                },
                modifier = Modifier.padding(horizontal = 16.dp),
             )
@@ -153,35 +154,26 @@ private fun PeopleCreateButton(
 /*
  * Didaktik und Lernziele
  *
- * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen.
+ * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen. Die bereits
+ *   bekannten Swipe-Gesten bleiben erhalten, Undo gehört aber nicht zu A4_01.
  *
- * - Dauerhafter State wird mit collectAsStateWithLifecycle() beobachtet.
- *   Einmalige Effects werden getrennt mit dem generischen EffectHandler
- *   gesammelt.
+ * - Ein Tap auf die PersonCard und Swipe StartToEnd werden auf denselben
+ *   PeopleIntent.Detail abgebildet.
  *
- * - Der Adapter übersetzt feature-spezifische Effects in einfache Callbacks:
+ * - Swipe EndToStart sendet zunächst PeopleIntent.RequestRemove. Das ViewModel
+ *   erzeugt daraufhin PeopleEffect.ConfirmRemove. Der Adapter reicht diesen
+ *   einmaligen Effect über onConfirmRemove an die Navigationsebene weiter.
  *
- *      ShowMessage  -> onMessage()
- *      ShowError    -> onError()
- *      ShowUndo     -> onUndo()
- *      NavigateBack -> onBack()
- *      NavigateTo   -> onNavigateTo()
+ * - Erst die Action der Bestätigungs-Snackbar führt zu ConfirmRemove und damit
+ *   zur Repository-Operation. Ein Dismiss der Snackbar verändert keine Daten.
  *
- * - Ein Tap auf eine Person und Swipe StartToEnd werden beide als Detail-
- *   Navigation behandelt. Create bleibt eine separate FAB-Aktion.
- *
- * - restoredPersonId wird als State an PeopleScreen weitergegeben. Nachdem der
- *   Screen geprüft hat, ob das wiederhergestellte Element sichtbar ist, sendet
- *   der Adapter RestoreHandled zurück an das ViewModel.
- *
- * - ShowUndo wird als Action-Snackbar weitergereicht. Die eigentliche
- *   Entscheidung Undo oder Commit erfolgt oberhalb des Adapters, nachdem die
- *   Snackbar beendet wurde.
+ * - Das Anlegen einer neuen Person bleibt eine eigene Aktion und wird über den
+ *   FAB als PeopleIntent.Create ausgelöst.
  *
  * Lernziele:
  *
- * - State und Effects getrennt verarbeiten.
- * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
- * - Einmalige UI-Aufträge über State plus Intent bestätigen.
- * - Detail, Delete, Undo und Navigation über klar benannte Callbacks verbinden.
+ * - UI-Interaktionen auf Intents abbilden.
+ * - Destruktive Aktionen über einen Effect bestätigen lassen.
+ * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
+ * - Die Undo-Erweiterung bewusst von diesem Grundstand trennen.
  */
