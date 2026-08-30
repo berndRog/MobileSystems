@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">A4_01 ImagePicker</string>
+  <string name="app_name">A4_02 ImagePickerUndo</string>
 
   <string name="person_create">Add person</string>
   <string name="person_detail">Edit person</string>
