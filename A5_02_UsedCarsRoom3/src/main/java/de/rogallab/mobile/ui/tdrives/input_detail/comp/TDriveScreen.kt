@@ -11,7 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.utilities.AppLogger
-import de.rogallab.mobile.ui.composables.EditableScreenLayout
+import de.rogallab.mobile.shared.ui.components.EditableScreenLayout
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveIntent
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveUiState
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator

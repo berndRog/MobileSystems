@@ -1,4 +1,4 @@
-package de.rogallab.mobile.ui.composables
+package de.rogallab.mobile.shared.ui.components
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.R
 
 /**
  * Common visual frame for create and edit screens.

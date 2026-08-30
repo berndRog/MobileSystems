@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="action_save">Save</string>
+  <string name="action_cancel">Cancel</string>
+  <string name="action_select_photo">Select photo</string>
+  <string name="action_take_photo">Start camera</string>
+  <string name="action_remove_photo">Delete photo</string>
+  <string name="error_image_save">Photo could not be saved locally.</string>
+</resources>

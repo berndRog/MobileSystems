@@ -35,7 +35,7 @@ fun CarsAdapter(
    }
 
    CarsScreen(
-      carListState = carListState,
+      carsUiState = carListState,
       lazyListState = lazyListState,
       contentPadding = contentPadding,
       onIntent = viewModel::onIntent,
