@@ -23,8 +23,8 @@ import de.rogallab.mobile.domain.entities.Car
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.domain.utilities.AppLogger
+import de.rogallab.mobile.shared.ui.components.InputValueString
 import de.rogallab.mobile.ui.common.DateTimeText
-import de.rogallab.mobile.ui.composables.InputValueString
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveIntent
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator
 
@@ -100,6 +100,6 @@ fun TDriveContent(
             },
          )
          Text(text = stringResource(R.string.test_drive_completed))
-      }
+      )
    }
 }
