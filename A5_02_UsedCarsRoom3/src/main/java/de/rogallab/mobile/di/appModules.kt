@@ -83,14 +83,17 @@ fun appModule(): Module = module {
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
          _imageEdit = get<IImageEdit>(),
-         _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
    }
+
    viewModel {
       PeopleViewModel(
          _repository = get<IPersonRepository>(),
          _stringProvider = get(),
-         _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )
    }
 
@@ -101,16 +104,20 @@ fun appModule(): Module = module {
          _personRepository = get<IPersonRepository>(),
          _stringProvider = get(),
          _validator = get<CarValidator>(),
+         _imageFileStorage = get<IImageFileStorage>(),
          _imageEdit = get<IImageEdit>(),
-         _effectDelegate = get<EffectDelegate<CarEffect>>(carEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<CarEffect>>(carEffectQualifier),
       )
    }
+
    viewModel {
       CarsViewModel(
          _repository = get<ICarRepository>(),
          _personRepository = get<IPersonRepository>(),
          _stringProvider = get(),
-         _effectDelegate = get<EffectDelegate<CarsEffect>>(carsEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<CarsEffect>>(carsEffectQualifier),
       )
    }
 
@@ -122,16 +129,19 @@ fun appModule(): Module = module {
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
          _validator = get<TDriveValidator>(),
-         _effectDelegate = get<EffectDelegate<TDriveEffect>>(tDriveEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<TDriveEffect>>(tDriveEffectQualifier),
       )
    }
+
    viewModel {
       TDrivesViewModel(
          _tDriveRepository = get<ITDriveRepository>(),
          _personRepository = get<IPersonRepository>(),
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
-         _effectDelegate = get<EffectDelegate<TDrivesEffect>>(tDrivesEffectQualifier),
+         _effectDelegate =
+            get<EffectDelegate<TDrivesEffect>>(tDrivesEffectQualifier),
       )
    }
 }
@@ -140,7 +150,12 @@ fun appModule(): Module = module {
  * Didaktik und Lernziele
  *
  * - AppDatabase, die drei DAOs und die drei Repository-Implementierungen gehören
- *   vollständig zum A5_02-Modul. Shared liefert nur allgemeine Infrastruktur.
+ *   vollständig zum A5_02-Modul. Shared liefert allgemeine Infrastruktur.
+ *
+ * - Dazu zählen ausdrücklich auch IImageFileStorage und IImageEdit. Personen
+ *   und Fahrzeuge verwenden dieselben Shared-Dienste; A5_02 implementiert keine
+ *   eigene Datei- oder ImagePicker-Infrastruktur.
+ *
  * - Jeder Feature-Bereich besitzt einen eigenen EffectDelegate. Ein globales
  *   CoordinatorViewModel ist weder für Navigation noch für Meldungen notwendig.
  */

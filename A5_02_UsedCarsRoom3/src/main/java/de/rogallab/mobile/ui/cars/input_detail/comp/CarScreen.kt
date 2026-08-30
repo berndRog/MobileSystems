@@ -18,16 +18,13 @@ import de.rogallab.mobile.ui.composables.EditableScreenLayout
 
 private const val TAG = "<-CarScreen"
 
-// Stateless editor used for both Create and Edit in this aspect.
-//
-// The nullable entity in the state separates initial loading from the actual
-// form content. User-visible failures are emitted as UiText and displayed by
-// the shared SnackbarHost instead of rendering a separate error page.
 @Composable
 fun CarScreen(
    carUiState: CarUiState,
    validator: CarValidator,
    contentPadding: PaddingValues,
+   onSelectImages: () -> Unit,
+   onTakePhoto: () -> Unit,
    onIntent: (CarIntent) -> Unit,
 ) {
    var compositionCount by remember { mutableIntStateOf(0) }
@@ -36,13 +33,11 @@ fun CarScreen(
    }
 
    val car = carUiState.car
+
    EditableScreenLayout(
-      title = if (carUiState.isNew) {
-         R.string.car_create_title
-      }
-      else {
-         R.string.car_edit_title
-      },
+      title =
+         if (carUiState.isNew) R.string.car_create_title
+         else R.string.car_edit_title,
       isLoading = carUiState.isLoading,
       hasContent = car != null,
       contentPadding = contentPadding,
@@ -57,6 +52,8 @@ fun CarScreen(
             priceInput = carUiState.priceInput,
             people = carUiState.people,
             validator = validator,
+            onSelectImages = onSelectImages,
+            onTakePhoto = onTakePhoto,
             onIntent = onIntent,
             modifier = Modifier.fillMaxWidth(),
          )
