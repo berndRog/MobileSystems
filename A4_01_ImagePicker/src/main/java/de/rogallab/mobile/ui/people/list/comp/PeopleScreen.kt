@@ -3,7 +3,6 @@ package de.rogallab.mobile.ui.people.list.comp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -15,13 +14,10 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.components.SwipeCard
-import de.rogallab.mobile.shared.ui.lists.ScrollToItemIfNotVisible
 
 @Composable
 fun PeopleScreen(
    people: List<Person>,
-   restoredPersonId: String?,
-   onRestoreHandled: () -> Unit,
    onDetail: (String) -> Unit,
    onDelete: (String) -> Unit,
    modifier: Modifier = Modifier,
@@ -30,22 +26,10 @@ fun PeopleScreen(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   val listState = rememberLazyListState()
    val detailContentDescription = stringResource(R.string.person_detail)
    val deleteContentDescription = stringResource(R.string.action_delete)
 
-   // Undo may restore an item just outside the current viewport. Scroll only
-   // when necessary and acknowledge the one-time restore target afterwards.
-   ScrollToItemIfNotVisible(
-      listState = listState,
-      targetKey = restoredPersonId,
-      items = people,
-      keyOf = { person: Person -> person.id },
-      onHandled = onRestoreHandled,
-   )
-
    LazyColumn(
-      state = listState,
       modifier = modifier,
       verticalArrangement = Arrangement.spacedBy(8.dp),
    ) {
@@ -77,29 +61,26 @@ fun PeopleScreen(
 /*
  * Didaktik und Lernziele
  *
- * - A4_01 übernimmt die gemeinsame SwipeCard aus Shared unverändert aus der
- *   vorherigen Swipe-/Undo-Stufe. Die PersonCard bleibt der konkrete Inhalt.
+ * - A4_01 verwendet die gemeinsame SwipeCard aus Shared. Die PersonCard bleibt
+ *   der konkrete Inhalt der Karte.
  *
  *      StartToEnd -> Detail einer bestehenden Person
- *      EndToStart -> visuelles Löschen
+ *      EndToStart -> Löschvorgang anfordern
  *
  * - Ein Tap auf PersonCard und Swipe StartToEnd verwenden denselben onDetail-
  *   Callback. Create bleibt davon getrennt und wird über den FAB ausgelöst.
  *
- * - Die LazyColumn verwendet stabile Person-IDs als Keys und einen eigenen
- *   LazyListState. Dadurch kann die aktuelle Scrollposition beobachtet und bei
- *   Bedarf gezielt verändert werden.
+ * - Die LazyColumn verwendet stabile Person-IDs als Keys. Modifier.animateItem()
+ *   animiert die Listenänderung, nachdem das Repository eine bestätigte Löschung
+ *   ausgeführt und observeAll() die neue Liste geliefert hat.
  *
- * - Modifier.animateItem() animiert das Entfernen, Wiedereinfügen und
- *   Verschieben der Listeneinträge, wenn sich die sichtbare People-Liste ändert.
- *
- * - Nach Undo kann ein wieder eingefügtes Element außerhalb des Viewports
- *   liegen. ScrollToItemIfNotVisible macht es bei Bedarf wieder sichtbar und
- *   bestätigt den einmaligen Auftrag über onRestoreHandled.
+ * - Da A4_01 kein Undo enthält, benötigt der Screen weder restoredPersonId noch
+ *   einen eigenen LazyListState für das gezielte Wiederanzeigen eines Elements.
+ *   Diese Erweiterung folgt in A4_02_ImagePickerUndo.
  *
  * Lernziele:
  *
  * - Gemeinsame UI-Komponenten über Modulgrenzen hinweg wiederverwenden.
- * - Listenänderungen mit stabilen Keys animieren.
- * - LazyListState zur gezielten Sichtbarmachung eines Elements verwenden.
+ * - Stabile Keys und animateItem() bei dynamischen Listen einsetzen.
+ * - Delete-Bestätigung und Undo als getrennte Ausbaustufen verstehen.
  */
