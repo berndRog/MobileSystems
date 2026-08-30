@@ -6,6 +6,7 @@ import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -31,25 +32,58 @@ class PersonRepository(
       }
 
    override suspend fun create(person: Person): Result<Unit> =
-      resultOf {
+      try {
          _personDao.insert(person.toPersonDto())
+         Alog.d(TAG, "create: $person")
+         Result.success(Unit)
       }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
+      }
+//    resultOf {
+//      _personDao.insert(person.toPersonDto())
+//    }
 
    override suspend fun update(person: Person): Result<Unit> =
-      resultOf {
+      try {
          val changedRows = _personDao.update(person.toPersonDto())
-         check(changedRows == 1) {
-            "Person ${person.id} was not found."
-         }
+         check(changedRows == 1) { "Person ${person.id} was not found." }
+         Alog.d(TAG, "update: $person")
+         Result.success(Unit)
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
       }
 
+//    resultOf {
+//       val changedRows = _personDao.update(person.toPersonDto())
+//       check(changedRows == 1) {"Person ${person.id} was not found." }
+//    }
+
    override suspend fun remove(person: Person): Result<Unit> =
-      resultOf {
+      try {
          val changedRows = _personDao.delete(person.toPersonDto())
-         check(changedRows == 1) {
-            "Person ${person.id} was not found."
-         }
+         check(changedRows == 1) { "Person ${person.id} was not found." }
+         Alog.d(TAG, "remove: $person")
+         Result.success(Unit)
       }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
+      }
+
+//    resultOf {
+//       val changedRows = _personDao.delete(person.toPersonDto())
+//       check(changedRows == 1) { "Person ${person.id} was not found." }
+//    }
 
    private suspend fun <T> resultOf(
       block: suspend () -> T,
@@ -63,6 +97,10 @@ class PersonRepository(
       catch (throwable: Throwable) {
          Result.failure(throwable)
       }
+
+   companion object {
+      private const val TAG = "<-PersonRepository"
+   }
 }
 
 /*
