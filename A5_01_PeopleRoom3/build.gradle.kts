@@ -42,6 +42,11 @@ dependencies {
    implementation(libs.androidx.ui)
    implementation(libs.androidx.ui.graphics)
    implementation(libs.androidx.ui.tooling.preview)
+
+   // A5_01 owns its Room-3 database and therefore also declares the
+   // bundled SQLite driver locally instead of obtaining it through Shared.
+   implementation(libs.androidx.sqlite.bundled)
+
    testImplementation(libs.junit)
    androidTestImplementation(platform(libs.androidx.compose.bom))
    androidTestImplementation(libs.androidx.test.espresso.core)
