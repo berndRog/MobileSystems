@@ -2,7 +2,7 @@ package de.rogallab.mobile.data.mapping
 
 import de.rogallab.mobile.data.local.dtos.TDriveDto
 import de.rogallab.mobile.domain.entities.TDrive
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 fun TDriveDto.toTestDrive(): TDrive = TDrive(
    id = id,
