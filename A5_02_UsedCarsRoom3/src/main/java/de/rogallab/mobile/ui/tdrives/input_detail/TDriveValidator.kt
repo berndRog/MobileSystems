@@ -4,11 +4,13 @@ import android.content.Context
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.ui.common.DateTimeText
+import kotlinx.datetime.LocalDateTime
 
 class TDriveValidator(
    private val context: Context,
 ) {
-   fun parseStart(value: String) = DateTimeText.parseOrNull(value)
+   fun parseStart(value: String): LocalDateTime? =
+      DateTimeText.parseOrNull(value)
 
    fun validateStart(value: String): String? =
       if (DateTimeText.parseOrNull(value) == null) {
