@@ -53,7 +53,7 @@ class PeopleViewModelSwipeTest {
                effect.message,
             )
             assertEquals(
-               stringProvider.getString(R.string.action_delete),
+               stringProvider.getString(R.string.action_confirm),
                effect.actionLabel,
             )
             assertEquals(emptyList<Person>(), repository.removed)
