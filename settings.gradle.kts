@@ -51,5 +51,5 @@ include(":A3_05_SwipeDeleteUndo")
 include(":A4_01_ImagePicker")
 include(":A4_02_ImagePickerUndo")
 include(":A5_01_PeopleRoom3")
+include(":A5_02_UsedCarsRoom3")
 include(":Shared")
-

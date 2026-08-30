@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Used Cars Room 3</string>
+
+  <integer name="person_name_char_min">2</integer>
+  <integer name="person_name_char_max">50</integer>
+
+  <string name="navigation_people">Personen</string>
+  <string name="navigation_cars">Fahrzeuge</string>
+  <string name="navigation_test_drives">Probefahrten</string>
+
+  <string name="people_title">Personen</string>
+  <string name="person_create_title">Neue Person</string>
+  <string name="person_edit_title">Person ändern</string>
+  <string name="person_field_first_name">Vorname</string>
+  <string name="person_field_last_name">Nachname</string>
+  <string name="person_field_email">E-Mail</string>
+  <string name="person_field_phone">Telefon</string>
+  <string name="person_no_data">Keine Kontaktdaten</string>
+  <string name="person_full_name">%1$s %2$s</string>
+  <string name="person_image_list">Bild der Person</string>
+
+  <string name="cars_title">Fahrzeuge</string>
+  <string name="car_create_title">Neues Fahrzeug</string>
+  <string name="car_edit_title">Fahrzeug ändern</string>
+  <string name="car_field_manufacturer">Hersteller</string>
+  <string name="car_field_model">Modell</string>
+  <string name="car_field_registration_year">Erstzulassung</string>
+  <string name="car_field_mileage">Kilometerstand</string>
+  <string name="car_field_price">Preis in Euro</string>
+  <string name="car_field_seller">Verkäufer</string>
+  <string name="car_no_details">Keine Fahrzeugdaten</string>
+  <string name="car_card_details">EZ %1$s · %2$s km · %3$s €</string>
+  <string name="car_images_sheet_title">Fahrzeugbilder</string>
+  <string name="car_images_empty">Mindestens ein Fahrzeugbild ist erforderlich.</string>
+  <string name="car_images_limit">Maximal %1$d Bilder</string>
+  <string name="car_image_preview">Fahrzeugbild</string>
+  <string name="car_image_preview_numbered">Fahrzeugbild %1$d</string>
+  <string name="car_selection_search">Fahrzeug suchen</string>
+  <string name="car_selection_no_results">Kein passendes Fahrzeug gefunden.</string>
+
+  <string name="test_drives_title">Probefahrten</string>
+  <string name="test_drive_create_title">Neue Probefahrt</string>
+  <string name="test_drive_edit_title">Probefahrt ändern</string>
+  <string name="test_drive_field_start">Beginn (%1$s)</string>
+  <string name="test_drive_field_notes">Notizen</string>
+  <string name="test_drive_completed">Probefahrt abgeschlossen</string>
+  <string name="test_drive_status_planned">Geplant</string>
+  <string name="test_drive_status_completed">Abgeschlossen</string>
+  <string name="test_drive_card_title">%1$s mit %2$s</string>
+
+  <string name="person_selection_label">Person auswählen</string>
+  <string name="person_selection_none">Keine Person</string>
+  <string name="person_selection_open">Person auswählen</string>
+  <string name="person_selection_search">Nachname oder Vorname suchen</string>
+  <string name="person_selection_no_results">Keine passende Person gefunden.</string>
+
+  <string name="car_selection_label">Fahrzeug auswählen</string>
+  <string name="car_selection_none">Kein Fahrzeug</string>
+  <string name="car_selection_open">Fahrzeug auswählen</string>
+
+  <string name="value_not_available">–</string>
+
+  <string name="action_create">Neu</string>
+  <string name="action_save">Speichern</string>
+  <string name="action_cancel">Abbrechen</string>
+  <string name="action_undo">Rückgängig</string>
+  <string name="action_select_photo">Foto wählen</string>
+  <string name="action_take_photo">Kamera</string>
+  <string name="action_remove_photo">Foto entfernen</string>
+  <string name="action_manage_car_images">Fahrzeugbilder (%1$d)</string>
+  <string name="action_select_car_images">Aus Galerie auswählen</string>
+  <string name="action_remove_car_image">Fahrzeugbild entfernen</string>
+
+  <string name="accessibility_delete_person">Person löschen</string>
+  <string name="accessibility_edit_person">Person ändern</string>
+  <string name="accessibility_delete_car">Fahrzeug löschen</string>
+  <string name="accessibility_edit_car">Fahrzeug ändern</string>
+  <string name="accessibility_delete_test_drive">Probefahrt löschen</string>
+  <string name="accessibility_edit_test_drive">Probefahrt ändern</string>
+
+  <string name="message_person_saved">%1$s wurde gespeichert.</string>
+  <string name="message_car_saved">%1$s wurde gespeichert.</string>
+  <string name="message_test_drive_saved">Probefahrt wurde gespeichert.</string>
+  <string name="message_person_removed">%1$s wurde entfernt.</string>
+  <string name="message_car_removed">%1$s wurde entfernt.</string>
+  <string name="message_test_drive_removed">Probefahrt wurde entfernt.</string>
+
+  <string name="error_people_load">Personen konnten nicht geladen werden.</string>
+  <string name="error_cars_load">Fahrzeuge konnten nicht geladen werden.</string>
+  <string name="error_test_drives_load">Probefahrten konnten nicht geladen werden.</string>
+  <string name="error_person_not_found">Person wurde nicht gefunden.</string>
+  <string name="error_car_not_found">Fahrzeug wurde nicht gefunden.</string>
+  <string name="error_test_drive_not_found">Probefahrt wurde nicht gefunden.</string>
+  <string name="error_person_load">Person konnte nicht geladen werden.</string>
+  <string name="error_car_load">Fahrzeug konnte nicht geladen werden.</string>
+  <string name="error_test_drive_load">Probefahrt konnte nicht geladen werden.</string>
+  <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
+  <string name="error_car_save">Fahrzeug konnte nicht gespeichert werden.</string>
+  <string name="error_test_drive_save">Probefahrt konnte nicht gespeichert werden.</string>
+  <string name="error_person_delete">Person konnte nicht gelöscht werden. Prüfen Sie Fahrzeuge und Probefahrten.</string>
+  <string name="error_car_delete">Fahrzeug konnte nicht gelöscht werden. Prüfen Sie vorhandene Probefahrten.</string>
+  <string name="error_test_drive_delete">Probefahrt konnte nicht gelöscht werden.</string>
+  <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+
+  <string name="error_first_name_too_short">Vorname ist zu kurz.</string>
+  <string name="error_first_name_too_long">Vorname ist zu lang.</string>
+  <string name="error_last_name_too_short">Nachname ist zu kurz.</string>
+  <string name="error_last_name_too_long">Nachname ist zu lang.</string>
+  <string name="error_email">E-Mail-Adresse ist ungültig.</string>
+  <string name="error_phone">Telefonnummer ist ungültig.</string>
+  <string name="error_car_manufacturer_required">Hersteller fehlt.</string>
+  <string name="error_car_model_required">Modell fehlt.</string>
+  <string name="error_car_registration_year">Erstzulassung ist ungültig.</string>
+  <string name="error_car_mileage">Kilometerstand ist ungültig.</string>
+  <string name="error_car_price">Preis ist ungültig.</string>
+  <string name="error_car_seller_required">Bitte einen Verkäufer auswählen.</string>
+  <string name="error_car_image_required">Bitte mindestens ein Fahrzeugbild auswählen.</string>
+  <string name="error_test_drive_person_required">Bitte eine Person auswählen.</string>
+  <string name="error_test_drive_car_required">Bitte ein Fahrzeug auswählen.</string>
+  <string name="error_date_time_format">Datum und Uhrzeit müssen das Format TT.MM.JJJJ HH:mm besitzen.</string>
+</resources>
