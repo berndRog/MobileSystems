@@ -8,17 +8,21 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.newUuid
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
-import java.time.LocalDateTime
-import java.util.UUID
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class TDriveViewModel(
    val tDriveId: String?,
@@ -32,11 +36,21 @@ class TDriveViewModel(
 
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
-   private val defaultStart = LocalDateTime.now().withSecond(0).withNano(0)
+   private val defaultStart = Clock.System.now()
+      .toLocalDateTime(TimeZone.currentSystemDefault())
+      .let { now: LocalDateTime ->
+         LocalDateTime(
+            date = now.date,
+            time = LocalTime(
+               hour = now.hour,
+               minute = now.minute,
+            ),
+         )
+      }
    private var _isSaving = false
    private val _stateFlow = MutableStateFlow(
       if (_isNew) {
-         val tDrive = TDrive(id = UUID.randomUUID().toString(), start = defaultStart)
+         val tDrive = TDrive(id = newUuid(), start = defaultStart)
          TDriveUiState(tDrive = tDrive, startInput = DateTimeText.format(tDrive.start), isNew = true)
       } else TDriveUiState(isNew = false, isLoading = true)
    )
