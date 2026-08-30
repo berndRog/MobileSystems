@@ -1,9 +1,7 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
-import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.removal.VisualRemovalDelegate
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -24,12 +22,11 @@ class NavigationEffectTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   // Creates the ViewModel with the dependencies required by the current module.
+   // Creates the ViewModel with the dependencies required by A4_01.
    private fun createViewModel() =
       PeopleViewModel(
          _repository = FakePersonRepository(),
          _stringProvider = FakeStringProvider(),
-         _visualRemoval = VisualRemovalDelegate<Person> { person -> person.id },
          _effectDelegate = EffectDelegate(),
       )
 
