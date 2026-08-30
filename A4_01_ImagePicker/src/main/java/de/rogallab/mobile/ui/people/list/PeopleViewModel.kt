@@ -23,11 +23,15 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
+   // Holds the observable UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
+
+   // Exposes the state as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
+   // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
 
    init {
@@ -35,8 +39,10 @@ class PeopleViewModel(
       observePeople()
    }
 
+   // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
       Alog.d(TAG, "intent: $intent")
+
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
@@ -45,16 +51,21 @@ class PeopleViewModel(
       }
    }
 
+   // Emits the navigation effect. A null id opens the create destination.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
+         _effectDelegate.emit(
+            PeopleEffect.NavigateTo(personId)
+         )
       }
    }
 
+   // Requests confirmation before the repository is changed.
    private fun requestRemove(personId: String) {
       val person = _stateFlow.value.people.find { person: Person ->
          person.id == personId
       }
+
       if (person == null) {
          emitPersonNotFound()
          return
@@ -78,23 +89,32 @@ class PeopleViewModel(
       }
    }
 
+   // Deletes the person only after the confirmation action was selected.
    private fun confirmRemove(personId: String) {
       val person = _stateFlow.value.people.find { person: Person ->
          person.id == personId
       }
+
       if (person == null) {
          emitPersonNotFound()
          return
       }
+
       remove(person)
    }
 
+   // Observes the repository and publishes its current list as UI state.
    private fun observePeople() {
       _observeJob?.cancel()
+
       _observeJob = viewModelScope.launch {
+
+         // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
             state.copy(isLoading = true)
          }
+
+         // Simulate a longer loading operation.
          delay(1000)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
@@ -108,6 +128,7 @@ class PeopleViewModel(
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
+
                   val error =
                      _stringProvider.getString(R.string.error_people_observe)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
@@ -116,6 +137,7 @@ class PeopleViewModel(
       }
    }
 
+   // Deletes the confirmed person from the repository.
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
@@ -127,6 +149,7 @@ class PeopleViewModel(
       }
    }
 
+   // Reports that the requested person is no longer available.
    private fun emitPersonNotFound() {
       viewModelScope.launch {
          val error =
@@ -139,3 +162,30 @@ class PeopleViewModel(
       private const val TAG = "<-PeopleViewModel"
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - A4_01_ImagePicker behält Swipe-to-Detail und Swipe-to-Delete bei, verzichtet
+ *   aber bewusst auf den zusätzlichen Undo-Zustand. Dadurch bleibt der allgemeine
+ *   ImagePicker-Schritt unabhängig von der aufwändigeren Undo-Mechanik.
+ *
+ * - Swipe-to-Delete erzeugt zunächst PeopleIntent.RequestRemove. Das Repository
+ *   wird dabei noch nicht verändert. Stattdessen erzeugt das ViewModel
+ *   PeopleEffect.ConfirmRemove mit Meldung, Action-Label und Person-ID.
+ *
+ * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
+ *   PeopleIntent.ConfirmRemove. Danach wird _repository.remove(...) ausgeführt.
+ *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person unverändert.
+ *
+ * - Ein VisualRemovalDelegate, pending Removals und ein Restore-State sind in
+ *   A4_01 deshalb nicht erforderlich. Diese Erweiterungen werden bewusst in
+ *   A4_02_ImagePickerUndo eingeführt.
+ *
+ * Lernziele:
+ *
+ * - State, Intent und Effect weiterhin konsequent voneinander unterscheiden.
+ * - Eine destruktive Aktion vor der Repository-Änderung bestätigen.
+ * - Bestätigungs-Snackbar und Undo als unterschiedliche Konzepte verstehen.
+ * - Den ImagePicker ohne zusätzliche Undo-Komplexität weiterverwenden.
+ */
