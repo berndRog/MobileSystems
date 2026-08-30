@@ -1,15 +1,25 @@
 package de.rogallab.mobile.ui.common
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.format.*
 
 object DateTimeText {
    const val pattern = "dd.MM.yyyy HH:mm"
-   private val formatter = DateTimeFormatter.ofPattern(pattern)
+
+   private val formatter = LocalDateTime.Format {
+      day()
+      char('.')
+      monthNumber()
+      char('.')
+      year()
+      char(' ')
+      hour()
+      char(':')
+      minute()
+   }
 
    fun format(value: LocalDateTime?): String =
-      value?.format(formatter).orEmpty()
+      value?.let(formatter::format).orEmpty()
 
    fun parse(value: String): LocalDateTime =
       LocalDateTime.parse(value.trim(), formatter)
@@ -17,11 +27,6 @@ object DateTimeText {
    fun parseOrNull(value: String): LocalDateTime? {
       val normalizedValue = value.trim()
       if (normalizedValue.isBlank()) return null
-      return try {
-         LocalDateTime.parse(normalizedValue, formatter)
-      }
-      catch (_: DateTimeParseException) {
-         null
-      }
+      return LocalDateTime.parseOrNull(normalizedValue, formatter)
    }
 }
