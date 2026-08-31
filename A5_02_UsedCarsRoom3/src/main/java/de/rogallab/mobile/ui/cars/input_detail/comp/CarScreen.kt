@@ -4,22 +4,34 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -37,7 +49,6 @@ import coil3.compose.AsyncImage
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.utilities.AppLogger
 import de.rogallab.mobile.shared.ui.common.toImageModel
-import de.rogallab.mobile.shared.ui.components.EditableScreenLayout
 import de.rogallab.mobile.shared.ui.components.InputValueString
 import de.rogallab.mobile.shared.ui.images.ImageSelectionButtons
 import de.rogallab.mobile.ui.cars.input_detail.CarIntent
@@ -48,6 +59,7 @@ import de.rogallab.mobile.ui.tdrives.input_detail.comp.PersonSelectionField
 
 private const val TAG = "<-CarScreen"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarScreen(
    carUiState: CarUiState,
@@ -64,133 +76,187 @@ fun CarScreen(
 
    val car = carUiState.car
 
-   
-   EditableScreenLayout(
-      title = if (carUiState.isNew) R.string.car_create_title
-              else R.string.car_edit_title,
-      isLoading = carUiState.isLoading,
-      hasContent = car != null,
-      contentPadding = contentPadding,
-      onCancel = { onIntent(CarIntent.Cancel) },
-      onSave = { onIntent(CarIntent.Save) },
+   Column(
+      modifier = Modifier
+         .fillMaxSize()
+         .padding(contentPadding),
    ) {
-      if (car != null) {
-         val imagePaths = car.imagePaths
-         val canAddMoreImages = imagePaths.size < MAX_CAR_IMAGE_COUNT
-
-         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-         ) {
-            InputValueString(
-               value = car.manufacturer,
-               onValueChange = { manufacturer ->
-                  onIntent(CarIntent.ManufacturerChanged(manufacturer))
-               },
-               label = stringResource(R.string.car_field_manufacturer),
-               leadingIcon = Icons.Default.DirectionsCar,
-               validate = validator::validateManufacturer,
-               imeAction = ImeAction.Next,
-            )
-
-            InputValueString(
-               value = car.model,
-               onValueChange = { model ->
-                  onIntent(CarIntent.ModelChanged(model))
-               },
-               label = stringResource(R.string.car_field_model),
-               leadingIcon = Icons.Default.DirectionsCar,
-               validate = validator::validateModel,
-               imeAction = ImeAction.Next,
-            )
-
-            InputValueString(
-               value = carUiState.registrationYearInput,
-               onValueChange = { registrationYear ->
-                  onIntent(CarIntent.RegistrationYearChanged(registrationYear))
-               },
-               label = stringResource(R.string.car_field_registration_year),
-               leadingIcon = Icons.Default.CalendarMonth,
-               validate = validator::validateRegistrationYear,
-               keyboardType = KeyboardType.Number,
-               imeAction = ImeAction.Next,
-            )
-
-            InputValueString(
-               value = carUiState.mileageInput,
-               onValueChange = { mileage ->
-                  onIntent(CarIntent.MileageChanged(mileage))
-               },
-               label = stringResource(R.string.car_field_mileage),
-               leadingIcon = Icons.Default.Speed,
-               validate = validator::validateMileage,
-               keyboardType = KeyboardType.Number,
-               imeAction = ImeAction.Next,
-            )
-
-            InputValueString(
-               value = carUiState.priceInput,  // price as String
-               onValueChange = { price ->
-                  onIntent(CarIntent.PriceChanged(price))
-               },
-               label = stringResource(R.string.car_field_price),
-               leadingIcon = Icons.Default.Euro,
-               validate = validator::validatePrice,
-               keyboardType = KeyboardType.Number,
-               imeAction = ImeAction.Done,
-            )
-
-            PersonSelectionField(
-               people = carUiState.people,
-               selectedPersonId = car.sellerId,
-               label = stringResource(R.string.car_field_seller),
-               allowNone = false,
-               onPersonSelected = { personId ->
-                  onIntent(CarIntent.SellerChanged(personId))
-               },
-            )
-
-            // The buttons come from Shared. Car only decides whether another image
-            // may be added and which feature callback should be triggered.
-            ImageSelectionButtons(
-               imagePath = null,
-               enabled = canAddMoreImages,
-               onSelectPhoto = onSelectImages,
-               onTakePhoto = onTakePhoto,
-               onRemovePhoto = {},
-            )
-
+      TopAppBar(
+         windowInsets = WindowInsets(0),
+         title = {
             Text(
                text = stringResource(
-                  R.string.action_manage_car_images,
-                  imagePaths.size,
-               ),
-               style = MaterialTheme.typography.bodyMedium,
+                  if (carUiState.isNew) R.string.car_create_title
+                  else R.string.car_edit_title
+               )
             )
-
-            Text(
-               text = stringResource(
-                  R.string.car_images_limit,
-                  MAX_CAR_IMAGE_COUNT,
-               ),
-               style = MaterialTheme.typography.bodySmall,
-            )
-
-            if (imagePaths.isEmpty()) {
-               Text(
-                  text = stringResource(R.string.car_images_empty),
-                  style = MaterialTheme.typography.bodyMedium,
+         },
+         navigationIcon = {
+            IconButton(
+               onClick = { onIntent(CarIntent.Save) }
+            ) {
+               Icon(
+                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                  contentDescription = stringResource(R.string.action_save),
                )
             }
-            else {
-               CarImagePreviewList(
-                  imagePaths = imagePaths,
-                  onRemoveImage = { imagePath ->
-                     onIntent(CarIntent.ImageRemoved(imagePath))
-                  },
-               )
+         },
+      )
+
+      when {
+         carUiState.isLoading -> {
+            Column(
+               modifier = Modifier.fillMaxSize(),
+               verticalArrangement = Arrangement.Center,
+               horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+               CircularProgressIndicator()
             }
          }
 
+         car != null -> {
+            Column(
+               modifier = Modifier
+                  .weight(1f)
+                  .fillMaxWidth()
+                  .verticalScroll(rememberScrollState())
+                  .imePadding()
+                  .padding(
+                     start = 16.dp,
+                     top = 8.dp,
+                     end = 16.dp,
+                     bottom = 24.dp,
+                  ),
+               verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+               InputValueString(
+                  value = car.manufacturer,
+                  onValueChange = { manufacturer ->
+                     onIntent(CarIntent.ManufacturerChanged(manufacturer))
+                  },
+                  label = stringResource(R.string.car_field_manufacturer),
+                  leadingIcon = Icons.Default.DirectionsCar,
+                  validate = validator::validateManufacturer,
+                  imeAction = ImeAction.Next,
+               )
+
+               InputValueString(
+                  value = car.model,
+                  onValueChange = { model ->
+                     onIntent(CarIntent.ModelChanged(model))
+                  },
+                  label = stringResource(R.string.car_field_model),
+                  leadingIcon = Icons.Default.DirectionsCar,
+                  validate = validator::validateModel,
+                  imeAction = ImeAction.Next,
+               )
+
+               InputValueString(
+                  value = carUiState.registrationYearInput,
+                  onValueChange = { registrationYear ->
+                     onIntent(CarIntent.RegistrationYearChanged(registrationYear))
+                  },
+                  label = stringResource(R.string.car_field_registration_year),
+                  leadingIcon = Icons.Default.CalendarMonth,
+                  validate = validator::validateRegistrationYear,
+                  keyboardType = KeyboardType.Number,
+                  imeAction = ImeAction.Next,
+               )
+
+               InputValueString(
+                  value = carUiState.mileageInput,
+                  onValueChange = { mileage ->
+                     onIntent(CarIntent.MileageChanged(mileage))
+                  },
+                  label = stringResource(R.string.car_field_mileage),
+                  leadingIcon = Icons.Default.Speed,
+                  validate = validator::validateMileage,
+                  keyboardType = KeyboardType.Number,
+                  imeAction = ImeAction.Next,
+               )
+
+               InputValueString(
+                  value = carUiState.priceInput,
+                  onValueChange = { price ->
+                     onIntent(CarIntent.PriceChanged(price))
+                  },
+                  label = stringResource(R.string.car_field_price),
+                  leadingIcon = Icons.Default.Euro,
+                  validate = validator::validatePrice,
+                  keyboardType = KeyboardType.Number,
+                  imeAction = ImeAction.Done,
+               )
+
+               PersonSelectionField(
+                  people = carUiState.people,
+                  selectedPersonId = car.sellerId,
+                  label = stringResource(R.string.car_field_seller),
+                  allowNone = false,
+                  onPersonSelected = { personId ->
+                     onIntent(CarIntent.SellerChanged(personId))
+                  },
+               )
+
+               ImageSelectionButtons(
+                  imagePath = null,
+                  enabled = car.imagePaths.size < MAX_CAR_IMAGE_COUNT,
+                  onSelectPhoto = onSelectImages,
+                  onTakePhoto = onTakePhoto,
+                  onRemovePhoto = {},
+               )
+
+               Text(
+                  text = stringResource(
+                     R.string.action_manage_car_images,
+                     car.imagePaths.size,
+                  ),
+                  style = MaterialTheme.typography.bodyMedium,
+               )
+
+               Text(
+                  text = stringResource(
+                     R.string.car_images_limit,
+                     MAX_CAR_IMAGE_COUNT,
+                  ),
+                  style = MaterialTheme.typography.bodySmall,
+               )
+
+               if (car.imagePaths.isEmpty()) {
+                  Text(
+                     text = stringResource(R.string.car_images_empty),
+                     style = MaterialTheme.typography.bodyMedium,
+                  )
+               }
+               else {
+                  CarImagePreviewList(
+                     imagePaths = car.imagePaths,
+                     onRemoveImage = { imagePath ->
+                        onIntent(CarIntent.ImageRemoved(imagePath))
+                     },
+                  )
+               }
+
+               Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(
+                     40.dp,
+                     Alignment.CenterHorizontally,
+                  ),
+               ) {
+                  OutlinedButton(
+                     onClick = { onIntent(CarIntent.Cancel) }
+                  ) {
+                     Text(text = stringResource(R.string.action_cancel))
+                  }
+
+                  Button(
+                     onClick = { onIntent(CarIntent.Save) }
+                  ) {
+                     Text(text = stringResource(R.string.action_save))
+                  }
+               }
+            }
+         }
       }
    }
 }
@@ -215,7 +281,6 @@ private fun CarImagePreviewList(
                shape = RoundedCornerShape(12.dp),
             ) {
                AsyncImage(
-                  // Shared contains the common String -> Coil model conversion.
                   model = imagePath.toImageModel(),
                   contentDescription = stringResource(
                      R.string.car_image_preview_numbered,
@@ -246,4 +311,3 @@ private fun CarImagePreviewList(
       }
    }
 }
-
