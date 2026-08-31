@@ -50,41 +50,21 @@ fun CarAdapter(
          if (remainingSlots == 1) GallerySelectionMode.Single
          else GallerySelectionMode.Multiple,
       maxSelectionCount = remainingSlots,
-      onImagesSelected = { sourceUris ->
-         viewModel.onIntent(
-            CarIntent.GalleryImagesSelected(sourceUris)
-         )
-      },
+      onImagesSelected = { sourceUris -> viewModel.onIntent(CarIntent.GalleryImagesSelected(sourceUris)) },
    ) { galleryActions ->
 
       CameraPickerHandler(
          imageFileStorage = imageFileStorage,
-         onPhotoStored = { imagePath ->
-            viewModel.onIntent(
-               CarIntent.CameraImageTaken(imagePath)
-            )
-         },
-         onError = {
-            viewModel.onIntent(
-               CarIntent.ImageFailed(imageSaveError)
-            )
-         },
+         onPhotoStored = { imagePath -> viewModel.onIntent(CarIntent.CameraImageTaken(imagePath)) },
+         onError = { viewModel.onIntent(CarIntent.ImageFailed(imageSaveError)) },
       ) { cameraActions ->
 
          CarScreen(
             carUiState = carUiState,
             validator = validator,
             contentPadding = contentPadding,
-            onSelectImages = {
-               if (canAddMoreImages) {
-                  galleryActions.selectFromGallery()
-               }
-            },
-            onTakePhoto = {
-               if (canAddMoreImages) {
-                  cameraActions.takePhoto()
-               }
-            },
+            onSelectImages = { if (canAddMoreImages) galleryActions.selectFromGallery() },
+            onTakePhoto = { if (canAddMoreImages) cameraActions.takePhoto() },
             onIntent = viewModel::onIntent,
          )
       }

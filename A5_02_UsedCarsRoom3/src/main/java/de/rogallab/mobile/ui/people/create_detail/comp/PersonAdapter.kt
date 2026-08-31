@@ -65,9 +65,7 @@ fun PersonAdapter(
       selectionMode = GallerySelectionMode.Single,
       onImagesSelected = { sourceUris ->
          sourceUris.firstOrNull()?.let { sourceUri ->
-            viewModel.onIntent(
-               PersonIntent.GalleryImageSelected(sourceUri)
-            )
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
          }
       },
    ) { galleryActions ->
