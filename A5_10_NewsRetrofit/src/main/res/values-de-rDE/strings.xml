@@ -1,0 +1,11 @@
+<resources>
+  <string name="app_name">RetrofitNews</string>
+  <string name="searchnews">Suche Artikel</string>
+  <string name="savedarticles">Gespeicherte Artikel</string>
+  <string name="readarticle">Artikel lesen</string>
+  <string name="searchtext">Wonach suchen Sie?</string>
+  <string name="undoDelete">Sind Sie sicher, dass Sie dieses Artikel löschen möchten?</string>
+  <string name="undoAnswer">nein</string>
+  <string name="save">Speichern</string>
+  <string name="back">Zurück</string>
+</resources>

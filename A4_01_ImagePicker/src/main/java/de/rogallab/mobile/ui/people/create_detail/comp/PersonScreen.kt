@@ -78,26 +78,18 @@ fun PersonScreen(
    Column(
       modifier = modifier
    ) {
-
       // The TopAppBar delegates back navigation to the caller.
       TopAppBar(
          windowInsets = WindowInsets(0),
          navigationIcon = {
-            IconButton(
-               onClick = onNavigateBack
-            ) {
-               Icon(
-                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                  contentDescription = stringResource(R.string.action_back),
-               )
+            IconButton(onClick = onNavigateBack) {
+               Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.action_back))
             }
          },
          title = {
-            Text(
-               text =
-                  if (isNew) stringResource(R.string.person_create)
-                  else stringResource(R.string.person_detail)
-            )
+            Text(text = if (isNew) stringResource(R.string.person_create)
+                        else stringResource(R.string.person_detail))
          },
       )
 
@@ -182,18 +174,14 @@ fun PersonScreen(
             OutlinedButton(
                onClick = onCancel
             ) {
-               Text(
-                  text = stringResource(R.string.action_cancel)
-               )
+               Text(text = stringResource(R.string.action_cancel))
             }
 
             Button(
                onClick = onSave,
                enabled = enableSave,
             ) {
-               Text(
-                  text = stringResource(R.string.action_save)
-               )
+               Text(text = stringResource(R.string.action_save))
             }
          }
       }

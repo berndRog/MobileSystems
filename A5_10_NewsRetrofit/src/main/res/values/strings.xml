@@ -1,0 +1,11 @@
+<resources>
+  <string name="app_name">RetrofitNews</string>
+  <string name="searchnews">Search articles</string>
+  <string name="savedarticles">Saved article</string>
+  <string name="readarticle">Read article</string>
+  <string name="searchtext">What are you looking for?</string>
+  <string name="undoDelete">Are you sure you want to delete this article?</string>
+  <string name="undoAnswer">no</string>
+  <string name="save">Save</string>
+  <string name="back">Back</string>
+</resources>
