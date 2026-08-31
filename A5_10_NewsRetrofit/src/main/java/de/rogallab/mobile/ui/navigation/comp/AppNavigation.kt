@@ -19,11 +19,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
@@ -143,6 +146,12 @@ fun AppNavigation() {
                activity?.finish()
             }
          },
+         entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(
+               rememberSaveableStateHolder()
+            ),
+            rememberViewModelStoreNavEntryDecorator(),
+         ),
          entryProvider = appEntryProvider,
          modifier = Modifier.fillMaxSize(),
       )
@@ -153,6 +162,8 @@ fun AppNavigation() {
  * Didaktik und Lernziele
  *
  * - News und gespeicherte Artikel besitzen jeweils einen eigenen Navigation-3-Back-Stack.
+ * - Jeder NavEntry besitzt einen eigenen ViewModelStore. Dadurch erhält jeder Artikel
+ *   sein eigenes ArticleViewModel mit dem zum ArticleKey gehörenden Artikel.
  * - Navigation bleibt in AppNavigation; ViewModels erzeugen nur Effects.
  * - SnackbarController ist die einzige Snackbar-Infrastruktur der Anwendung.
  */
