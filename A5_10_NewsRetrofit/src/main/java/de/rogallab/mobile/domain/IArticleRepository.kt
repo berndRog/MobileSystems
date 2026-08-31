@@ -1,11 +1,10 @@
 package de.rogallab.mobile.domain
 
-import de.rogallab.mobile.data.dtos.Article
+import de.rogallab.mobile.domain.entities.Article
 import kotlinx.coroutines.flow.Flow
 
 interface IArticleRepository {
-   fun selectArticles(): Flow<Result<List<Article>>>
-   suspend fun upsert(article: Article): Result<Unit>
-   suspend fun remove(article: Article): Result<Unit>
+   fun observeAll(): Flow<Result<List<Article>>>
+   suspend fun save(article: Article): Result<Unit>
+   suspend fun remove(url: String): Result<Unit>
 }
-

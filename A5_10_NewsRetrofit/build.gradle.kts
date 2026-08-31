@@ -1,53 +1,41 @@
+import java.util.Properties
+
 plugins {
-   alias(libs.plugins.android.application)
 }
 
-android {
-   namespace = "de.rogallab.mobile"
-   compileSdk {
-      version = release(37)
-   }
-
-   defaultConfig {
-      applicationId = "de.rogallab.mobile"
-      minSdk = 26
-      targetSdk = 37
-      versionCode = 1
-      versionName = "1.0"
-
-      testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-   }
-
-   buildTypes {
-      release {
-         optimization {
-            enable = false
-         }
+val localProperties = Properties().apply {
+   val localPropertiesFile = rootProject.file("local.properties")
+   if (localPropertiesFile.exists()) {
+      localPropertiesFile.inputStream().use { inputStream ->
+         load(inputStream)
       }
    }
-   compileOptions {
-      sourceCompatibility = JavaVersion.VERSION_11
-      targetCompatibility = JavaVersion.VERSION_11
-   }
+}
+
+val newsApiKey = providers.gradleProperty("NEWS_API_KEY").orNull
+   ?: localProperties.getProperty("NEWS_API_KEY")
+   ?: ""
+val escapedNewsApiKey = newsApiKey
+   .replace("\\", "\\\\")
+   .replace("\"", "\\\"")
+
+android {
    buildFeatures {
-      compose = true
+      buildConfig = true
+   }
+   defaultConfig {
+      buildConfigField(
+         type = "String",
+         name = "NEWS_API_KEY",
+         value = "\"$escapedNewsApiKey\"",
+      )
    }
 }
 
 dependencies {
-   implementation(platform(libs.androidx.compose.bom))
-   implementation(libs.androidx.activity.compose)
-   implementation(libs.androidx.core.ktx)
-   implementation(libs.androidx.lifecycle.runtime.ktx)
-   implementation(libs.androidx.material3)
-   implementation(libs.androidx.ui)
-   implementation(libs.androidx.ui.graphics)
-   implementation(libs.androidx.ui.tooling.preview)
-   testImplementation(libs.junit)
-   androidTestImplementation(platform(libs.androidx.compose.bom))
-   androidTestImplementation(libs.androidx.test.espresso.core)
-   androidTestImplementation(libs.androidx.test.ext.junit)
-   androidTestImplementation(libs.androidx.ui.test.junit4)
-   debugImplementation(libs.androidx.ui.test.manifest)
-   debugImplementation(libs.androidx.ui.tooling)
+   // Room 3 uses a SQLiteDriver; the bundled driver keeps SQLite consistent.
+   implementation(libs.androidx.sqlite.bundled)
+
+   // Coil 3 needs an explicit network module for http/https image URLs.
+   implementation(libs.coil.network.okhttp)
 }

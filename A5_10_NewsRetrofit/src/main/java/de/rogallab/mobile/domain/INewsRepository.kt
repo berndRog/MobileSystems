@@ -1,9 +1,10 @@
 package de.rogallab.mobile.domain
 
-import de.rogallab.mobile.data.dtos.News
-import kotlinx.coroutines.flow.Flow
+import de.rogallab.mobile.domain.entities.Article
 
 interface INewsRepository {
-   fun getEverything(searchText: String, page: Int): Flow<Result<News>>
+   suspend fun search(
+      searchText: String,
+      page: Int = 1,
+   ): Result<List<Article>>
 }
-
