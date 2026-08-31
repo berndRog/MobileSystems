@@ -77,6 +77,7 @@ fun ArticleScreen(
                webViewClient = WebViewClient()
                settings.loadWithOverviewMode = true
                settings.javaScriptEnabled = true
+               settings.domStorageEnabled = true
                loadUrl(article.url)
             }
          },
