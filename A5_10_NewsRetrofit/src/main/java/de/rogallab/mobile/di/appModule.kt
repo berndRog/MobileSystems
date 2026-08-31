@@ -47,7 +47,7 @@ fun appModule(): Module = module {
    single {
       HttpLoggingInterceptor().apply {
          level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BASIC
+            HttpLoggingInterceptor.Level.HEADERS
          }
          else {
             HttpLoggingInterceptor.Level.NONE

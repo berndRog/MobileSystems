@@ -41,15 +41,14 @@ class NewsViewModel(
          return
       }
 
-      _stateFlow.update { state: NewsUiState -> state.copy(isLoading = true) }
+      _stateFlow.update { state: NewsUiState ->
+         state.copy(isLoading = true)
+      }
       viewModelScope.launch {
          _newsRepository.search(searchText)
             .onSuccess { articles ->
                _stateFlow.update { state: NewsUiState ->
-                  state.copy(
-                     articles = articles,
-                     isLoading = false,
-                  )
+                  state.copy(articles = articles, isLoading = false)
                }
             }
             .onFailure {

@@ -29,7 +29,11 @@ class ArticlesViewModel(
 
    fun onIntent(intent: ArticlesIntent) {
       when (intent) {
-         is ArticlesIntent.Detail -> navigateToArticle(intent.article)
+         is ArticlesIntent.Detail -> {
+            viewModelScope.launch {
+               _effectDelegate.emit(ArticlesEffect.NavigateToArticle(intent.article))
+            }
+         } //navigateToArticle(intent.article)
          is ArticlesIntent.RequestRemove -> requestRemove(intent.url)
          is ArticlesIntent.ConfirmRemove -> remove(intent.url)
       }
@@ -86,12 +90,6 @@ class ArticlesViewModel(
                   )
                )
             }
-      }
-   }
-
-   private fun navigateToArticle(article: Article) {
-      viewModelScope.launch {
-         _effectDelegate.emit(ArticlesEffect.NavigateToArticle(article))
       }
    }
 }

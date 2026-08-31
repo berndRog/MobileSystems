@@ -23,25 +23,23 @@ class ArticleRepository(
             emit(Result.failure(throwable))
          }
 
-   override suspend fun save(article: Article): Result<Unit> = try {
-      _articleDao.save(article.toDto())
-      Result.success(Unit)
-   }
-   catch (exception: CancellationException) {
-      throw exception
-   }
-   catch (throwable: Throwable) {
-      Result.failure(throwable)
-   }
+   override suspend fun save(article: Article): Result<Unit> =
+      try {
+         _articleDao.save(article.toDto())
+         Result.success(Unit)
+      } catch (exception: CancellationException) {
+         throw exception
+      } catch (throwable: Throwable) {
+         Result.failure(throwable)
+      }
 
-   override suspend fun remove(url: String): Result<Unit> = try {
-      _articleDao.remove(url)
-      Result.success(Unit)
-   }
-   catch (exception: CancellationException) {
-      throw exception
-   }
-   catch (throwable: Throwable) {
-      Result.failure(throwable)
-   }
+   override suspend fun remove(url: String): Result<Unit> =
+      try {
+         _articleDao.remove(url)
+         Result.success(Unit)
+      } catch (exception: CancellationException) {
+         throw exception
+      } catch (throwable: Throwable) {
+         Result.failure(throwable)
+      }
 }

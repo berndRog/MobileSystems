@@ -1,27 +1,27 @@
 <resources>
    <string name="app_name">News Retrofit</string>
 
-   <string name="news_title">Nachrichten suchen</string>
-   <string name="articles_title">Gespeicherte Artikel</string>
-   <string name="article_title">Artikel</string>
+   <string name="news_title">Search News</string>
+   <string name="articles_title">Saved Articles</string>
+   <string name="article_title">Article</string>
 
-   <string name="search_hint">Wonach möchtest du suchen?</string>
-   <string name="action_search">Suchen</string>
+   <string name="search_hint">What are you looking for?</string>
+   <string name="action_search">Search</string>
    <string name="action_back">Zurück</string>
-   <string name="action_save_article">Artikel speichern</string>
+   <string name="action_save_article">Save article</string>
    <string name="action_confirm">Ja</string>
 
-   <string name="nav_news">Suchen</string>
-   <string name="nav_saved">Gespeichert</string>
-   <string name="article_open">Artikel öffnen</string>
-   <string name="article_delete">Artikel löschen</string>
+   <string name="nav_news">Search</string>
+   <string name="nav_saved">Saved</string>
+   <string name="article_open">Open article</string>
+   <string name="article_delete">Delete article</string>
 
-   <string name="error_search_required">Bitte gib einen Suchbegriff ein.</string>
-   <string name="error_news_load">Die Nachrichten konnten nicht geladen werden.</string>
-   <string name="error_articles_load">Die gespeicherten Artikel konnten nicht geladen werden.</string>
-   <string name="error_article_save">Der Artikel konnte nicht gespeichert werden.</string>
-   <string name="error_article_delete">Der Artikel konnte nicht gelöscht werden.</string>
-   <string name="confirm_article_delete">Artikel wirklich löschen?</string>
-   <string name="message_article_saved">Artikel gespeichert.</string>
-   <string name="message_article_deleted">Artikel gelöscht.</string>
+   <string name="error_search_required">Search string required.</string>
+   <string name="error_news_load">News could not be loaded.</string>
+   <string name="error_articles_load">Saved articles could not be loaded.</string>
+   <string name="error_article_save">Article could not be saved.</string>
+   <string name="error_article_delete">Article could not be deleted.</string>
+   <string name="confirm_article_delete">Really delete article?</string>
+   <string name="message_article_saved">Article saved.</string>
+   <string name="message_article_deleted">Article deleted.</string>
 </resources>
