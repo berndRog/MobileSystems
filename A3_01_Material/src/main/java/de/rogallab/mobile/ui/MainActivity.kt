@@ -15,6 +15,7 @@ import de.rogallab.mobile.shared.ui.BaseActivity
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
 import de.rogallab.mobile.ui.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -28,11 +29,6 @@ class MainActivity : BaseActivity(TAG) {
 
       setContent {
 
-//         // CreateScreen
-//         val personViewModel = koinViewModel<PersonViewModel> {
-//            parametersOf(null)
-//         }
-
          // DetailScreen
          val personViewModel = koinViewModel<PersonViewModel> {
             parametersOf("01000000-0000-0000-0000-000000000000")
@@ -42,27 +38,14 @@ class MainActivity : BaseActivity(TAG) {
          val peopleViewModel = koinViewModel<PeopleViewModel>()
 
          AppTheme {
+            PersonAdapter(
+               viewModel = personViewModel
+            )
 
-            Scaffold(
-               contentWindowInsets = WindowInsets.safeDrawing.add(
-                  WindowInsets(top = 0.dp, bottom = 0.dp)
-               ),
-               modifier = Modifier.fillMaxSize(),
-            ) { innerPadding ->
+            PeopleAdapter(
+               viewModel = peopleViewModel
+            )
 
-               PersonAdapter(
-                  viewModel = personViewModel,
-                  modifier = Modifier
-                     .padding(innerPadding)
-               )
-
-//               PeopleAdapter(
-//                  viewModel = peopleViewModel,
-//                  modifier = Modifier
-//                     .padding(innerPadding).padding(horizontal = 8.dp)
-//                     .fillMaxSize()
-//               )
-            }
          }
       }
    }

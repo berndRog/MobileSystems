@@ -4,6 +4,7 @@ import android.app.Application
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.di.appModule
 import de.rogallab.mobile.shared.di.databaseModule
+import de.rogallab.mobile.shared.di.imageStorageModule
 import de.rogallab.mobile.shared.di.utilitiesModule
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +44,7 @@ class MainApplication : Application() {
          modules(appModule())
          modules(utilitiesModule())
          modules(databaseModule(Globals.databaseName))
+         modules(imageStorageModule(directoryName = Globals.imageDirectoryName))
       }
 
       // Seed the database with initial data

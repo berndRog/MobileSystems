@@ -12,12 +12,12 @@ kotlinxDatetime = "0.8.0"
 kotlinxSerialization = "2.4.10"   #"2.2.20"
 kotlinxSerializationJson = "1.11.0" #1.8.1
 lifecycle = "2.11.0"
-nav3Core = "1.1.6"
+nav3Core = "1.1.7"
 nav3Lifecycle = "2.11.0"
 
 retrofit = "3.0.0"
 retrofitLogging = "5.5.0"
-room3 = "3.0.1"
+room3 = "3.0.2"
 sqlite = "2.7.0"
 
 # testing
@@ -35,7 +35,7 @@ mockito = "5.23.0"
 mockitoKotlin = "6.3.0"
 
 # plugins
-agp = "9.3.2"
+agp = "9.4.0"
 kotlin = "2.4.10"    #"2.0.21"
 ksp = "2.3.10"
 lifecycleRuntimeKtx = "2.11.0"

@@ -3,15 +3,18 @@ package de.rogallab.mobile.ui.people.create_detail.comp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,8 +43,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonAdapter(
-   viewModel: PersonViewModel,
-   modifier: Modifier = Modifier
+   viewModel: PersonViewModel
 ) {
    val tag = "<-PersonAdapter"
 
@@ -53,58 +55,60 @@ fun PersonAdapter(
    val state: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-   Column(
-      modifier = modifier
-         .fillMaxSize()
-         .verticalScroll(rememberScrollState())
-         .imePadding()
-   ) {
-      TopAppBar(
-         windowInsets = WindowInsets(0), // no insets for the top bar, because the screen is already padded
-         title = {
-            Text(
-               text = if (state.isNew) stringResource(R.string.person_create)
-               else stringResource(R.string.person_detail))
-         }
-      )
 
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = { TopAppBar(
+         title = { Text(text = if (state.isNew) stringResource(R.string.person_create)
+                               else stringResource(R.string.person_detail)) }
+      )}
+   ) { innerPadding ->
       // Show a loading indicator if the person data is still being loaded.
       if (state.isLoading) {
          Column(
-            modifier = modifier.fillMaxWidth(),
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally,
          ) {
-            CircularProgressIndicator(modifier = modifier.size(64.dp))
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
+      } else {
+         // Show person data
 
-      // Show person data
-      else {
-         val person = state.person
+         Column(
+            modifier = Modifier
+               .padding(innerPadding)
+               .fillMaxSize()
+               .verticalScroll(rememberScrollState())
+               .imePadding()
+         ) {
+            val person = state.person
 
-         // Map ViewModel state to simple screen parameters and
-         // map screen callbacks back to MVI intents.
-         PersonScreen(
-            firstName = person.firstName,
-            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+            // Map ViewModel state to simple screen parameters and
+            // map screen callbacks back to MVI intents.
+            PersonScreen(
+               firstName = person.firstName,
+               onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
 
-            lastName = person.lastName,
-            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+               lastName = person.lastName,
+               onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
 
-            email = person.email,
-            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+               email = person.email,
+               onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
 
-            phone = person.phone,
-            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+               phone = person.phone,
+               onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
 
-            imagePath = person.imagePath,
+               imagePath = person.imagePath,
 
-            onSave = { viewModel.onIntent(PersonIntent.Save) },
-            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
+               onSave = { viewModel.onIntent(PersonIntent.Save) },
+               onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-         )
+               modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+            )
+         }
       }
    }
 }
