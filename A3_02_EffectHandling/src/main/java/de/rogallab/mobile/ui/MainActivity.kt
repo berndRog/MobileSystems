@@ -19,6 +19,7 @@ import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
 import de.rogallab.mobile.ui.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -39,11 +40,6 @@ class MainActivity : BaseActivity(TAG) {
             snackbarHostState = snackbarHostState,
          )
 
-         // Create screen.
-//               val personViewModel = koinViewModel<PersonViewModel> {
-//                  parametersOf(null)
-//               }
-
          // Detail screen.
          val personViewModel = koinViewModel<PersonViewModel> {
             parametersOf("01000000-0000-0000-0000-000000000000")
@@ -52,37 +48,22 @@ class MainActivity : BaseActivity(TAG) {
          // List screen.
          val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-
-
          AppTheme {
 
-            Scaffold(
-               snackbarHost = {
-                  SnackbarHost(hostState = snackbarHostState)
-               },
-               contentWindowInsets = WindowInsets.safeDrawing.add(
-                  WindowInsets(top = 0.dp, bottom = 0.dp)
-               ),
-               modifier = Modifier.fillMaxSize(),
-            ) { innerPadding ->
+            PersonAdapter(
+               viewModel = personViewModel,
+               snackbarHostState = snackbarHostState,
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError
+            )
 
-               PersonAdapter(
-                  viewModel = personViewModel,
-                  modifier = Modifier.padding(innerPadding),
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError
-               )
+//            PeopleAdapter(
+//               viewModel = peopleViewModel,
+//               snackbarHostState = snackbarHostState,
+//               onMessage = snackbarController::showMessage,
+//               onError = snackbarController::showError,
+//            )
 
-//               PeopleAdapter(
-//                  viewModel = peopleViewModel,
-//                  modifier = Modifier
-//                     .padding(innerPadding)
-//                     .padding(horizontal = 8.dp)
-//                     .fillMaxSize(),
-//                  onMessage = snackbarController::showMessage,
-//                  onError = snackbarController::showError,
-//               )
-            }
          }
       }
    }

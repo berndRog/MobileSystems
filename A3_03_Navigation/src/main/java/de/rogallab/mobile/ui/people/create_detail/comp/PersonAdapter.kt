@@ -1,17 +1,31 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
@@ -20,9 +34,11 @@ import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
+   snackbarHostState: SnackbarHostState,
    modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
@@ -44,38 +60,64 @@ fun PersonAdapter(
          is PersonEffect.NavigateBack -> onNavigateBack(personEffect.reason)
       }
    }
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
+         TopAppBar(
+            title = {
+               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
+               else stringResource(R.string.person_detail))
+            },
+         )
+      },
+      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+   ) { innerPadding ->
+      // Show a loading indicator if the person data is still being loaded.
+      if (personUiState.isLoading) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      } else {
+         // Show person data
+         val person = personUiState.person
 
-   val person = personUiState.person
+         PersonScreen(
+            isNew = personUiState.isNew,
+            isLoading = personUiState.isLoading,
 
-   PersonScreen(
-      isNew = personUiState.isNew,
-      isLoading = personUiState.isLoading,
+            firstName = person.firstName,
+            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
 
-      firstName = person.firstName,
-      onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+            lastName = person.lastName,
+            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
 
-      lastName = person.lastName,
-      onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+            email = person.email,
+            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
 
-      email = person.email,
-      onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+            phone = person.phone,
+            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
 
-      phone = person.phone,
-      onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+            imagePath = person.imagePath,
 
-      imagePath = person.imagePath,
+            onBack = { viewModel.onIntent(PersonIntent.Cancel) },
 
-      onBack = { viewModel.onIntent(PersonIntent.Cancel) },
+            onSave = { viewModel.onIntent(PersonIntent.Save) },
+            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-      onSave = { viewModel.onIntent(PersonIntent.Save) },
-      onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
-
-      modifier = modifier
-         .fillMaxSize()
-         .verticalScroll(rememberScrollState())
-         .imePadding()
-         .fillMaxWidth(),
-   )
+            modifier = modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .verticalScroll(rememberScrollState())
+               .imePadding()
+               .fillMaxWidth(),
+         )
+      }
+   }
 }
 
 /*

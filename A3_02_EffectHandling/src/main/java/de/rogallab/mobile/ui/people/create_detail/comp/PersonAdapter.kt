@@ -1,10 +1,7 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +9,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,7 +40,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
-   modifier: Modifier = Modifier,
+   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit
 ) {
@@ -62,33 +62,30 @@ fun PersonAdapter(
       }
    }
 
-   Column(
-      modifier = modifier
-         .fillMaxSize()
-         .verticalScroll(rememberScrollState())
-         .imePadding()
-   ) {
-      TopAppBar(
-         windowInsets = WindowInsets(0),
-         title = {
-            Text(
-               text = if (personUiState.isNew) stringResource(R.string.person_create)
-                      else stringResource(R.string.person_detail)
-            )
-         },
-      )
-
-      // Show a loading indicator while the person data is being loaded.
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
+         TopAppBar(
+            title = {
+               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
+               else stringResource(R.string.person_detail))
+            },
+         )
+      },
+      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+   ) { innerPadding ->
+      // Show a loading indicator if the person data is still being loaded.
       if (personUiState.isLoading) {
-         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else {
+         // Show person data
          val person = personUiState.person
 
          // Map ViewModel state to simple screen parameters and
@@ -112,8 +109,11 @@ fun PersonAdapter(
             onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
             modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
                .padding(horizontal = 16.dp)
-               .fillMaxWidth(),
+               .verticalScroll(rememberScrollState())
+               .imePadding(),
          )
       }
    }

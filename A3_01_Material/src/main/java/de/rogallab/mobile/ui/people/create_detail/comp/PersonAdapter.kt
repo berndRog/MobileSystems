@@ -1,14 +1,12 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -52,39 +50,29 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the current ViewModel state with lifecycle awareness.
-   val state: PersonUiState
+   val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
 
 
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = { TopAppBar(
-         title = { Text(text = if (state.isNew) stringResource(R.string.person_create)
+         title = { Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
                                else stringResource(R.string.person_detail)) }
       )}
    ) { innerPadding ->
       // Show a loading indicator if the person data is still being loaded.
-      if (state.isLoading) {
-         Column(
+      if (personUiState.isLoading) {
+         Box(
             modifier = Modifier
                .fillMaxSize()
                .padding(innerPadding),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
+            contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
       } else {
-         // Show person data
-
-         Column(
-            modifier = Modifier
-               .padding(innerPadding)
-               .fillMaxSize()
-               .verticalScroll(rememberScrollState())
-               .imePadding()
-         ) {
-            val person = state.person
+            val person = personUiState.person
 
             // Map ViewModel state to simple screen parameters and
             // map screen callbacks back to MVI intents.
@@ -106,9 +94,13 @@ fun PersonAdapter(
                onSave = { viewModel.onIntent(PersonIntent.Save) },
                onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-               modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-            )
-         }
+               modifier = Modifier
+                  .fillMaxSize()
+                  .padding(innerPadding)
+                  .padding(horizontal = 16.dp)
+                  .verticalScroll(rememberScrollState())
+                  .imePadding(),)
+
       }
    }
 }
