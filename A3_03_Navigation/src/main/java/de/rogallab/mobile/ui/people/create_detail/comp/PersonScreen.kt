@@ -76,115 +76,78 @@ fun PersonScreen(
    var enableSave by remember { mutableStateOf(false) }
    enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
+
    Column(
       modifier = modifier
    ) {
-      TopAppBar(
-         windowInsets = WindowInsets(-0),
-         navigationIcon = {
-            IconButton(onClick = onBack) {
-               Icon(
-                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                  contentDescription = stringResource(R.string.action_back),
-               )
-            }
-         },
-         title = {
-            Text(
-               text =
-                  if (isNew) stringResource(R.string.person_create)
-                  else stringResource(R.string.person_detail)
-            )
-         },
+      InputValueString(
+         value = firstName,
+         onValueChange = onFirstNameChange,
+         label = stringResource(R.string.firstname),
+         leadingIcon = Icons.Default.AccountCircle,
+         validate = validator::validateFirstName,
+         keyboardType = KeyboardType.Text,
+         imeAction = ImeAction.Next,
       )
 
-      if (isLoading) {
-         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
-         ) {
-            CircularProgressIndicator(
-               modifier = Modifier.size(64.dp)
-            )
-         }
-         return@Column
-      }
+      InputValueString(
+         value = lastName,
+         onValueChange = onLastNameChange,
+         label = stringResource(R.string.lastname),
+         leadingIcon = Icons.Default.Person,
+         validate = validator::validateLastName,
+         keyboardType = KeyboardType.Text,
+         imeAction = ImeAction.Next,
+      )
 
-      Column(
+      InputValueString(
+         value = email.orEmpty(),
+         onValueChange = onEmailChange,
+         label = stringResource(R.string.email),
+         leadingIcon = Icons.Default.Email,
+         validate = validator::validateEmail,
+         keyboardType = KeyboardType.Text,
+         imeAction = ImeAction.Next,
+      )
+
+      InputValueString(
+         value = phone.orEmpty(),
+         onValueChange = onPhoneChange,
+         label = stringResource(R.string.phone),
+         leadingIcon = Icons.Default.Phone,
+         validate = validator::validatePhone,
+         keyboardType = KeyboardType.Phone,
+         imeAction = ImeAction.Done,
+      )
+
+      ImageRenderer(
          modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+            .height(220.dp)
+            .fillMaxWidth(),
+         imageVector = Icons.Default.AccountCircle,
+         imagePath = imagePath,
+         contentDescription = "$firstName $lastName",
+      )
+
+      Row(
+         modifier = Modifier.fillMaxWidth(),
+         horizontalArrangement = Arrangement.spacedBy(
+            40.dp,
+            Alignment.CenterHorizontally,
+         ),
       ) {
-         InputValueString(
-            value = firstName,
-            onValueChange = onFirstNameChange,
-            label = stringResource(R.string.firstname),
-            leadingIcon = Icons.Default.AccountCircle,
-            validate = validator::validateFirstName,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = lastName,
-            onValueChange = onLastNameChange,
-            label = stringResource(R.string.lastname),
-            leadingIcon = Icons.Default.Person,
-            validate = validator::validateLastName,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = email.orEmpty(),
-            onValueChange = onEmailChange,
-            label = stringResource(R.string.email),
-            leadingIcon = Icons.Default.Email,
-            validate = validator::validateEmail,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = phone.orEmpty(),
-            onValueChange = onPhoneChange,
-            label = stringResource(R.string.phone),
-            leadingIcon = Icons.Default.Phone,
-            validate = validator::validatePhone,
-            keyboardType = KeyboardType.Phone,
-            imeAction = ImeAction.Done,
-         )
-
-         ImageRenderer(
-            modifier = Modifier
-               .padding(vertical = 16.dp)
-               .height(220.dp)
-               .fillMaxWidth(),
-            imageVector = Icons.Default.AccountCircle,
-            imagePath = imagePath,
-            contentDescription = "$firstName $lastName",
-         )
-
-         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(
-               40.dp,
-               Alignment.CenterHorizontally,
-            ),
+         OutlinedButton(
+            onClick = onCancel,
          ) {
-            OutlinedButton(
-               onClick = onCancel,
-            ) {
-               Text(text = stringResource(R.string.action_cancel))
-            }
+            Text(text = stringResource(R.string.action_cancel))
+         }
 
-            Button(
-               onClick = onSave,
-               enabled = enableSave,
-            ) {
-               Text(text = stringResource(R.string.action_save))
-            }
+         Button(
+            onClick = onSave,
+            enabled = enableSave,
+         ) {
+            Text(text = stringResource(R.string.action_save))
          }
       }
    }
