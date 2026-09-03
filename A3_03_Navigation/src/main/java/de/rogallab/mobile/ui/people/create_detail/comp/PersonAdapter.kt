@@ -126,17 +126,15 @@ fun PersonAdapter(
 
             imagePath = person.imagePath,
 
-            onBack = { viewModel.onIntent(PersonIntent.Cancel) },
-
             onSave = { viewModel.onIntent(PersonIntent.Save) },
             onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
             modifier = modifier
                .fillMaxSize()
                .padding(innerPadding)
+               .padding(horizontal = 16.dp)
                .verticalScroll(rememberScrollState())
                .imePadding()
-               .fillMaxWidth()
          )
       }
    }

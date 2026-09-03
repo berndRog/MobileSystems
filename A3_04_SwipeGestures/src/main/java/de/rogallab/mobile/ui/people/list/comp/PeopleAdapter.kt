@@ -77,7 +77,6 @@ fun PeopleAdapter(
       topBar = {
          TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
       },
-      floatingActionButtonPosition = FabPosition.End,
       floatingActionButton = {
          ExtendedFloatingActionButton(
             containerColor = colorScheme.secondary,
@@ -106,13 +105,11 @@ fun PeopleAdapter(
                .padding(innerPadding),
             contentAlignment = Alignment.TopCenter,
          ) {
-            CircularProgressIndicator(
-               modifier = Modifier.size(64.dp)
-            )
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-
+      }
       // Show the stateless PeopleScreen with the current list of people.
-      } else {
+      else {
          val people = peopleUiState.people
          PeopleScreen(
             people = people,

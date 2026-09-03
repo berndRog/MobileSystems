@@ -61,7 +61,6 @@ fun PersonScreen(
    onTakePhoto: () -> Unit = {},
    onRemovePhoto: () -> Unit = {},
 
-   onNavigateBack: () -> Unit = {},
    onSave: () -> Unit = {},
    onCancel: () -> Unit = {},
 
@@ -75,119 +74,86 @@ fun PersonScreen(
    // Saving is enabled only when the mandatory name fields contain values.
    val enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
+   // The form itself remains stateless. All changes are sent back through
+   // callback functions provided by PersonAdapter.
    Column(
       modifier = modifier
    ) {
-      // The TopAppBar delegates back navigation to the caller.
-      TopAppBar(
-         windowInsets = WindowInsets(0),
-         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-               Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back))
-            }
-         },
-         title = {
-            Text(text = if (isNew) stringResource(R.string.person_create)
-                        else stringResource(R.string.person_detail))
-         },
+      InputValueString(
+         value = firstName,
+         onValueChange = onFirstNameChange,
+         label = stringResource(R.string.firstname),
+         leadingIcon = Icons.Default.AccountCircle,
+         validate = validator::validateFirstName,
+         keyboardType = KeyboardType.Text,
+         imeAction = ImeAction.Next,
       )
 
-      // While an existing person is loaded, the form is not displayed.
-      if (isLoading) {
-         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
-         ) {
-            CircularProgressIndicator()
-         }
-         return@Column
-      }
+      InputValueString(
+         value = lastName,
+         onValueChange = onLastNameChange,
+         label = stringResource(R.string.lastname),
+         leadingIcon = Icons.Default.Person,
+         validate = validator::validateLastName,
+         keyboardType = KeyboardType.Text,
+         imeAction = ImeAction.Next,
+      )
 
-      // The form itself remains stateless. All changes are sent back through
-      // callback functions provided by PersonAdapter.
-      Column(
-         modifier = Modifier
-            .padding(horizontal = 16.dp)
+      InputValueString(
+         value = email.orEmpty(),
+         onValueChange = onEmailChange,
+         label = stringResource(R.string.email),
+         leadingIcon = Icons.Default.Email,
+         validate = validator::validateEmail,
+         keyboardType = KeyboardType.Email,
+         imeAction = ImeAction.Next,
+      )
+
+      InputValueString(
+         value = phone.orEmpty(),
+         onValueChange = onPhoneChange,
+         label = stringResource(R.string.phone),
+         leadingIcon = Icons.Default.Phone,
+         validate = validator::validatePhone,
+         keyboardType = KeyboardType.Phone,
+         imeAction = ImeAction.Done,
+      )
+
+      // ImageSelection only renders the current image and the available
+      // image actions. Gallery and camera handling are provided by the
+      // PersonAdapter through the callback functions.
+      ImageSelection(
+         fullName = "$firstName $lastName".trim(),
+         imagePath = imagePath,
+         imageActionsEnabled = imageActionsEnabled,
+         onSelectPhoto = onSelectPhoto,
+         onTakePhoto = onTakePhoto,
+         onRemovePhoto = onRemovePhoto,
+      )
+
+      // Save and Cancel are also delegated to the caller.
+      Row(
+         modifier = Modifier.fillMaxWidth(),
+         horizontalArrangement = Arrangement.spacedBy(
+            40.dp,
+            Alignment.CenterHorizontally,
+         ),
       ) {
-         InputValueString(
-            value = firstName,
-            onValueChange = onFirstNameChange,
-            label = stringResource(R.string.firstname),
-            leadingIcon = Icons.Default.AccountCircle,
-            validate = validator::validateFirstName,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = lastName,
-            onValueChange = onLastNameChange,
-            label = stringResource(R.string.lastname),
-            leadingIcon = Icons.Default.Person,
-            validate = validator::validateLastName,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = email.orEmpty(),
-            onValueChange = onEmailChange,
-            label = stringResource(R.string.email),
-            leadingIcon = Icons.Default.Email,
-            validate = validator::validateEmail,
-            keyboardType = KeyboardType.Email,
-            imeAction = ImeAction.Next,
-         )
-
-         InputValueString(
-            value = phone.orEmpty(),
-            onValueChange = onPhoneChange,
-            label = stringResource(R.string.phone),
-            leadingIcon = Icons.Default.Phone,
-            validate = validator::validatePhone,
-            keyboardType = KeyboardType.Phone,
-            imeAction = ImeAction.Done,
-         )
-
-         // ImageSelection only renders the current image and the available
-         // image actions. Gallery and camera handling are provided by the
-         // PersonAdapter through the callback functions.
-         ImageSelection(
-            fullName = "$firstName $lastName".trim(),
-            imagePath = imagePath,
-            imageActionsEnabled = imageActionsEnabled,
-            onSelectPhoto = onSelectPhoto,
-            onTakePhoto = onTakePhoto,
-            onRemovePhoto = onRemovePhoto,
-         )
-
-         // Save and Cancel are also delegated to the caller.
-         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(
-               40.dp,
-               Alignment.CenterHorizontally,
-            ),
+         OutlinedButton(
+            onClick = onCancel
          ) {
-            OutlinedButton(
-               onClick = onCancel
-            ) {
-               Text(text = stringResource(R.string.action_cancel))
-            }
+            Text(text = stringResource(R.string.action_cancel))
+         }
 
-            Button(
-               onClick = onSave,
-               enabled = enableSave,
-            ) {
-               Text(text = stringResource(R.string.action_save))
-            }
+         Button(
+            onClick = onSave,
+            enabled = enableSave,
+         ) {
+            Text(text = stringResource(R.string.action_save))
          }
       }
    }
 }
-
 /*
  * Didaktik und Lernziele
  *

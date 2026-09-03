@@ -62,7 +62,6 @@ fun PersonScreen(
 
    imagePath: String? = null,
 
-   onBack: () -> Unit = {},
    onSave: () -> Unit = {},
    onCancel: () -> Unit = {},
 

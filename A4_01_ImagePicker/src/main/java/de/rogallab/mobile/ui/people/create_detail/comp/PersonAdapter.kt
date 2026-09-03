@@ -1,18 +1,37 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -27,10 +46,11 @@ import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import org.koin.compose.koinInject
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
-   modifier: Modifier = Modifier,
+   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
@@ -40,9 +60,14 @@ fun PersonAdapter(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Observe the persistent UI state of the person editor.
+   // Observe PersonUiState
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+   // Person data
+   val person = personUiState.person
+   var enableSave by remember { mutableStateOf(false) }
+   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Handle one-time effects separately from the persistent UI state.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -58,62 +83,98 @@ fun PersonAdapter(
    val imageSaveError =
       stringResource(SharedR.string.error_image_save)
 
-   val person = personUiState.person
-
-   // The gallery handler only selects images and returns their content URIs.
-   GalleryPickerHandler(
-      selectionMode = GallerySelectionMode.Single,
-      onImagesSelected = { sourceUris ->
-         sourceUris.firstOrNull()?.let { sourceUri ->
-            viewModel.onIntent(
-               PersonIntent.GalleryImageSelected(sourceUri)
-            )
-         }
-      },
-   ) { galleryActions ->
-
-      // The camera handler prepares the target file before starting the camera.
-      // After a successful capture it returns the confirmed internal file path.
-      CameraPickerHandler(
-         imageFileStorage = imageFileStorage,
-         onPhotoStored = {  viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
-         onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
-      ) { cameraActions ->
-
-         // Connect the current UI state and all user actions to PersonScreen.
-         PersonScreen(
-            isNew = personUiState.isNew,
-            isLoading = personUiState.isLoading,
-            firstName = person.firstName,
-            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
-            lastName = person.lastName,
-            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
-            email = person.email,
-            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
-            phone = person.phone,
-            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
-
-            // current image path is provided to the screen for display.
-            imagePath = person.imagePath,
-            // Disable image actions while a camera file is being prepared
-            imageActionsEnabled = !cameraActions.isBusy,
-            // Gallery/camera are delegated their Activity Result handlers.
-            onSelectPhoto = galleryActions.selectFromGallery,
-            onTakePhoto = cameraActions.takePhoto,
-            // Removing an image: a physical file may be deleted.
-            onRemovePhoto = {  viewModel.onIntent(PersonIntent.RemoveImage(null)) },
-
-            // Navigation and Save/Cancel actions remain ViewModel intents.
-            onNavigateBack = { viewModel.onIntent(PersonIntent.Cancel) },
-            onSave = { viewModel.onIntent(PersonIntent.Save) },
-            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
-
-            modifier = modifier
-               .fillMaxSize()
-               .verticalScroll(rememberScrollState())
-               .imePadding()
-               .fillMaxWidth(),
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  if (enableSave)
+                     viewModel.onIntent(PersonIntent.Save)
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                     contentDescription = stringResource(R.string.action_back))
+               }
+            },
+            title = {
+               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
+               else stringResource(R.string.person_detail))
+            },
          )
+      },
+      snackbarHost = {
+         SnackbarHost(hostState = snackbarHostState,
+            modifier = Modifier.imePadding())
+      },
+   ) { innerPadding ->
+      // Show a loading indicator if the person data is still being loaded.
+      if (personUiState.isLoading) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      } else {
+         // Show person data
+         val person = personUiState.person
+
+         // The gallery handler only selects images and returns their content URIs.
+         GalleryPickerHandler(
+            selectionMode = GallerySelectionMode.Single,
+            onImagesSelected = { sourceUris ->
+               sourceUris.firstOrNull()?.let { sourceUri ->
+                  viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
+               }
+            },
+         ) { galleryActions ->
+
+            // The camera handler prepares the target file before starting the camera.
+            // After a successful capture it returns the confirmed internal file path.
+            CameraPickerHandler(
+               imageFileStorage = imageFileStorage,
+               onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
+               onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
+            ) { cameraActions ->
+
+               // Connect the current UI state and all user actions to PersonScreen.
+               PersonScreen(
+                  isNew = personUiState.isNew,
+                  isLoading = personUiState.isLoading,
+                  firstName = person.firstName,
+                  onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+                  lastName = person.lastName,
+                  onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+                  email = person.email,
+                  onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+                  phone = person.phone,
+                  onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+
+                  // current image path is provided to the screen for display.
+                  imagePath = person.imagePath,
+                  // Disable image actions while a camera file is being prepared
+                  imageActionsEnabled = !cameraActions.isBusy,
+                  // Gallery/camera are delegated their Activity Result handlers.
+                  onSelectPhoto = galleryActions.selectFromGallery,
+                  onTakePhoto = cameraActions.takePhoto,
+                  // Removing an image: a physical file may be deleted.
+                  onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
+
+                  // Save/Cancel actions remain ViewModel intents.
+                  onSave = { viewModel.onIntent(PersonIntent.Save) },
+                  onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
+
+                  modifier = Modifier
+                     .fillMaxSize()
+                     .padding(innerPadding)
+                     .padding(horizontal = 16.dp)
+                     .verticalScroll(rememberScrollState())
+                     .imePadding()
+               )
+            }
+         }
       }
    }
 }

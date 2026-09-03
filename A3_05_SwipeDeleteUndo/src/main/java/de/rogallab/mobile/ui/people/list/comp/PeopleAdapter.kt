@@ -129,7 +129,10 @@ fun PeopleAdapter(
             onRestoreHandled = {
                viewModel.onIntent(PeopleIntent.RestoreHandled)
             },
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(horizontal = 16.dp),
          )
       }
    }

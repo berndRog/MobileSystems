@@ -70,111 +70,96 @@ fun AppNavigation() {
       )
    }
 
-   Scaffold(
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState)
+   NavDisplay(
+      backStack = backStack,
+
+      // Handles system back navigation as a cancel operation.
+      onBack = {
+         currentPopReason = PopReason.Cancel
+         remove(backStack)
       },
-      contentWindowInsets = WindowInsets.safeDrawing.add(
-         WindowInsets(top = 0.dp, bottom = 0.dp)
-      ),
-      modifier = Modifier.fillMaxSize(),
-   ) { contentPadding ->
 
-      NavDisplay(
-         backStack = backStack,
-
-         // Handles system back navigation as a cancel operation.
-         onBack = {
-            currentPopReason = PopReason.Cancel
-            remove(backStack)
-         },
-
-         // Preserves saveable Compose state and ViewModels per NavEntry.
-         entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(
-               rememberSaveableStateHolder()
-            ),
-            rememberViewModelStoreNavEntryDecorator(),
+      // Preserves saveable Compose state and ViewModels per NavEntry.
+      entryDecorators = listOf(
+         rememberSaveableStateHolderNavEntryDecorator(
+            rememberSaveableStateHolder()
          ),
+         rememberViewModelStoreNavEntryDecorator(),
+      ),
 
-         // Navigation behavior remains unchanged from chapter 3.
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+      // Navigation behavior remains unchanged from chapter 3.
+      transitionSpec = NavigationAnimations.enterTransitionSpec,
+      popTransitionSpec =
+         NavigationAnimations.popTransitionSpec(currentPopReason),
+      predictivePopTransitionSpec =
+         NavigationAnimations.predictivePopTransitionSpec,
 
-         entryProvider = entryProvider {
+      entryProvider = entryProvider {
 
-            // Root destination: list of people.
-            entry<PeopleKey> {
-               val peopleViewModel = koinViewModel<PeopleViewModel>()
+         // Root destination: list of people.
+         entry<PeopleKey> {
+            val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-               PeopleAdapter(
-                  viewModel = peopleViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+            PeopleAdapter(
+               viewModel = peopleViewModel,
+               snackbarHostState = snackbarHostState,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  // A swipe delete requests confirmation first. Only selecting
-                  // the Snackbar action triggers the repository deletion.
-                  onConfirmRemove = { message, actionLabel, personId ->
-                     snackbarController.showAction(
-                        message = message,
-                        actionLabel = actionLabel,
-                        onAction = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.ConfirmRemove(personId)
-                           )
-                        },
-                     )
-                  },
+               // A swipe delete requests confirmation first. Only selecting
+               // the Snackbar action triggers the repository deletion.
+               onConfirmRemove = { message, actionLabel, personId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = {
+                        peopleViewModel.onIntent(
+                           PeopleIntent.ConfirmRemove(personId)
+                        )
+                     },
+                  )
+               },
 
-                  onBack = {
-                     currentPopReason = PopReason.Cancel
-                     remove(backStack)
-                  },
+               onBack = {
+                  currentPopReason = PopReason.Cancel
+                  remove(backStack)
+               },
 
-                  // null -> create, id -> detail/edit.
-                  onNavigateTo = { personId ->
-                     add(PersonKey(personId), backStack)
-                  },
-               )
+               // null -> create, id -> detail/edit.
+               onNavigateTo = { personId ->
+                  add(PersonKey(personId), backStack)
+               },
+            )
+         }
+
+         // Shared destination for create and edit. The new part of A4_01 is
+         // gallery/camera image selection and the image edit lifecycle.
+         entry<PersonKey> { personKey ->
+            val personViewModel = koinViewModel<PersonViewModel> {
+               parametersOf(personKey.personId)
             }
 
-            // Shared destination for create and edit. The new part of A4_01 is
-            // gallery/camera image selection and the image edit lifecycle.
-            entry<PersonKey> { personKey ->
-               val personViewModel = koinViewModel<PersonViewModel> {
-                  parametersOf(personKey.personId)
-               }
+            PersonAdapter(
+               viewModel = personViewModel,
+               snackbarHostState = snackbarHostState,
 
-               PersonAdapter(
-                  viewModel = personViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+               // showMessage() starts its coroutine in this navigation-level
+               // controller before NavigateBack removes the Person destination.
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  // showMessage() starts its coroutine in this navigation-level
-                  // controller before NavigateBack removes the Person destination.
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
-
-                  onNavigateBack = { reason ->
-                     currentPopReason = when (reason) {
-                        BackReason.Save -> PopReason.Save
-                        BackReason.Cancel -> PopReason.Cancel
-                     }
-                     remove(backStack)
-                  },
-               )
-            }
-         },
-      )
-   }
+               onNavigateBack = { reason ->
+                  currentPopReason = when (reason) {
+                     BackReason.Save -> PopReason.Save
+                     BackReason.Cancel -> PopReason.Cancel
+                  }
+                  remove(backStack)
+               },
+            )
+         }
+      },
+   )
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -193,8 +178,7 @@ private fun remove(
    if (backStack.size > 1) {
       val removedDestination = backStack.removeLastOrNull()
       logNavigationOperation("remove", removedDestination, backStack)
-   }
-   else {
+   } else {
       logNavigationOperation(
          "pop ignored - root remains",
          backStack.lastOrNull(),
