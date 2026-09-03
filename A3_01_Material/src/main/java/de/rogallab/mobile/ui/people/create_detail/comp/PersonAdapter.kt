@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -19,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -49,17 +55,32 @@ fun PersonAdapter(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Collect the current ViewModel state with lifecycle awareness.
+   // Collect PersonUiState with lifecycle awareness.
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
-
+   // Person data
+   val person = personUiState.person
+   var enableSave by remember { mutableStateOf(false) }
+   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    Scaffold(
       modifier = Modifier.fillMaxSize(),
-      topBar = { TopAppBar(
-         title = { Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
-                               else stringResource(R.string.person_detail)) }
-      )}
+      topBar = {
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  if (enableSave) viewModel.onIntent(PersonIntent.Save)
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                     contentDescription = stringResource(R.string.action_back))
+               }
+            },
+            title = {
+               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
+               else stringResource(R.string.person_detail))
+            }
+         )
+      }
    ) { innerPadding ->
       // Show a loading indicator if the person data is still being loaded.
       if (personUiState.isLoading) {
@@ -72,34 +93,33 @@ fun PersonAdapter(
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
       } else {
-            val person = personUiState.person
+         // Map ViewModel state to simple screen parameters and
+         // map screen callbacks back to MVI intents.
+         PersonScreen(
+            firstName = person.firstName,
+            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
 
-            // Map ViewModel state to simple screen parameters and
-            // map screen callbacks back to MVI intents.
-            PersonScreen(
-               firstName = person.firstName,
-               onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+            lastName = person.lastName,
+            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
 
-               lastName = person.lastName,
-               onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+            email = person.email,
+            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
 
-               email = person.email,
-               onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+            phone = person.phone,
+            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
 
-               phone = person.phone,
-               onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+            imagePath = person.imagePath,
 
-               imagePath = person.imagePath,
+            onSave = { viewModel.onIntent(PersonIntent.Save) },
+            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-               onSave = { viewModel.onIntent(PersonIntent.Save) },
-               onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
-
-               modifier = Modifier
-                  .fillMaxSize()
-                  .padding(innerPadding)
-                  .padding(horizontal = 16.dp)
-                  .verticalScroll(rememberScrollState())
-                  .imePadding(),)
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(horizontal = 16.dp)
+               .verticalScroll(rememberScrollState())
+               .imePadding(),
+         )
 
       }
    }

@@ -41,7 +41,9 @@ fun PeopleAdapter(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.value++}") }
 
-   val peopleUiState: PeopleUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   // Collect PeopleUiState with lifecycle awareness.
+   val peopleUiState: PeopleUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    Scaffold(
       modifier = Modifier.fillMaxSize(),

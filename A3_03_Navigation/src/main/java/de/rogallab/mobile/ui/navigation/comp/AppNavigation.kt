@@ -106,7 +106,6 @@ fun AppNavigation() {
                   currentPopReason = PopReason.Cancel
                   remove(backStack)
                },
-
                // null -> create, id -> detail/edit.
                onNavigateTo = { personId ->
                   add(
@@ -127,8 +126,6 @@ fun AppNavigation() {
                viewModel = personViewModel,
                snackbarHostState = snackbarHostState,
 
-               // showMessage() starts its coroutine in this navigation-level
-               // controller before NavigateBack removes the Person destination.
                onMessage = snackbarController::showMessage,
                onError = snackbarController::showError,
 

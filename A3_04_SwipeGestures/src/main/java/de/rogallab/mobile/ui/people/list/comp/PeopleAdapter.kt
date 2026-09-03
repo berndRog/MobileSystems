@@ -13,8 +13,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,7 +43,7 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   modifier: Modifier = Modifier,
+   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
@@ -67,45 +71,61 @@ fun PeopleAdapter(
       }
    }
 
-   Box(
-      modifier = modifier.fillMaxSize()
-   ) {
-      Column {
-         TopAppBar(
-            windowInsets = WindowInsets(0),
-            title = { Text(text = stringResource(R.string.people_list)) },
-         )
 
-         // Show either a loading indicator
-         if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
-            Column(
-               modifier = Modifier.fillMaxWidth(),
-               verticalArrangement = Arrangement.Top,
-               horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-               CircularProgressIndicator(modifier = Modifier.size(64.dp))
-            }
-         }
-         // Or the stateless PeopleScreen
-         else {
-            PeopleScreen(
-               people = peopleUiState.people,
-               onDetail = { personId ->
-                  viewModel.onIntent(PeopleIntent.Detail(personId))
-               },
-               onDelete = { personId ->
-                  viewModel.onIntent(PeopleIntent.RequestRemove(personId))
-               },
-               modifier = Modifier.padding(horizontal = 16.dp),
+
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
+         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+      },
+      floatingActionButtonPosition = FabPosition.End,
+      floatingActionButton = {
+         ExtendedFloatingActionButton(
+            containerColor = colorScheme.secondary,
+            onClick = {
+               Alog.d(tag, "Create new person")
+               viewModel.onIntent(PeopleIntent.Create)
+            },
+            icon = {
+               Icon(imageVector = Icons.Default.Add,
+                  contentDescription = null)
+            },
+            text = { Text(text = stringResource(R.string.action_create)) },
+         )
+      },
+      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+   ) { innerPadding ->
+
+      // Show either a loading indicator or the stateless PeopleScreen.
+      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(
+               modifier = Modifier.size(64.dp)
             )
          }
-      }
 
-      PeopleCreateButton(
-         onCreate = {
-            viewModel.onIntent(PeopleIntent.Create)
-         }
-      )
+      // Show the stateless PeopleScreen with the current list of people.
+      } else {
+         val people = peopleUiState.people
+         PeopleScreen(
+            people = people,
+            onDetail = { personId ->
+               viewModel.onIntent(PeopleIntent.Detail(personId))
+            },
+            onDelete = { personId ->
+               viewModel.onIntent(PeopleIntent.RequestRemove(personId))
+            },
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(horizontal = 16.dp)
+         )
+      }
    }
 }
 

@@ -96,6 +96,8 @@ fun PeopleAdapter(
                modifier = Modifier.size(64.dp)
             )
          }
+
+      // Show the stateless PeopleScreen with the current list of people.
       } else {
          val people = peopleUiState.people
 
