@@ -57,6 +57,7 @@ fun PersonAdapter(
    // Collect the current ViewModel state with lifecycle awareness.
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+
    // Person data
    val person = personUiState.person
    var enableSave by remember { mutableStateOf(false) }
@@ -70,6 +71,7 @@ fun PersonAdapter(
          is PersonEffect.NavigateBack -> onNavigateBack(personEffect.reason)
       }
    }
+
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
@@ -89,8 +91,10 @@ fun PersonAdapter(
             }
          )
       },
-
-      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+      snackbarHost = {
+         SnackbarHost(hostState = snackbarHostState,
+            modifier = Modifier.imePadding())
+      },
    ) { innerPadding ->
       // Show a loading indicator if the person data is still being loaded.
       if (personUiState.isLoading) {
@@ -132,7 +136,7 @@ fun PersonAdapter(
                .padding(innerPadding)
                .verticalScroll(rememberScrollState())
                .imePadding()
-               .fillMaxWidth(),
+               .fillMaxWidth()
          )
       }
    }

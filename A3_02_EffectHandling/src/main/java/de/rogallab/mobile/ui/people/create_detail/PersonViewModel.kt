@@ -77,6 +77,9 @@ class PersonViewModel(
                   return@onSuccess
                }
 
+               val message = "Test: ${person.firstName} ${person.lastName} geladen"
+               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+
                // Store the loaded person and finish the loading operation.
                _stateFlow.update { state: PersonUiState ->
                   state.copy(person = person, isLoading = false)
@@ -91,7 +94,6 @@ class PersonViewModel(
                   state.copy(isLoading = false)
                }
             }
-
       }
    }
 

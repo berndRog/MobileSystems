@@ -31,21 +31,21 @@ class MainActivity : BaseActivity(TAG) {
 
          // DetailScreen
          val personViewModel = koinViewModel<PersonViewModel> {
-           //parametersOf(null) // New Person
-            parametersOf("01000000-0000-0000-0000-000000000000")
+            parametersOf(null) // New Person
+            //parametersOf("01000000-0000-0000-0000-000000000000")
          }
 
          // ListScreen
          val peopleViewModel = koinViewModel<PeopleViewModel>()
 
          AppTheme {
-            PersonAdapter(
-               viewModel = personViewModel
-            )
-
-//            PeopleAdapter(
-//               viewModel = peopleViewModel
+//            PersonAdapter(
+//               viewModel = personViewModel
 //            )
+
+            PeopleAdapter(
+               viewModel = peopleViewModel
+            )
 
          }
       }

@@ -74,110 +74,95 @@ fun AppNavigation() {
       )
    }
 
-   Scaffold(
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState)
+   NavDisplay(
+      backStack = backStack,
+
+      // Handles system back navigation as a cancel operation.
+      onBack = {
+         currentPopReason = PopReason.Cancel
+         pop(backStack)
       },
-      contentWindowInsets = WindowInsets.safeDrawing.add(
-         WindowInsets(top = 0.dp, bottom = 0.dp)
-      ),
-      modifier = Modifier.fillMaxSize(),
-   ) { contentPadding ->
 
-      NavDisplay(
-         backStack = backStack,
-
-         // Handles system back navigation as a cancel operation.
-         onBack = {
-            currentPopReason = PopReason.Cancel
-            pop(backStack)
-         },
-
-         // Preserves saveable Compose state and ViewModels per NavEntry.
-         entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(
-               rememberSaveableStateHolder()
-            ),
-            rememberViewModelStoreNavEntryDecorator(),
+      // Preserves saveable Compose state and ViewModels per NavEntry.
+      entryDecorators = listOf(
+         rememberSaveableStateHolderNavEntryDecorator(
+            rememberSaveableStateHolder()
          ),
+         rememberViewModelStoreNavEntryDecorator(),
+      ),
 
-         // Navigation animations remain unchanged from the preceding step.
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+      // Navigation animations remain unchanged from the preceding step.
+      transitionSpec = NavigationAnimations.enterTransitionSpec,
+      popTransitionSpec =
+         NavigationAnimations.popTransitionSpec(currentPopReason),
+      predictivePopTransitionSpec =
+         NavigationAnimations.predictivePopTransitionSpec,
 
-         entryProvider = entryProvider {
+      entryProvider = entryProvider {
 
-            // Root destination: list of people.
-            entry<PeopleKey> {
+         // Root destination: list of people.
+         entry<PeopleKey> {
 
-               PeopleAdapter(
-                  viewModel = peopleViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+            PeopleAdapter(
+               viewModel = peopleViewModel,
+               snackbarHostState = snackbarHostState,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  // Remove is visual first. The Snackbar result decides whether
-                  // the item is restored or finally removed from the repository.
-                  onUndo = { message, actionLabel, personId ->
-                     snackbarController.showAction(
-                        message = message,
-                        actionLabel = actionLabel,
-                        onAction = {
-                           peopleViewModel.onIntent(PeopleIntent.UndoRemove(personId))
-                        },
-                        onDismiss = {
-                           peopleViewModel.onIntent(PeopleIntent.CommitRemove(personId))
-                        },
-                     )
-                  },
+               // Remove is visual first. The Snackbar result decides whether
+               // the item is restored or finally removed from the repository.
+               onUndo = { message, actionLabel, personId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = {
+                        peopleViewModel.onIntent(PeopleIntent.UndoRemove(personId))
+                     },
+                     onDismiss = {
+                        peopleViewModel.onIntent(PeopleIntent.CommitRemove(personId))
+                     },
+                  )
+               },
 
-                  onNavigateBack = {
-                     currentPopReason = PopReason.Cancel
-                     pop(backStack)
-                  },
+               onNavigateBack = {
+                  currentPopReason = PopReason.Cancel
+                  pop(backStack)
+               },
 
-                  // null -> create, id -> detail/edit.
-                  onNavigateTo = { personId ->
-                     push(PersonKey(personId), backStack)
-                  },
-               )
+               // null -> create, id -> detail/edit.
+               onNavigateTo = { personId ->
+                  push(PersonKey(personId), backStack)
+               },
+            )
+         }
+
+         // Person editing remains unchanged. A3_05 extends the list behavior
+         // with Undo; image selection is intentionally not introduced yet.
+         entry<PersonKey> { personKey ->
+            val personViewModel = koinViewModel<PersonViewModel> {
+               parametersOf(personKey.personId)
             }
 
-            // Person editing remains unchanged. A3_05 extends the list behavior
-            // with Undo; image selection is intentionally not introduced yet.
-            entry<PersonKey> { personKey ->
-               val personViewModel = koinViewModel<PersonViewModel> {
-                  parametersOf(personKey.personId)
-               }
+            PersonAdapter(
+               viewModel = personViewModel,
+               snackbarHostState = snackbarHostState,
 
-               PersonAdapter(
-                  viewModel = personViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
-
-                  onNavigateBack = { reason ->
-                     currentPopReason =
-                        when (reason) {
-                           BackReason.Save -> PopReason.SAVE
-                           BackReason.Cancel -> PopReason.Cancel
-                        }
-                     pop(backStack)
-                  },
-               )
-            }
-         },
-      )
-   }
+               onNavigateBack = { reason ->
+                  currentPopReason =
+                     when (reason) {
+                        BackReason.Save -> PopReason.SAVE
+                        BackReason.Cancel -> PopReason.Cancel
+                     }
+                  pop(backStack)
+               },
+            )
+         }
+      },
+   )
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -205,8 +190,7 @@ private fun pop(
          destination = removedDestination,
          backStack = backStack,
       )
-   }
-   else {
+   } else {
       logNavigationOperation(
          operation = "pop ignored - root remains",
          destination = backStack.lastOrNull(),

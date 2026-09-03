@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -71,8 +72,6 @@ fun PeopleAdapter(
       }
    }
 
-
-
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
@@ -93,7 +92,10 @@ fun PeopleAdapter(
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+      snackbarHost ={
+         SnackbarHost(hostState = snackbarHostState,
+            modifier = Modifier.imePadding())
+      },
    ) { innerPadding ->
 
       // Show either a loading indicator or the stateless PeopleScreen.

@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -18,7 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,14 +51,17 @@ fun PersonAdapter(
    onError: (String) -> Unit
 ) {
    val tag = "<-PersonAdapter"
-
    // Counts successful compositions for diagnostic logging.
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Collect the current ViewModel state with lifecycle awareness.
+   // Collect the PersonUiState with lifecycle awareness.
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   // Person data
+   val person = personUiState.person
+   var enableSave by remember { mutableStateOf(false) }
+   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -64,15 +73,27 @@ fun PersonAdapter(
 
    Scaffold(
       modifier = Modifier.fillMaxSize(),
+
       topBar = {
          TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  if (enableSave) viewModel.onIntent(PersonIntent.Save)
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                     contentDescription = stringResource(R.string.action_back))
+               }
+            },
             title = {
                Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
                else stringResource(R.string.person_detail))
             },
          )
       },
-      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+      snackbarHost = {
+         SnackbarHost(hostState = snackbarHostState,
+                      modifier = Modifier.imePadding())
+      },
    ) { innerPadding ->
       // Show a loading indicator if the person data is still being loaded.
       if (personUiState.isLoading) {

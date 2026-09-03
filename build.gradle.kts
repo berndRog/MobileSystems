@@ -23,6 +23,10 @@ val sharedLibs = libs
 
 subprojects {
 
+   tasks.withType<Test>().configureEach {
+      jvmArgs("--enable-native-access=ALL-UNNAMED")
+   }
+
    // Shared-Module sind Android-Bibliotheken.
    // (Historisch hießen sie Shared_01, Shared_02, ...)
    val isSharedLibrary = project.name.startsWith("Shared")
@@ -391,6 +395,10 @@ subprojects {
       // Manifest-Unterstützung für Compose UI Tests
       add("debugImplementation", sharedLibs.androidx.ui.test.manifest)
    }
+}
+
+tasks.withType<Test>().configureEach {
+   jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 /* ohne libraries
