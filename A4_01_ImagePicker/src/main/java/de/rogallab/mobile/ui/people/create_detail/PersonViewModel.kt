@@ -107,8 +107,6 @@ class PersonViewModel(
 
    // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
-      Alog.d(TAG, "intent: $intent")
-
       when (intent) {
          is PersonIntent.FirstNameChange ->changeFirstName(intent.firstName)
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
@@ -167,8 +165,6 @@ class PersonViewModel(
          val imagePath = _imageFileStorage
             .copyImageToAppStorage(sourceUri)
             .getOrElse {
-               // The gallery image could not be stored, therefore the current
-               // edit-session image remains unchanged.
                showError(_stringProvider.getString(SharedR.string.error_image_save))
                return@launch
             }
@@ -190,7 +186,6 @@ class PersonViewModel(
          replaceImage(imagePath)
       }
    }
-
 
    // Delegate image lifecycle management to IImageEdit.
    //

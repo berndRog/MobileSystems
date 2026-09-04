@@ -64,9 +64,8 @@ fun PeopleAdapter(
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         is PeopleEffect.ConfirmRemove ->
-            onConfirmRemove(peopleEffect.message, peopleEffect.actionLabel,
-               peopleEffect.personId)
+         is PeopleEffect.ConfirmRemove -> onConfirmRemove(peopleEffect.message,
+            peopleEffect.actionLabel, peopleEffect.personId)
          PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
@@ -80,14 +79,9 @@ fun PeopleAdapter(
       floatingActionButton = {
          ExtendedFloatingActionButton(
             containerColor = colorScheme.secondary,
-            onClick = {
-               Alog.d(tag, "Create new person")
-               viewModel.onIntent(PeopleIntent.Create)
-            },
-            icon = {
-               Icon(imageVector = Icons.Default.Add,
-                  contentDescription = null)
-            },
+            onClick = {  viewModel.onIntent(PeopleIntent.Create) },
+            icon = { Icon( imageVector = Icons.Default.Add,
+                           contentDescription = null)  },
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
@@ -97,7 +91,7 @@ fun PeopleAdapter(
       },
    ) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PeopleScreen.
+      // Show either a loading indicator
       if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
          Box(
             modifier = Modifier

@@ -26,7 +26,6 @@ class PeopleViewModel(
    // Holds the observable UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
-
    // Exposes the state as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
@@ -35,14 +34,45 @@ class PeopleViewModel(
    private var _observeJob: Job? = null
 
    init {
-      Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
 
+   // Observes the repository and publishes its current list as UI state.
+   private fun observePeople() {
+      _observeJob?.cancel()
+
+      _observeJob = viewModelScope.launch {
+
+         // Show the loading indicator until the first result arrives.
+         _stateFlow.update { state: PeopleUiState ->
+            state.copy(isLoading = true)
+         }
+
+         // Simulate a longer loading operation.
+         delay(1000)
+
+         _repository.observeAll().collect { result: Result<List<Person>> ->
+            result
+               .onSuccess { people ->
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(people = people, isLoading = false)
+                  }
+               }
+               .onFailure {
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(isLoading = false)
+                  }
+
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+               }
+         }
+      }
+   }
+
+
    // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
-      Alog.d(TAG, "intent: $intent")
-
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
@@ -103,39 +133,6 @@ class PeopleViewModel(
       remove(person)
    }
 
-   // Observes the repository and publishes its current list as UI state.
-   private fun observePeople() {
-      _observeJob?.cancel()
-
-      _observeJob = viewModelScope.launch {
-
-         // Show the loading indicator until the first result arrives.
-         _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
-         }
-
-         // Simulate a longer loading operation.
-         delay(1000)
-
-         _repository.observeAll().collect { result: Result<List<Person>> ->
-            result
-               .onSuccess { people ->
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
-                  }
-               }
-               .onFailure {
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(isLoading = false)
-                  }
-
-                  val error =
-                     _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
-               }
-         }
-      }
-   }
 
    // Deletes the confirmed person from the repository.
    private fun remove(person: Person) {

@@ -34,19 +34,14 @@ class PeopleViewModel(
    private var _observeJob: Job? = null
 
    init {
-      Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
 
    // Observes the repository and publishes its current list as UI state.
    private fun observePeople() {
-
-      // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
-
-         // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
             state.copy(isLoading = true)
          }

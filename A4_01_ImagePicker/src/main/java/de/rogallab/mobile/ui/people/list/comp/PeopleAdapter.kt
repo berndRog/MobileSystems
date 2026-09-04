@@ -1,11 +1,7 @@
 package de.rogallab.mobile.ui.people.list.comp
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,7 +43,7 @@ fun PeopleAdapter(
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
-   onBack: () -> Unit,
+   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
    val tag = "<-PeopleAdapter"
@@ -61,24 +57,12 @@ fun PeopleAdapter(
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
-         is PeopleEffect.ShowMessage ->
-            onMessage(peopleEffect.message)
-
-         is PeopleEffect.ShowError ->
-            onError(peopleEffect.message)
-
-         is PeopleEffect.ConfirmRemove ->
-            onConfirmRemove(
-               peopleEffect.message,
-               peopleEffect.actionLabel,
-               peopleEffect.personId,
-            )
-
-         PeopleEffect.NavigateBack ->
-            onBack()
-
-         is PeopleEffect.NavigateTo ->
-            onNavigateTo(peopleEffect.personId)
+         is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
+         is PeopleEffect.ShowError -> onError(peopleEffect.message)
+         is PeopleEffect.ConfirmRemove -> onConfirmRemove(peopleEffect.message,
+            peopleEffect.actionLabel, peopleEffect.personId)
+         PeopleEffect.NavigateBack -> onNavigateBack()
+         is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
 
@@ -90,14 +74,9 @@ fun PeopleAdapter(
       floatingActionButton = {
          ExtendedFloatingActionButton(
             containerColor = colorScheme.secondary,
-            onClick = {
-               Alog.d(tag, "Create new person")
-               viewModel.onIntent(PeopleIntent.Create)
-            },
-            icon = {
-               Icon(imageVector = Icons.Default.Add,
-                  contentDescription = null)
-            },
+            onClick = { viewModel.onIntent(PeopleIntent.Create) },
+            icon = { Icon( imageVector = Icons.Default.Add,
+                           contentDescription = null) },
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
@@ -107,7 +86,7 @@ fun PeopleAdapter(
       },
    ) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PeopleScreen.
+      // Show either a loading indicator
       if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
          Box(
             modifier = Modifier
