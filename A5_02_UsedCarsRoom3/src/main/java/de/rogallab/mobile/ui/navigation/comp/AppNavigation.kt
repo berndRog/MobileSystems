@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -10,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -185,6 +187,7 @@ fun AppNavigation() {
 
    NavDisplay(
       entries = navigationState.toDecoratedEntries(appEntryProvider),
+      modifier = Modifier.fillMaxSize(),
       onBack = {
          currentPopReason = PopReason.CANCEL
          navigator.pop()
@@ -232,6 +235,8 @@ private fun AppBottomNavigationBar(
  *   Scaffold bereit, der zu den Aufgaben seines Screens passt.
  * - Ein SnackbarHostState und ein SnackbarController werden weiterhin oberhalb
  *   von NavDisplay erzeugt und von allen Adaptern wiederverwendet.
+ * - NavDisplay füllt den verfügbaren Bildschirm explizit aus. Dadurch erhalten
+ *   auch scrollbare Ziel-Screens endliche Größen-Constraints.
  * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
  *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
  * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine
