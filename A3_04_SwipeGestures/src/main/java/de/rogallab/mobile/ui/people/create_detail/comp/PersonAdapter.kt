@@ -85,8 +85,8 @@ fun PersonAdapter(
                }
             },
             title = {
-               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
-               else stringResource(R.string.person_detail))
+               Text(text = stringResource( if (personUiState.isNew) R.string.person_create
+               else R.string.person_detail ))
             },
          )
       },

@@ -89,16 +89,15 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  if (enableSave)
-                     viewModel.onIntent(PersonIntent.Save)
+                  if (enableSave) viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                      contentDescription = stringResource(R.string.action_back))
                }
             },
             title = {
-               Text(text = if (personUiState.isNew) stringResource(R.string.person_create)
-               else stringResource(R.string.person_detail))
+               Text(text = stringResource( if (personUiState.isNew) R.string.person_create
+               else R.string.person_detail ))
             },
          )
       },
