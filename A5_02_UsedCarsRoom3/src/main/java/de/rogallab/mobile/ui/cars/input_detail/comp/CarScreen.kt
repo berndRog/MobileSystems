@@ -3,15 +3,16 @@ package de.rogallab.mobile.ui.cars.input_detail.comp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
@@ -68,186 +69,206 @@ fun CarScreen(
 
    val car = carUiState.car ?: return
 
-   Column(
-      modifier = modifier
-         .verticalScroll(rememberScrollState())
-         .imePadding()
-         .padding(
-            start = 16.dp,
-            top = 8.dp,
-            end = 16.dp,
-            bottom = 24.dp,
-         ),
+   LazyColumn(
+      modifier = modifier.imePadding(),
+      contentPadding = PaddingValues(
+         start = 16.dp,
+         top = 8.dp,
+         end = 16.dp,
+         bottom = 24.dp,
+      ),
       verticalArrangement = Arrangement.spacedBy(12.dp),
    ) {
-      InputValueString(
-         value = car.manufacturer,
-         onValueChange = { manufacturer ->
-            onIntent(CarIntent.ManufacturerChanged(manufacturer))
-         },
-         label = stringResource(R.string.car_field_manufacturer),
-         leadingIcon = Icons.Default.DirectionsCar,
-         validate = validator::validateManufacturer,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = car.model,
-         onValueChange = { model ->
-            onIntent(CarIntent.ModelChanged(model))
-         },
-         label = stringResource(R.string.car_field_model),
-         leadingIcon = Icons.Default.DirectionsCar,
-         validate = validator::validateModel,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = carUiState.registrationYearInput,
-         onValueChange = { registrationYear ->
-            onIntent(CarIntent.RegistrationYearChanged(registrationYear))
-         },
-         label = stringResource(R.string.car_field_registration_year),
-         leadingIcon = Icons.Default.CalendarMonth,
-         validate = validator::validateRegistrationYear,
-         keyboardType = KeyboardType.Number,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = carUiState.mileageInput,
-         onValueChange = { mileage ->
-            onIntent(CarIntent.MileageChanged(mileage))
-         },
-         label = stringResource(R.string.car_field_mileage),
-         leadingIcon = Icons.Default.Speed,
-         validate = validator::validateMileage,
-         keyboardType = KeyboardType.Number,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = carUiState.priceInput,
-         onValueChange = { price ->
-            onIntent(CarIntent.PriceChanged(price))
-         },
-         label = stringResource(R.string.car_field_price),
-         leadingIcon = Icons.Default.Euro,
-         validate = validator::validatePrice,
-         keyboardType = KeyboardType.Number,
-         imeAction = ImeAction.Done,
-      )
-
-      PersonSelectionField(
-         people = carUiState.people,
-         selectedPersonId = car.sellerId,
-         label = stringResource(R.string.car_field_seller),
-         allowNone = false,
-         onPersonSelected = { personId ->
-            onIntent(CarIntent.SellerChanged(personId))
-         },
-      )
-
-      ImageSelectionButtons(
-         imagePath = null,
-         enabled = car.imagePaths.size < MAX_CAR_IMAGE_COUNT,
-         onSelectPhoto = onSelectImages,
-         onTakePhoto = onTakePhoto,
-         onRemovePhoto = {},
-      )
-
-      Text(
-         text = stringResource(
-            R.string.action_manage_car_images,
-            car.imagePaths.size,
-         ),
-         style = MaterialTheme.typography.bodyMedium,
-      )
-
-      Text(
-         text = stringResource(
-            R.string.car_images_limit,
-            MAX_CAR_IMAGE_COUNT,
-         ),
-         style = MaterialTheme.typography.bodySmall,
-      )
-
-      if (car.imagePaths.isEmpty()) {
-         Text(
-            text = stringResource(R.string.car_images_empty),
-            style = MaterialTheme.typography.bodyMedium,
+      item(key = "manufacturer") {
+         InputValueString(
+            value = car.manufacturer,
+            onValueChange = { manufacturer ->
+               onIntent(CarIntent.ManufacturerChanged(manufacturer))
+            },
+            label = stringResource(R.string.car_field_manufacturer),
+            leadingIcon = Icons.Default.DirectionsCar,
+            validate = validator::validateManufacturer,
+            imeAction = ImeAction.Next,
          )
       }
-      else {
-         CarImagePreviewList(
-            imagePaths = car.imagePaths,
-            onRemoveImage = { imagePath ->
-               onIntent(CarIntent.ImageRemoved(imagePath))
+
+      item(key = "model") {
+         InputValueString(
+            value = car.model,
+            onValueChange = { model ->
+               onIntent(CarIntent.ModelChanged(model))
+            },
+            label = stringResource(R.string.car_field_model),
+            leadingIcon = Icons.Default.DirectionsCar,
+            validate = validator::validateModel,
+            imeAction = ImeAction.Next,
+         )
+      }
+
+      item(key = "registrationYear") {
+         InputValueString(
+            value = carUiState.registrationYearInput,
+            onValueChange = { registrationYear ->
+               onIntent(CarIntent.RegistrationYearChanged(registrationYear))
+            },
+            label = stringResource(R.string.car_field_registration_year),
+            leadingIcon = Icons.Default.CalendarMonth,
+            validate = validator::validateRegistrationYear,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next,
+         )
+      }
+
+      item(key = "mileage") {
+         InputValueString(
+            value = carUiState.mileageInput,
+            onValueChange = { mileage ->
+               onIntent(CarIntent.MileageChanged(mileage))
+            },
+            label = stringResource(R.string.car_field_mileage),
+            leadingIcon = Icons.Default.Speed,
+            validate = validator::validateMileage,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next,
+         )
+      }
+
+      item(key = "price") {
+         InputValueString(
+            value = carUiState.priceInput,
+            onValueChange = { price ->
+               onIntent(CarIntent.PriceChanged(price))
+            },
+            label = stringResource(R.string.car_field_price),
+            leadingIcon = Icons.Default.Euro,
+            validate = validator::validatePrice,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done,
+         )
+      }
+
+      item(key = "seller") {
+         PersonSelectionField(
+            people = carUiState.people,
+            selectedPersonId = car.sellerId,
+            label = stringResource(R.string.car_field_seller),
+            allowNone = false,
+            onPersonSelected = { personId ->
+               onIntent(CarIntent.SellerChanged(personId))
             },
          )
       }
 
-      Row(
-         modifier = Modifier.fillMaxWidth(),
-         horizontalArrangement = Arrangement.spacedBy(
-            40.dp,
-            Alignment.CenterHorizontally,
-         ),
-      ) {
-         OutlinedButton(onClick = { onIntent(CarIntent.Cancel) }) {
-            Text(text = stringResource(R.string.action_cancel))
-         }
+      item(key = "imageActions") {
+         Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+         ) {
+            ImageSelectionButtons(
+               imagePath = null,
+               enabled = car.imagePaths.size < MAX_CAR_IMAGE_COUNT,
+               onSelectPhoto = onSelectImages,
+               onTakePhoto = onTakePhoto,
+               onRemovePhoto = {},
+            )
 
-         Button(onClick = { onIntent(CarIntent.Save) }) {
-            Text(text = stringResource(R.string.action_save))
+            Text(
+               text = stringResource(
+                  R.string.action_manage_car_images,
+                  car.imagePaths.size,
+               ),
+               style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Text(
+               text = stringResource(
+                  R.string.car_images_limit,
+                  MAX_CAR_IMAGE_COUNT,
+               ),
+               style = MaterialTheme.typography.bodySmall,
+            )
+         }
+      }
+
+      if (car.imagePaths.isEmpty()) {
+         item(key = "emptyImages") {
+            Text(
+               text = stringResource(R.string.car_images_empty),
+               style = MaterialTheme.typography.bodyMedium,
+            )
+         }
+      }
+      else {
+         itemsIndexed(
+            items = car.imagePaths,
+            key = { _, imagePath -> imagePath },
+         ) { imageIndex, imagePath ->
+            CarImagePreview(
+               imagePath = imagePath,
+               imageIndex = imageIndex,
+               onRemoveImage = {
+                  onIntent(CarIntent.ImageRemoved(imagePath))
+               },
+            )
+         }
+      }
+
+      item(key = "actions") {
+         Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(
+               40.dp,
+               Alignment.CenterHorizontally,
+            ),
+         ) {
+            OutlinedButton(onClick = { onIntent(CarIntent.Cancel) }) {
+               Text(text = stringResource(R.string.action_cancel))
+            }
+
+            Button(onClick = { onIntent(CarIntent.Save) }) {
+               Text(text = stringResource(R.string.action_save))
+            }
          }
       }
    }
 }
 
 @Composable
-private fun CarImagePreviewList(
-   imagePaths: List<String>,
-   onRemoveImage: (String) -> Unit,
+private fun CarImagePreview(
+   imagePath: String,
+   imageIndex: Int,
+   onRemoveImage: () -> Unit,
 ) {
-   Column(
-      modifier = Modifier.fillMaxWidth(),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
-   ) {
-      imagePaths.forEachIndexed { imageIndex, imagePath ->
-         Box(modifier = Modifier.fillMaxWidth()) {
-            Surface(
-               modifier = Modifier
-                  .fillMaxWidth()
-                  .height(220.dp),
-               shape = RoundedCornerShape(12.dp),
-            ) {
-               AsyncImage(
-                  model = imagePath.toImageModel(),
-                  contentDescription = stringResource(
-                     R.string.car_image_preview_numbered,
-                     imageIndex + 1,
-                  ),
-                  contentScale = ContentScale.Crop,
-                  modifier = Modifier.fillMaxWidth(),
-               )
-            }
+   Box(modifier = Modifier.fillMaxWidth()) {
+      Surface(
+         modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp),
+         shape = RoundedCornerShape(12.dp),
+      ) {
+         AsyncImage(
+            model = imagePath.toImageModel(),
+            contentDescription = stringResource(
+               R.string.car_image_preview_numbered,
+               imageIndex + 1,
+            ),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth(),
+         )
+      }
 
-            IconButton(
-               modifier = Modifier.align(Alignment.TopEnd),
-               onClick = { onRemoveImage(imagePath) },
-            ) {
-               Surface(
-                  shape = CircleShape,
-                  color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-               ) {
-                  Icon(
-                     imageVector = Icons.Default.Close,
-                     contentDescription = stringResource(R.string.action_remove_car_image),
-                     modifier = Modifier.padding(6.dp),
-                  )
-               }
-            }
+      IconButton(
+         modifier = Modifier.align(Alignment.TopEnd),
+         onClick = onRemoveImage,
+      ) {
+         Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+         ) {
+            Icon(
+               imageVector = Icons.Default.Close,
+               contentDescription = stringResource(R.string.action_remove_car_image),
+               modifier = Modifier.padding(6.dp),
+            )
          }
       }
    }
