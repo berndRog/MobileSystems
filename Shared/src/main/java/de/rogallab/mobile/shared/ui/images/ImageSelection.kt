@@ -27,7 +27,7 @@ fun ImageSelection(
 ) {
    Row(
       modifier = Modifier
-         .padding(top = 16.dp)
+         .padding(vertical = 16.dp)
          .height(220.dp)
          .fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -1,12 +1,5 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,8 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -70,111 +61,96 @@ fun AppNavigation() {
       )
    }
 
-   Scaffold(
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState)
+   NavDisplay(
+      backStack = backStack,
+
+      // Handles system back navigation as a cancel operation.
+      onBack = {
+         currentPopReason = PopReason.Cancel
+         remove(backStack)
       },
-      contentWindowInsets = WindowInsets.safeDrawing.add(
-         WindowInsets(top = 0.dp, bottom = 0.dp)
-      ),
-      modifier = Modifier.fillMaxSize(),
-   ) { contentPadding ->
 
-      NavDisplay(
-         backStack = backStack,
-
-         // Handles system back navigation as a cancel operation.
-         onBack = {
-            currentPopReason = PopReason.Cancel
-            remove(backStack)
-         },
-
-         // Preserves saveable Compose state and ViewModels per NavEntry.
-         entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(
-               rememberSaveableStateHolder()
-            ),
-            rememberViewModelStoreNavEntryDecorator(),
+      // Preserves saveable Compose state and ViewModels per NavEntry.
+      entryDecorators = listOf(
+         rememberSaveableStateHolderNavEntryDecorator(
+            rememberSaveableStateHolder()
          ),
+         rememberViewModelStoreNavEntryDecorator(),
+      ),
 
-         // Navigation behavior remains unchanged from chapter 3.
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+      // Navigation behavior remains unchanged from chapter 3.
+      transitionSpec = NavigationAnimations.enterTransitionSpec,
+      popTransitionSpec =
+         NavigationAnimations.popTransitionSpec(currentPopReason),
+      predictivePopTransitionSpec =
+         NavigationAnimations.predictivePopTransitionSpec,
 
-         entryProvider = entryProvider {
+      entryProvider = entryProvider {
 
-            // Root destination: list of people.
-            entry<PeopleKey> {
-               val peopleViewModel = koinViewModel<PeopleViewModel>()
+         // Root destination: list of people.
+         entry<PeopleKey> {
+            val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-               PeopleAdapter(
-                  viewModel = peopleViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+            PeopleAdapter(
+               viewModel = peopleViewModel,
+               snackbarHostState = snackbarHostState,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  // A swipe delete requests confirmation first. Only selecting
-                  // the Snackbar action triggers the repository deletion.
-                  onConfirmRemove = { message, actionLabel, personId ->
-                     snackbarController.showAction(
-                        message = message,
-                        actionLabel = actionLabel,
-                        onAction = {
-                           peopleViewModel.onIntent(
-                              PeopleIntent.ConfirmRemove(personId)
-                           )
-                        },
-                     )
-                  },
+               // A swipe delete requests confirmation first. Only selecting
+               // the Snackbar action triggers the repository deletion.
+               onConfirmRemove = { message, actionLabel, personId ->
+                  snackbarController.showAction(
+                     message = message,
+                     actionLabel = actionLabel,
+                     onAction = {
+                        peopleViewModel.onIntent(
+                           PeopleIntent.ConfirmRemove(personId)
+                        )
+                     },
+                  )
+               },
 
-                  onBack = {
-                     currentPopReason = PopReason.Cancel
-                     remove(backStack)
-                  },
+               onNavigateBack = {
+                  currentPopReason = PopReason.Cancel
+                  remove(backStack)
+               },
 
-                  // null -> create, id -> detail/edit.
-                  onNavigateTo = { personId ->
-                     add(PersonKey(personId), backStack)
-                  },
-               )
+               // null -> create, id -> detail/edit.
+               onNavigateTo = { personId ->
+                  add(PersonKey(personId), backStack)
+               },
+            )
+         }
+
+         // Shared destination for create and edit. The new part of A4_01 is
+         // gallery/camera image selection and the image edit lifecycle.
+         entry<PersonKey> { personKey ->
+            val personViewModel = koinViewModel<PersonViewModel> {
+               parametersOf(personKey.personId)
             }
 
-            // Shared destination for create and edit. Image selection and the
-            // image edit lifecycle stay unchanged from A4_01.
-            entry<PersonKey> { personKey ->
-               val personViewModel = koinViewModel<PersonViewModel> {
-                  parametersOf(personKey.personId)
-               }
+            PersonAdapter(
+               viewModel = personViewModel,
+               snackbarHostState = snackbarHostState,
 
-               PersonAdapter(
-                  viewModel = personViewModel,
-                  modifier = Modifier
-                     .padding(contentPadding)
-                     .fillMaxSize(),
+               // showMessage() starts its coroutine in this navigation-level
+               // controller before NavigateBack removes the Person destination.
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
 
-                  // showMessage() starts its coroutine in this navigation-level
-                  // controller before NavigateBack removes the Person destination.
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
-
-                  onNavigateBack = { reason ->
-                     currentPopReason = when (reason) {
-                        BackReason.Save -> PopReason.Save
-                        BackReason.Cancel -> PopReason.Cancel
-                     }
-                     remove(backStack)
-                  },
-               )
-            }
-         },
-      )
-   }
+               onNavigateBack = { reason ->
+                  currentPopReason = when (reason) {
+                     BackReason.Save -> PopReason.Save
+                     BackReason.Cancel -> PopReason.Cancel
+                  }
+                  remove(backStack)
+               },
+            )
+         }
+      },
+   )
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -193,8 +169,7 @@ private fun remove(
    if (backStack.size > 1) {
       val removedDestination = backStack.removeLastOrNull()
       logNavigationOperation("remove", removedDestination, backStack)
-   }
-   else {
+   } else {
       logNavigationOperation(
          "pop ignored - root remains",
          backStack.lastOrNull(),
@@ -225,9 +200,9 @@ private fun logNavigationOperation(
 /*
  * Didaktik und Lernziele
  *
- * - A5_01_PeopleRoom3 übernimmt Navigation, Effects, ImagePicker und die einfache
- *   Löschbestätigung unverändert aus A4_01. Der neue Lernschritt liegt unterhalb
- *   der UI in der lokalen Room-3-Persistenzschicht.
+ * - A4_01_ImagePicker baut auf Navigation und Swipe-Gesten auf, übernimmt aber
+ *   bewusst nicht die zusätzliche Undo-Mechanik. Neu ist in diesem Schritt der
+ *   Bild-Lebenszyklus im Person-Feature.
  *
  * - Navigation und Meldungsausgabe bleiben getrennt:
  *
@@ -236,20 +211,22 @@ private fun logNavigationOperation(
  *      ConfirmRemove             -> Action-Snackbar
  *
  * - Swipe-to-Delete verändert die sichtbare Liste nicht vorzeitig. Das ViewModel
- *   erzeugt ConfirmRemove; nur die Action der Snackbar führt zu
- *   PeopleIntent.ConfirmRemove und anschließend zur Repository-Operation.
+ *   erzeugt ConfirmRemove; nur die Action der Snackbar führt anschließend zu
+ *   PeopleIntent.ConfirmRemove und damit zur Repository-Operation.
  *
- * - AppNavigation kennt weder AppDatabase noch IPersonDao. Die UI arbeitet nur
- *   mit ViewModels und deren Domain-Repository-Schnittstelle. Dadurch bleibt der
- *   Wechsel von der bisherigen Persistenz auf den lokalen Room-3-Code unsichtbar
- *   für die Navigation.
+ * - Wird die Snackbar verworfen oder läuft sie ab, bleibt das Repository
+ *   unverändert. Deshalb werden weder VisualRemovalDelegate noch pending
+ *   Removals oder ein Restore-State benötigt.
  *
- * - A5_01 verwendet bewusst nicht den Undo-Zustand aus A4_02. Damit bleibt Room 3
- *   das zentrale neue Thema dieses Schritts.
+ * - PeopleViewModel kann wieder im PeopleKey-Eintrag erzeugt werden. Erst
+ *   A4_02_ImagePickerUndo benötigt den länger lebenden temporären Removal-State.
+ *
+ * - Der Person-Screen ergänzt unabhängig davon Gallery/Camera und temporäre
+ *   Bilddateien. Save bestätigt die Edit-Session, Cancel verwirft sie.
  *
  * Lernziele:
  *
- * - UI-/Navigationsarchitektur beim Wechsel der Persistenz stabil halten.
- * - SnackbarController statt Coordinator für Meldungen und Bestätigung einsetzen.
- * - Repository als Trennlinie zwischen UI und Room erkennen.
+ * - ImagePicker und Swipe-to-Delete ohne Undo-Komplexität kombinieren.
+ * - Eine destruktive Aktion mit einer Action-Snackbar bestätigen.
+ * - Delete-Bestätigung und Undo als unterschiedliche Ausbaustufen verstehen.
  */
