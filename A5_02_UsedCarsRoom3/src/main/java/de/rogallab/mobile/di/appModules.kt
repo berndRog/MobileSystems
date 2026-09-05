@@ -72,6 +72,7 @@ fun appModule(): Module = module {
          _personDao = get(),
          _carDao = get(),
          _tDriveDao = get(),
+         _imageFileStorage = get<IImageFileStorage>(),
       )
    }
 
@@ -155,6 +156,10 @@ fun appModule(): Module = module {
  * - Dazu zählen ausdrücklich auch IImageFileStorage und IImageEdit. Personen
  *   und Fahrzeuge verwenden dieselben Shared-Dienste; A5_02 implementiert keine
  *   eigene Datei- oder ImagePicker-Infrastruktur.
+ *
+ * - SeedDatabase erhält IImageFileStorage ebenfalls per Dependency Injection.
+ *   Dadurch verwendet der Seed für Personenbilder dieselbe Datei-Infrastruktur
+ *   wie die eigentliche Anwendung.
  *
  * - Jeder Feature-Bereich besitzt einen eigenen EffectDelegate. Ein globales
  *   CoordinatorViewModel ist weder für Navigation noch für Meldungen notwendig.
