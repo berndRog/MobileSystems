@@ -125,20 +125,24 @@ fun CarAdapter(
                   viewModel.onIntent(CarIntent.ImageFailed(imageSaveError))
                },
             ) { cameraActions ->
-               CarScreen(
-                  carUiState = carUiState,
-                  validator = validator,
-                  onSelectImages = {
-                     if (canAddMoreImages) galleryActions.selectFromGallery()
-                  },
-                  onTakePhoto = {
-                     if (canAddMoreImages) cameraActions.takePhoto()
-                  },
-                  onIntent = viewModel::onIntent,
+               Box(
                   modifier = Modifier
                      .fillMaxSize()
                      .padding(innerPadding),
-               )
+               ) {
+                  CarScreen(
+                     carUiState = carUiState,
+                     validator = validator,
+                     onSelectImages = {
+                        if (canAddMoreImages) galleryActions.selectFromGallery()
+                     },
+                     onTakePhoto = {
+                        if (canAddMoreImages) cameraActions.takePhoto()
+                     },
+                     onIntent = viewModel::onIntent,
+                     modifier = Modifier.fillMaxSize(),
+                  )
+               }
             }
          }
       }
@@ -151,6 +155,8 @@ fun CarAdapter(
  * - CarAdapter bindet die Shared-Picker an das Fahrzeug-Feature und enthält
  *   zusätzlich den Scaffold der Detailansicht.
  * - TopAppBar, Loading und SnackbarHost liegen damit außerhalb von CarScreen.
+ * - Der Scaffold-Inhalt begrenzt CarScreen über eine nicht scrollbare Box.
+ *   CarScreen selbst besitzt genau einen vertikalen Scroll-Container.
  * - CarScreen bleibt für Eingabefelder, Bildvorschau und Benutzeraktionen
  *   zuständig und erhält diese Abhängigkeiten nur über Parameter und Callbacks.
  */
