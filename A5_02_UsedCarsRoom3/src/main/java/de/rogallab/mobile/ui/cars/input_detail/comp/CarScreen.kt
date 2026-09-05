@@ -179,15 +179,12 @@ fun CarScreen(
          )
       }
       else {
-         car.imagePaths.forEachIndexed { imageIndex, imagePath ->
-            CarImagePreview(
-               imagePath = imagePath,
-               imageIndex = imageIndex,
-               onRemoveImage = {
-                  onIntent(CarIntent.ImageRemoved(imagePath))
-               },
-            )
-         }
+         CarImagePreviewList(
+            imagePaths = car.imagePaths,
+            onRemoveImage = { imagePath ->
+               onIntent(CarIntent.ImageRemoved(imagePath))
+            },
+         )
       }
 
       Row(
@@ -209,42 +206,48 @@ fun CarScreen(
 }
 
 @Composable
-private fun CarImagePreview(
-   imagePath: String,
-   imageIndex: Int,
-   onRemoveImage: () -> Unit,
+private fun CarImagePreviewList(
+   imagePaths: List<String>,
+   onRemoveImage: (String) -> Unit,
 ) {
-   Box(modifier = Modifier.fillMaxWidth()) {
-      Surface(
-         modifier = Modifier
-            .fillMaxWidth()
-            .height(220.dp),
-         shape = RoundedCornerShape(12.dp),
-      ) {
-         AsyncImage(
-            model = imagePath.toImageModel(),
-            contentDescription = stringResource(
-               R.string.car_image_preview_numbered,
-               imageIndex + 1,
-            ),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth(),
-         )
-      }
+   Column(
+      modifier = Modifier.fillMaxWidth(),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+   ) {
+      imagePaths.forEachIndexed { imageIndex, imagePath ->
+         Box(modifier = Modifier.fillMaxWidth()) {
+            Surface(
+               modifier = Modifier
+                  .fillMaxWidth()
+                  .height(220.dp),
+               shape = RoundedCornerShape(12.dp),
+            ) {
+               AsyncImage(
+                  model = imagePath.toImageModel(),
+                  contentDescription = stringResource(
+                     R.string.car_image_preview_numbered,
+                     imageIndex + 1,
+                  ),
+                  contentScale = ContentScale.Crop,
+                  modifier = Modifier.fillMaxWidth(),
+               )
+            }
 
-      IconButton(
-         modifier = Modifier.align(Alignment.TopEnd),
-         onClick = onRemoveImage,
-      ) {
-         Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-         ) {
-            Icon(
-               imageVector = Icons.Default.Close,
-               contentDescription = stringResource(R.string.action_remove_car_image),
-               modifier = Modifier.padding(6.dp),
-            )
+            IconButton(
+               modifier = Modifier.align(Alignment.TopEnd),
+               onClick = { onRemoveImage(imagePath) },
+            ) {
+               Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+               ) {
+                  Icon(
+                     imageVector = Icons.Default.Close,
+                     contentDescription = stringResource(R.string.action_remove_car_image),
+                     modifier = Modifier.padding(6.dp),
+                  )
+               }
+            }
          }
       }
    }
