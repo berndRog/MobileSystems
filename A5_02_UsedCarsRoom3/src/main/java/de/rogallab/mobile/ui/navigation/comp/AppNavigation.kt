@@ -1,12 +1,8 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -52,127 +47,152 @@ import org.koin.core.parameter.parametersOf
 fun AppNavigation() {
    val navigationState = rememberAppNavigationState()
    val navigator = remember(navigationState) { AppNavigator(navigationState) }
+
+   // One SnackbarHostState and one controller are shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
-   val snackbarController = rememberSnackbarController(snackbarHostState)
+   val snackbarController = rememberSnackbarController(
+      snackbarHostState = snackbarHostState,
+   )
+
    var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
 
-   Scaffold(
-      snackbarHost = { SnackbarHost(snackbarHostState) },
-      bottomBar = {
-         AppBottomNavigationBar(
-            navItems = navigationState.navItems,
-            currentTopLevelNavItem = navigationState.currentTopLevelNavItem,
-            onTopLevelSelected = navigator::switchTopLevel,
-         )
-      },
-   ) { contentPadding ->
-      val appEntryProvider = entryProvider {
-         entry<PersonListKey> {
-            val viewModel = koinViewModel<PeopleViewModel>()
-            PeopleAdapter(
-               viewModel = viewModel,
-               modifier = Modifier.padding(contentPadding).fillMaxSize(),
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onConfirmRemove = { message, actionLabel, personId ->
-                  snackbarController.showAction(
-                     message = message,
-                     actionLabel = actionLabel,
-                     onAction = { viewModel.onIntent(PeopleIntent.ConfirmRemove(personId)) },
-                  )
-               },
-               onBack = navigator::pop,
-               onNavigateTo = { navigator.push(PersonKey(it)) },
-            )
-         }
-         entry<PersonKey> { key ->
-            val viewModel = koinViewModel<PersonViewModel> { parametersOf(key.personId) }
-            PersonAdapter(
-               viewModel = viewModel,
-               modifier = Modifier.padding(contentPadding).fillMaxSize(),
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onNavigateBack = { reason ->
-                  currentPopReason = reason.toPopReason()
-                  navigator.pop()
-               },
-            )
-         }
-
-         entry<CarListKey> {
-            val viewModel = koinViewModel<CarsViewModel>()
-            CarsAdapter(
-               viewModel = viewModel,
-               contentPadding = contentPadding,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onConfirmRemove = { message, actionLabel, carId ->
-                  snackbarController.showAction(
-                     message = message,
-                     actionLabel = actionLabel,
-                     onAction = { viewModel.onIntent(CarsIntent.ConfirmRemove(carId)) },
-                  )
-               },
-               onNavigateTo = { navigator.push(CarKey(it)) },
-            )
-         }
-         entry<CarKey> { key ->
-            val viewModel = koinViewModel<CarViewModel> { parametersOf(key.carId) }
-            CarAdapter(
-               viewModel = viewModel,
-               contentPadding = contentPadding,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onNavigateBack = { reason ->
-                  currentPopReason = reason.toPopReason()
-                  navigator.pop()
-               },
-            )
-         }
-
-         entry<TDrivesKey> {
-            val viewModel = koinViewModel<TDrivesViewModel>()
-            TDrivesAdapter(
-               viewModel = viewModel,
-               contentPadding = contentPadding,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onConfirmRemove = { message, actionLabel, tDriveId ->
-                  snackbarController.showAction(
-                     message = message,
-                     actionLabel = actionLabel,
-                     onAction = { viewModel.onIntent(TDrivesIntent.ConfirmRemove(tDriveId)) },
-                  )
-               },
-               onNavigateTo = { navigator.push(TDriveKey(it)) },
-            )
-         }
-         entry<TDriveKey> { key ->
-            val viewModel = koinViewModel<TDriveViewModel> { parametersOf(key.tDriveId) }
-            TDriveAdapter(
-               viewModel = viewModel,
-               contentPadding = contentPadding,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
-               onNavigateBack = { reason ->
-                  currentPopReason = reason.toPopReason()
-                  navigator.pop()
-               },
-            )
-         }
-      }
-
-      NavDisplay(
-         entries = navigationState.toDecoratedEntries(appEntryProvider),
-         onBack = {
-            currentPopReason = PopReason.CANCEL
-            navigator.pop()
-         },
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
+   // A5_02 has three top-level areas. The NavigationBar is passed into each
+   // adapter Scaffold instead of requiring a global Scaffold in AppNavigation.
+   val bottomBar: @Composable () -> Unit = {
+      AppBottomNavigationBar(
+         navItems = navigationState.navItems,
+         currentTopLevelNavItem = navigationState.currentTopLevelNavItem,
+         onTopLevelSelected = navigator::switchTopLevel,
       )
    }
+
+   val appEntryProvider = entryProvider {
+      entry<PersonListKey> {
+         val viewModel = koinViewModel<PeopleViewModel>()
+         PeopleAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onConfirmRemove = { message, actionLabel, personId ->
+               snackbarController.showAction(
+                  message = message,
+                  actionLabel = actionLabel,
+                  onAction = {
+                     viewModel.onIntent(PeopleIntent.ConfirmRemove(personId))
+                  },
+               )
+            },
+            onNavigateBack = navigator::pop,
+            onNavigateTo = { navigator.push(PersonKey(it)) },
+         )
+      }
+
+      entry<PersonKey> { key ->
+         val viewModel = koinViewModel<PersonViewModel> {
+            parametersOf(key.personId)
+         }
+         PersonAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onNavigateBack = { reason ->
+               currentPopReason = reason.toPopReason()
+               navigator.pop()
+            },
+         )
+      }
+
+      entry<CarListKey> {
+         val viewModel = koinViewModel<CarsViewModel>()
+         CarsAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onConfirmRemove = { message, actionLabel, carId ->
+               snackbarController.showAction(
+                  message = message,
+                  actionLabel = actionLabel,
+                  onAction = {
+                     viewModel.onIntent(CarsIntent.ConfirmRemove(carId))
+                  },
+               )
+            },
+            onNavigateTo = { navigator.push(CarKey(it)) },
+         )
+      }
+
+      entry<CarKey> { key ->
+         val viewModel = koinViewModel<CarViewModel> {
+            parametersOf(key.carId)
+         }
+         CarAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onNavigateBack = { reason ->
+               currentPopReason = reason.toPopReason()
+               navigator.pop()
+            },
+         )
+      }
+
+      entry<TDrivesKey> {
+         val viewModel = koinViewModel<TDrivesViewModel>()
+         TDrivesAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onConfirmRemove = { message, actionLabel, tDriveId ->
+               snackbarController.showAction(
+                  message = message,
+                  actionLabel = actionLabel,
+                  onAction = {
+                     viewModel.onIntent(TDrivesIntent.ConfirmRemove(tDriveId))
+                  },
+               )
+            },
+            onNavigateTo = { navigator.push(TDriveKey(it)) },
+         )
+      }
+
+      entry<TDriveKey> { key ->
+         val viewModel = koinViewModel<TDriveViewModel> {
+            parametersOf(key.tDriveId)
+         }
+         TDriveAdapter(
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            bottomBar = bottomBar,
+            onMessage = snackbarController::showMessage,
+            onError = snackbarController::showError,
+            onNavigateBack = { reason ->
+               currentPopReason = reason.toPopReason()
+               navigator.pop()
+            },
+         )
+      }
+   }
+
+   NavDisplay(
+      entries = navigationState.toDecoratedEntries(appEntryProvider),
+      onBack = {
+         currentPopReason = PopReason.CANCEL
+         navigator.pop()
+      },
+      transitionSpec = NavigationAnimations.enterTransitionSpec,
+      popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
+      predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
+   )
 }
 
 private fun BackReason.toPopReason(): PopReason = when (this) {
@@ -208,11 +228,14 @@ private fun AppBottomNavigationBar(
 /*
  * Didaktik und Lernziele
  *
- * - A5_02 behält drei unabhängige Navigation-3-Back-Stacks für Personen,
- *   Fahrzeuge und Probefahrten.
- * - SnackbarController ersetzt den früheren Coordinator vollständig.
- * - Jede Liste fordert eine Löschung nur an. Erst die Action der Snackbar
- *   sendet ConfirmRemove an das zuständige ViewModel.
+ * - AppNavigation enthält keinen Scaffold mehr. Jeder Adapter stellt den
+ *   Scaffold bereit, der zu den Aufgaben seines Screens passt.
+ * - Ein SnackbarHostState und ein SnackbarController werden weiterhin oberhalb
+ *   von NavDisplay erzeugt und von allen Adaptern wiederverwendet.
+ * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
+ *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
+ * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine
+ *   navigierbare TopAppBar. Die Screens selbst bleiben zustandslos.
  * - Save/Cancel und Predictive Back verwenden weiterhin die bekannten
  *   unterschiedlichen Navigationstransitionen.
  */

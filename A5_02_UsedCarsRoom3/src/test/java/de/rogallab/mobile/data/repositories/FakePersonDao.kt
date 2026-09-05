@@ -1,9 +1,8 @@
 package de.rogallab.mobile.data.repositories
 
 import de.rogallab.mobile.data.IPersonDao
+import de.rogallab.mobile.data.local.dtos.CarDto
 import de.rogallab.mobile.data.local.dtos.PersonDto
-import de.rogallab.mobile.data.local.relations.PersonWithCarsDto
-import de.rogallab.mobile.data.local.relations.PersonWithTestDriveCarsDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -13,10 +12,10 @@ class FakePersonDao : IPersonDao {
    override fun observeAll(): Flow<List<PersonDto>> = _people
    override suspend fun findById(personId: String): PersonDto? =
       _people.value.firstOrNull { it.id == personId }
-   override suspend fun findWithCars(personId: String): PersonWithCarsDto? =
-      findById(personId)?.let { PersonWithCarsDto(it, emptyList()) }
-   override suspend fun findWithTestDriveCars(personId: String): PersonWithTestDriveCarsDto? =
-      findById(personId)?.let { PersonWithTestDriveCarsDto(it, emptyList()) }
+   override suspend fun findWithCars(personId: String): Map<PersonDto, List<CarDto>> =
+      findById(personId)?.let { mapOf(it to emptyList()) } ?: emptyMap()
+   override suspend fun findWithTestDriveCars(personId: String): Map<PersonDto, List<CarDto>> =
+      findById(personId)?.let { mapOf(it to emptyList()) } ?: emptyMap()
    override suspend fun count(): Int = _people.value.size
    override suspend fun insert(personDto: PersonDto) {
       check(_people.value.none { it.id == personDto.id })

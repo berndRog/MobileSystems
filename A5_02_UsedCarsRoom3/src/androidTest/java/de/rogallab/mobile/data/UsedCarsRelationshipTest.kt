@@ -32,18 +32,23 @@ class UsedCarsRelationshipTest {
    }
    @After fun tearDown() { database.close() }
 
-   @Test fun findWithCars_returnsOneToManyRelationship() = runTest {
+   @Test fun findWithCars_returnsOneToManyMultimap() = runTest {
       val seller = person("seller", "Anna", "Schulz")
       val first = car("car-1", seller.id, "Golf")
       val second = car("car-2", seller.id, "Passat")
       personDao.insert(seller)
       carDao.insert(listOf(first, second))
+
       val relation = personDao.findWithCars(seller.id)
-      assertEquals(seller.id, relation?.person?.id)
-      assertEquals(setOf(first.id, second.id), relation?.cars?.map(CarDto::id)?.toSet())
+
+      assertEquals(setOf(seller), relation.keys)
+      assertEquals(
+         setOf(first.id, second.id),
+         relation[seller]?.map(CarDto::id)?.toSet(),
+      )
    }
 
-   @Test fun findWithTestDriveCars_returnsManyToManyRelationship() = runTest {
+   @Test fun findWithTestDriveCars_returnsManyToManyMultimap() = runTest {
       val seller = person("seller", "Anna", "Schulz")
       val interested = person("interested", "Clara", "Neumann")
       val first = car("car-1", seller.id, "Golf")
@@ -54,9 +59,14 @@ class UsedCarsRelationshipTest {
          drive("td-1", interested.id, first.id, "2026-08-04T14:00:00"),
          drive("td-2", interested.id, second.id, "2026-08-05T15:00:00"),
       ))
+
       val relation = personDao.findWithTestDriveCars(interested.id)
-      assertEquals(interested.id, relation?.person?.id)
-      assertEquals(setOf(first.id, second.id), relation?.cars?.map(CarDto::id)?.toSet())
+
+      assertEquals(setOf(interested), relation.keys)
+      assertEquals(
+         setOf(first.id, second.id),
+         relation[interested]?.map(CarDto::id)?.toSet(),
+      )
    }
 
    private fun person(id: String, first: String, last: String) =

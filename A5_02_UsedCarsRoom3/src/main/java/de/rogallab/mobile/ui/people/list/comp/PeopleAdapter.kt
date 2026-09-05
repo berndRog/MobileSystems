@@ -1,11 +1,8 @@
 package de.rogallab.mobile.ui.people.list.comp
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -15,6 +12,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,141 +39,98 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   modifier: Modifier = Modifier,
+   snackbarHostState: SnackbarHostState,
+   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
-   onBack: () -> Unit,
+   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Collect the persistent UI state from the ViewModel.
-   val peopleUiState: PeopleUiState by
-   viewModel.stateFlow.collectAsStateWithLifecycle()
+   val peopleUiState: PeopleUiState
+      by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-   // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
-         is PeopleEffect.ShowMessage ->
-            onMessage(peopleEffect.message)
-
-         is PeopleEffect.ShowError ->
-            onError(peopleEffect.message)
-
-         is PeopleEffect.ConfirmRemove ->
-            onConfirmRemove(
-               peopleEffect.message,
-               peopleEffect.actionLabel,
-               peopleEffect.personId,
-            )
-
-         PeopleEffect.NavigateBack ->
-            onBack()
-
-         is PeopleEffect.NavigateTo ->
-            onNavigateTo(peopleEffect.personId)
-      }
-   }
-
-   Box(
-      modifier = modifier.fillMaxSize()
-   ) {
-      Column {
-         TopAppBar(
-            windowInsets = WindowInsets(0),
-            title = {
-               Text(text = stringResource(R.string.people_list))
-            },
+         is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
+         is PeopleEffect.ShowError -> onError(peopleEffect.message)
+         is PeopleEffect.ConfirmRemove -> onConfirmRemove(
+            peopleEffect.message,
+            peopleEffect.actionLabel,
+            peopleEffect.personId,
          )
+         PeopleEffect.NavigateBack -> onNavigateBack()
+         is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
+      }
+   }
 
-         // Show either a loading indicator or the stateless PeopleScreen.
-         if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
-            Column(
-               modifier = Modifier.fillMaxWidth(),
-               verticalArrangement = Arrangement.Top,
-               horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-               Alog.d(tag, "Loading People...")
-               CircularProgressIndicator(modifier = Modifier.size(64.dp))
-            }
-         }
-         else {
-            PeopleScreen(
-               people = peopleUiState.people,
-               onDetail = { personId ->
-                  Alog.d(tag, "Navigate to Detail: $personId")
-                  viewModel.onIntent(PeopleIntent.Detail(personId))
-               },
-               onDelete = { personId ->
-                  Alog.d(tag, "Request delete: $personId")
-                  viewModel.onIntent(PeopleIntent.RequestRemove(personId))
-               },
-               modifier = Modifier.padding(horizontal = 16.dp),
-            )
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      topBar = {
+         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+      },
+      floatingActionButton = {
+         ExtendedFloatingActionButton(
+            containerColor = colorScheme.secondary,
+            onClick = { viewModel.onIntent(PeopleIntent.Create) },
+            icon = {
+               Icon(
+                  imageVector = Icons.Default.Add,
+                  contentDescription = null,
+               )
+            },
+            text = { Text(text = stringResource(R.string.action_create)) },
+         )
+      },
+      bottomBar = bottomBar,
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.imePadding(),
+         )
+      },
+   ) { innerPadding ->
+      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
       }
-
-      PeopleCreateButton(
-         onCreate = {
-            Alog.d(tag, "Create new person")
-            viewModel.onIntent(PeopleIntent.Create)
-         }
-      )
-   }
-}
-
-@Composable
-private fun PeopleCreateButton(
-   onCreate: () -> Unit,
-) {
-   Box(
-      modifier = Modifier
-         .fillMaxSize()
-         .padding(16.dp),
-      contentAlignment = Alignment.BottomEnd,
-   ) {
-      ExtendedFloatingActionButton(
-         containerColor = colorScheme.secondary,
-         onClick = onCreate,
-         icon = {
-            Icon(
-               imageVector = Icons.Default.Add,
-               contentDescription = null,
-            )
-         },
-         text = {
-            Text(text = stringResource(R.string.action_create))
-         },
-      )
+      else {
+         PeopleScreen(
+            people = peopleUiState.people,
+            onDetail = { personId ->
+               viewModel.onIntent(PeopleIntent.Detail(personId))
+            },
+            onDelete = { personId ->
+               viewModel.onIntent(PeopleIntent.RequestRemove(personId))
+            },
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(horizontal = 16.dp),
+         )
+      }
    }
 }
 
 /*
  * Didaktik und Lernziele
  *
- * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen. Die bereits
- *   bekannten Swipe-Gesten bleiben erhalten, Undo gehört aber nicht zu A4_01.
- *
- * - Ein Tap auf die PersonCard und Swipe StartToEnd werden auf denselben
- *   PeopleIntent.Detail abgebildet.
- *
- * - Swipe EndToStart sendet zunächst PeopleIntent.RequestRemove. Das ViewModel
- *   erzeugt daraufhin PeopleEffect.ConfirmRemove. Der Adapter reicht diesen
- *   einmaligen Effect über onConfirmRemove an die Navigationsebene weiter.
- *
- * - Erst die Action der Bestätigungs-Snackbar führt zu ConfirmRemove und damit
- *   zur Repository-Operation. Ein Dismiss der Snackbar verändert keine Daten.
- *
- * - Das Anlegen einer neuen Person bleibt eine eigene Aktion und wird über den
- *   FAB als PeopleIntent.Create ausgelöst.
- *
- * Lernziele:
- *
- * - UI-Interaktionen auf Intents abbilden.
- * - Destruktive Aktionen über einen Effect bestätigen lassen.
- * - Swipe-Callbacks von Navigation und Persistenz entkoppeln.
- * - Die Undo-Erweiterung bewusst von diesem Grundstand trennen.
+ * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen und enthält
+ *   wie in A5_01 den Scaffold für diesen Bildschirm.
+ * - TopAppBar, FAB und SnackbarHost gehören damit zum stateful Adapter; der
+ *   PeopleScreen bleibt zustandslos und enthält nur die eigentliche Liste.
+ * - Der SnackbarHostState wird in AppNavigation einmal erzeugt und von allen
+ *   Adaptern wiederverwendet.
+ * - Die Bottom-Navigation wird als Composable übergeben, damit A5_02 trotz der
+ *   drei Top-Level-Bereiche keinen übergeordneten Scaffold benötigt.
  */

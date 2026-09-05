@@ -2,25 +2,15 @@ package de.rogallab.mobile.ui.tdrives.input_detail.comp
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -37,13 +27,12 @@ import de.rogallab.mobile.ui.tdrives.input_detail.TDriveIntent
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveUiState
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TDriveScreen(
    tDriveUiState: TDriveUiState,
    validator: TDriveValidator,
-   contentPadding: PaddingValues,
    onIntent: (TDriveIntent) -> Unit,
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-TDriveScreen"
    var compositionCount by remember { mutableIntStateOf(0) }
@@ -51,91 +40,43 @@ fun TDriveScreen(
       AppLogger.compose(tag, "Composition #${compositionCount++}")
    }
 
-   val tDrive = tDriveUiState.tDrive
+   val tDrive = tDriveUiState.tDrive ?: return
 
    Column(
-      modifier = Modifier
-         .fillMaxSize()
-         .padding(contentPadding),
+      modifier = modifier
+         .verticalScroll(rememberScrollState())
+         .imePadding()
+         .padding(
+            start = 16.dp,
+            top = 8.dp,
+            end = 16.dp,
+            bottom = 24.dp,
+         ),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
    ) {
-      TopAppBar(
-         windowInsets = WindowInsets(0),
-         title = {
-            Text(
-               text = stringResource(
-                  if (tDriveUiState.isNew) R.string.test_drive_create_title
-                  else R.string.test_drive_edit_title
-               )
-            )
-         },
-         navigationIcon = {
-            IconButton(
-               onClick = { onIntent(TDriveIntent.Save) }
-            ) {
-               Icon(
-                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                  contentDescription = stringResource(R.string.action_save),
-               )
-            }
-         },
+      TDriveContent(
+         tDrive = tDrive,
+         startInput = tDriveUiState.startInput,
+         people = tDriveUiState.people,
+         cars = tDriveUiState.cars,
+         validator = validator,
+         onIntent = onIntent,
+         modifier = Modifier.fillMaxWidth(),
       )
 
-      when {
-         tDriveUiState.isLoading -> {
-            Column(
-               modifier = Modifier.fillMaxSize(),
-               verticalArrangement = Arrangement.Center,
-               horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-               CircularProgressIndicator()
-            }
+      Row(
+         modifier = Modifier.fillMaxWidth(),
+         horizontalArrangement = Arrangement.spacedBy(
+            40.dp,
+            Alignment.CenterHorizontally,
+         ),
+      ) {
+         OutlinedButton(onClick = { onIntent(TDriveIntent.Cancel) }) {
+            Text(text = stringResource(R.string.action_cancel))
          }
 
-         tDrive != null -> {
-            Column(
-               modifier = Modifier
-                  .weight(1f)
-                  .fillMaxWidth()
-                  .verticalScroll(rememberScrollState())
-                  .imePadding()
-                  .padding(
-                     start = 16.dp,
-                     top = 8.dp,
-                     end = 16.dp,
-                     bottom = 24.dp,
-                  ),
-               verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-               TDriveContent(
-                  tDrive = tDrive,
-                  startInput = tDriveUiState.startInput,
-                  people = tDriveUiState.people,
-                  cars = tDriveUiState.cars,
-                  validator = validator,
-                  onIntent = onIntent,
-                  modifier = Modifier.fillMaxWidth(),
-               )
-
-               Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(
-                     40.dp,
-                     Alignment.CenterHorizontally,
-                  ),
-               ) {
-                  OutlinedButton(
-                     onClick = { onIntent(TDriveIntent.Cancel) }
-                  ) {
-                     Text(text = stringResource(R.string.action_cancel))
-                  }
-
-                  Button(
-                     onClick = { onIntent(TDriveIntent.Save) }
-                  ) {
-                     Text(text = stringResource(R.string.action_save))
-                  }
-               }
-            }
+         Button(onClick = { onIntent(TDriveIntent.Save) }) {
+            Text(text = stringResource(R.string.action_save))
          }
       }
    }
