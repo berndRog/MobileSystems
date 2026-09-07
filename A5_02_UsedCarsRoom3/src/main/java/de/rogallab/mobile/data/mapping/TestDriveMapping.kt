@@ -9,7 +9,6 @@ fun TDriveDto.toTestDrive(): TDrive = TDrive(
    personId = personId,
    carId = carId,
    start = LocalDateTime.parse(start),
-   notes = notes,
    isCompleted = isCompleted,
 )
 
@@ -18,6 +17,5 @@ fun TDrive.toTestDriveDto(): TDriveDto = TDriveDto(
    personId = requireNotNull(personId) { "A test drive requires a person." },
    carId = requireNotNull(carId) { "A test drive requires a car." },
    start = start.toString(),
-   notes = notes,
    isCompleted = isCompleted,
 )

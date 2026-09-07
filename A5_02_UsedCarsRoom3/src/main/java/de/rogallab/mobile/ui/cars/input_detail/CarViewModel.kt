@@ -140,9 +140,8 @@ class CarViewModel(
                      state.copy(
                         car = car,
                         registrationYearInput =
-                           car.registrationYear?.toString().orEmpty(),
-                        mileageInput = car.mileage?.toString().orEmpty(),
-                        priceInput = car.priceInEuro?.toString().orEmpty(),
+                           car.registration?.toString().orEmpty(),
+                        priceInput = car.price?.toString().orEmpty(),
                         isLoading = false,
                      )
                   }
@@ -231,9 +230,8 @@ class CarViewModel(
       val normalized = car.copy(
          manufacturer = car.manufacturer.trim(),
          model = car.model.trim(),
-         registrationYear = state.registrationYearInput.trim().toIntOrNull(),
-         mileage = state.mileageInput.trim().toIntOrNull(),
-         priceInEuro = state.priceInput.trim().toIntOrNull(),
+         registration = state.registrationYearInput.trim().toIntOrNull(),
+         price = state.priceInput.trim().toIntOrNull(),
       )
 
       val error = _validator.validateCar(

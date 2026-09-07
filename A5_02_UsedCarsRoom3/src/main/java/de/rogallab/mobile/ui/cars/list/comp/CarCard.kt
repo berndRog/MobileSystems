@@ -27,9 +27,8 @@ fun CarCard(
    sellerName: String,
 ) {
    val notAvailable = stringResource(R.string.value_not_available)
-   val registrationYear = car.registrationYear?.toString() ?: notAvailable
-   val mileage = car.mileage?.toString() ?: notAvailable
-   val price = car.priceInEuro?.toString() ?: notAvailable
+   val registration = car.registration?.toString() ?: notAvailable
+   val price = car.price?.toString() ?: notAvailable
 
    Card(
       modifier = Modifier
@@ -68,8 +67,7 @@ fun CarCard(
             Text(
                text = stringResource(
                   R.string.car_card_details,
-                  registrationYear,
-                  mileage,
+                  registration,
                   price,
                ),
                style = MaterialTheme.typography.bodyMedium,

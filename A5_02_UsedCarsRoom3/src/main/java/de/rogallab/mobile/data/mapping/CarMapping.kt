@@ -7,9 +7,8 @@ fun CarDto.toCar(): Car = Car(
    id = id,
    manufacturer = manufacturer,
    model = model,
-   registrationYear = registrationYear,
-   mileage = mileage,
-   priceInEuro = priceInEuro,
+   registration = year,
+   price = price,
    sellerId = sellerId,
    imagePaths = imagePaths,
 )
@@ -18,9 +17,8 @@ fun Car.toCarDto(): CarDto = CarDto(
    id = id,
    manufacturer = manufacturer,
    model = model,
-   registrationYear = registrationYear,
-   mileage = mileage,
-   priceInEuro = priceInEuro,
+   year = registration,
+   price = price,
    sellerId = requireNotNull(sellerId) {
       "A car requires a seller."
    },

@@ -15,20 +15,11 @@ class CarValidator(
       if (value.isBlank()) context.getString(R.string.error_car_model_required)
       else null
 
-   fun validateRegistrationYear(value: String): String? {
+   fun validateRegistration(value: String): String? {
       if (value.isBlank()) return null
       val year = value.toIntOrNull()
       return if (year == null || year !in 1900..2100) {
          context.getString(R.string.error_car_registration_year)
-      }
-      else null
-   }
-
-   fun validateMileage(value: String): String? {
-      if (value.isBlank()) return null
-      val mileage = value.toIntOrNull()
-      return if (mileage == null || mileage < 0) {
-         context.getString(R.string.error_car_mileage)
       }
       else null
    }
@@ -50,8 +41,7 @@ class CarValidator(
    ): String? =
       validateManufacturer(car.manufacturer)
          ?: validateModel(car.model)
-         ?: validateRegistrationYear(registrationYearInput)
-         ?: validateMileage(mileageInput)
+         ?: validateRegistration(registrationYearInput)
          ?: validatePrice(priceInput)
          ?: if (car.sellerId == null) {
             context.getString(R.string.error_car_seller_required)

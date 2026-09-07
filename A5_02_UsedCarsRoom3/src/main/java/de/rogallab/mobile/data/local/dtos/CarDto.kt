@@ -23,9 +23,8 @@ data class CarDto(
    @PrimaryKey val id: String,
    val manufacturer: String,
    val model: String,
-   val registrationYear: Int?,
-   val mileage: Int?,
-   val priceInEuro: Int?,
+   val year: Int?,
+   val price: Int?,
    val sellerId: String,
    @ColumnInfo(defaultValue = "'[]'")
    val imagePaths: List<String> = emptyList(),

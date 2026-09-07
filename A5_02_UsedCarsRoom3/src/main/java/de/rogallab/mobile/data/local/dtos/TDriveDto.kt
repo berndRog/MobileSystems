@@ -33,6 +33,5 @@ data class TDriveDto(
    val personId: String,
    val carId: String,
    val start: String,
-   val notes: String?,
    val isCompleted: Boolean,
 )

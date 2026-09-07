@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <integer name="person_name_char_min">2</integer>
+  <integer name="person_name_char_max">50</integer>
+  <integer name="char_min">2</integer>
+  <integer name="char_max">50</integer>
+  <string name="app_name">UsedCarsRoom3</string>
+
+  <string name="navigation_people">People</string>
+  <string name="navigation_cars">Cars</string>
+  <string name="navigation_test_drives">Test drives</string>
+
+  <string name="people_title">People</string>
+  <string name="person_create_title">New person</string>
+  <string name="person_edit_title">Edit person</string>
+  <string name="person_field_first_name">First name</string>
+  <string name="person_field_last_name">Last name</string>
+  <string name="person_field_email">Email</string>
+  <string name="person_field_phone">Phone</string>
+  <string name="person_no_data">No contact details</string>
+  <string name="person_full_name">%1$s %2$s</string>
+  <string name="person_image_list">Person image</string>
+
+  <!-- Names used by the current People/Person feature from A5_01. -->
+  <string name="people_list">People</string>
+  <string name="person_create">Add person</string>
+  <string name="person_detail">Edit person</string>
+  <string name="firstname">First name</string>
+  <string name="lastname">Last name</string>
+  <string name="email">Email address</string>
+  <string name="phone">Phone number</string>
+  <string name="image">Person photo</string>
+
+  <string name="cars_title">Cars</string>
+  <string name="car_create_title">New car</string>
+  <string name="car_edit_title">Edit car</string>
+  <string name="car_field_manufacturer">Manufacturer</string>
+  <string name="car_field_model">Model</string>
+  <string name="car_field_registration_year">First registration</string>
+  <string name="car_field_mileage">Mileage</string>
+  <string name="car_field_price">Price in euros</string>
+  <string name="car_field_seller">Seller</string>
+  <string name="car_no_details">No car details</string>
+  <string name="car_card_details">First registration %1$s · %2$s km · %3$s €</string>
+  <string name="car_images_sheet_title">Car images</string>
+  <string name="car_images_empty">At least one car image is required.</string>
+  <string name="car_images_limit">Maximum %1$d images</string>
+  <string name="car_image_preview">Car image</string>
+  <string name="car_image_preview_numbered">Car image %1$d</string>
+  <string name="car_selection_search">Search car</string>
+  <string name="car_selection_no_results">No matching car found.</string>
+
+  <string name="test_drives_title">Test drives</string>
+  <string name="test_drive_create_title">New test drive</string>
+  <string name="test_drive_edit_title">Edit test drive</string>
+  <string name="test_drive_field_start">Start (%1$s)</string>
+  <string name="test_drive_field_notes">Notes</string>
+  <string name="test_drive_completed">Test drive completed</string>
+  <string name="test_drive_status_planned">Planned</string>
+  <string name="test_drive_status_completed">Completed</string>
+  <string name="test_drive_card_title">%1$s with %2$s</string>
+
+  <string name="person_selection_label">Select person</string>
+  <string name="person_selection_none">No person</string>
+  <string name="person_selection_open">Select person</string>
+  <string name="person_selection_search">Search by last name or first name</string>
+  <string name="person_selection_no_results">No matching person found.</string>
+  <string name="car_selection_label">Select car</string>
+  <string name="car_selection_none">No car</string>
+  <string name="car_selection_open">Select car</string>
+  <string name="value_not_available">–</string>
+
+  <string name="action_create">New</string>
+  <string name="action_send">Send</string>
+  <string name="action_save">Save</string>
+  <string name="action_cancel">Cancel</string>
+  <string name="action_edit">Edit</string>
+  <string name="action_delete">Delete</string>
+  <string name="action_back">Back</string>
+  <string name="action_confirm">Yes</string>
+  <string name="action_select_photo">Select photo</string>
+  <string name="action_take_photo">Camera</string>
+  <string name="action_remove_photo">Remove photo</string>
+  <string name="action_manage_car_images">Car images (%1$d)</string>
+  <string name="action_select_car_images">Select from gallery</string>
+  <string name="action_remove_car_image">Remove car image</string>
+
+  <string name="accessibility_delete_person">Delete person</string>
+  <string name="accessibility_edit_person">Edit person</string>
+  <string name="accessibility_delete_car">Delete car</string>
+  <string name="accessibility_edit_car">Edit car</string>
+  <string name="accessibility_delete_test_drive">Delete test drive</string>
+  <string name="accessibility_edit_test_drive">Edit test drive</string>
+
+  <string name="message_person_saved">%1$s was saved.</string>
+  <string name="message_car_saved">%1$s was saved.</string>
+  <string name="message_test_drive_saved">Test drive was saved.</string>
+  <string name="message_person_remove_confirm">Really delete %1$s %2$s?</string>
+  <string name="message_car_remove_confirm">Really delete %1$s %2$s?</string>
+  <string name="message_test_drive_remove_confirm">Really delete test drive?</string>
+
+  <string name="error_people_load">People could not be loaded.</string>
+  <string name="error_people_observe">People could not be loaded.</string>
+  <string name="error_cars_load">Cars could not be loaded.</string>
+  <string name="error_test_drives_load">Test drives could not be loaded.</string>
+  <string name="error_person_not_found">Person was not found.</string>
+  <string name="error_car_not_found">Car was not found.</string>
+  <string name="error_test_drive_not_found">Test drive was not found.</string>
+  <string name="error_person_load">Person could not be loaded.</string>
+  <string name="error_car_load">Car could not be loaded.</string>
+  <string name="error_test_drive_load">Test drive could not be loaded.</string>
+  <string name="error_person_save">Person could not be saved.</string>
+  <string name="error_car_save">Car could not be saved.</string>
+  <string name="error_test_drive_save">Test drive could not be saved.</string>
+  <string name="error_person_remove">Person could not be deleted.</string>
+  <string name="error_person_delete">Person could not be deleted. Check cars and test drives.</string>
+  <string name="error_car_delete">Car could not be deleted. Check existing test drives.</string>
+  <string name="error_test_drive_delete">Test drive could not be deleted.</string>
+  <string name="error_image_save">Photo could not be saved locally.</string>
+
+  <string name="error_first_name_too_short">First name is too short.</string>
+  <string name="error_first_name_too_long">First name is too long.</string>
+  <string name="error_last_name_too_short">Last name is too short.</string>
+  <string name="error_last_name_too_long">Last name is too long.</string>
+  <string name="error_firstname_too_short">First name is too short.</string>
+  <string name="error_firstname_too_long">First name is too long.</string>
+  <string name="error_lastname_too_short">Last name is too short.</string>
+  <string name="error_lastname_too_long">Last name is too long.</string>
+  <string name="error_email">Email address is invalid.</string>
+  <string name="error_phone">Phone number is invalid.</string>
+  <string name="error_car_manufacturer_required">Manufacturer is required.</string>
+  <string name="error_car_model_required">Model is required.</string>
+  <string name="error_car_registration_year">First registration is invalid.</string>
+  <string name="error_car_price">Price is invalid.</string>
+  <string name="error_car_seller_required">Please select a seller.</string>
+  <string name="error_car_image_required">Please select at least one car image.</string>
+  <string name="error_test_drive_person_required">Please select a person.</string>
+  <string name="error_test_drive_car_required">Please select a car.</string>
+  <string name="error_date_time_format">Date and time must use the format DD.MM.YYYY HH:mm.</string>
+</resources>

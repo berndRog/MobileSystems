@@ -6,12 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
@@ -100,7 +97,7 @@ fun CarScreen(
          },
          label = stringResource(R.string.car_field_registration_year),
          leadingIcon = Icons.Default.CalendarMonth,
-         validate = validator::validateRegistrationYear,
+         validate = validator::validateRegistration,
          keyboardType = KeyboardType.Number,
          imeAction = ImeAction.Next,
       )
@@ -112,7 +109,6 @@ fun CarScreen(
          },
          label = stringResource(R.string.car_field_mileage),
          leadingIcon = Icons.Default.Speed,
-         validate = validator::validateMileage,
          keyboardType = KeyboardType.Number,
          imeAction = ImeAction.Next,
       )

@@ -3,9 +3,8 @@ package de.rogallab.mobile.domain.entities
 data class Car(
    val manufacturer: String = "",
    val model: String = "",
-   val registrationYear: Int? = null,
-   val mileage: Int? = null,
-   val priceInEuro: Int? = null,
+   val registration: Int? = null,
+   val price: Int? = null,
    val sellerId: String? = null,
    val imagePaths: List<String> = emptyList(),
    val id: String,

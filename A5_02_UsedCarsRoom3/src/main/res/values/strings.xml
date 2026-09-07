@@ -7,7 +7,7 @@
   <integer name="char_min">2</integer>
   <integer name="char_max">50</integer>
 
-  <string name="navigation_people">Personen</string>
+  <string name="navigation_people">People</string>
   <string name="navigation_cars">Fahrzeuge</string>
   <string name="navigation_test_drives">Probefahrten</string>
 
@@ -132,7 +132,6 @@
   <string name="error_car_manufacturer_required">Hersteller fehlt.</string>
   <string name="error_car_model_required">Modell fehlt.</string>
   <string name="error_car_registration_year">Erstzulassung ist ungültig.</string>
-  <string name="error_car_mileage">Kilometerstand ist ungültig.</string>
   <string name="error_car_price">Preis ist ungültig.</string>
   <string name="error_car_seller_required">Bitte einen Verkäufer auswählen.</string>
   <string name="error_car_image_required">Bitte mindestens ein Fahrzeugbild auswählen.</string>

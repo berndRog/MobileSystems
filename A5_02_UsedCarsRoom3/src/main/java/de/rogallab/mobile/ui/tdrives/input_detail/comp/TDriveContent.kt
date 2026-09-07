@@ -78,16 +78,6 @@ fun TDriveContent(
          imeAction = ImeAction.Next,
       )
 
-      InputValueString(
-         value = tDrive.notes.orEmpty(),
-         onValueChange = { notes ->
-            onIntent(TDriveIntent.NotesChanged(notes))
-         },
-         label = stringResource(R.string.test_drive_field_notes),
-         leadingIcon = Icons.Default.Description,
-         imeAction = ImeAction.Done,
-      )
-
       Row(
          modifier = Modifier.fillMaxWidth(),
          verticalAlignment = Alignment.CenterVertically,

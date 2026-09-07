@@ -72,7 +72,7 @@ class UsedCarsRelationshipTest {
    private fun person(id: String, first: String, last: String) =
       PersonDto(id, first, last, null, null, null)
    private fun car(id: String, sellerId: String, model: String) =
-      CarDto(id, "Volkswagen", model, 2021, 42500, 21900, sellerId)
+      CarDto(id, "Volkswagen", model, 2021, 42500,  sellerId)
    private fun drive(id: String, personId: String, carId: String, start: String) =
-      TDriveDto(id, personId, carId, start, null, false)
+      TDriveDto(id, personId, carId, start,  false)
 }

@@ -95,9 +95,8 @@ class SeedDatabase(
             id = FIAT_ID,
             manufacturer = "Fiat",
             model = "500",
-            registrationYear = 2023,
-            mileage = 42_500,
-            priceInEuro = 18_900,
+            year = 2023,
+            price = 18_900,
             sellerId = ARNE_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_fiat_500, "fiat_500_01"),
@@ -111,9 +110,8 @@ class SeedDatabase(
             id = GOLF_ID,
             manufacturer = "Volkswagen",
             model = "Golf 8",
-            registrationYear = 2022,
-            mileage = 42_500,
-            priceInEuro = 18_900,
+            year = 2022,
+            price = 18_900,
             sellerId = ARNE_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_vw_golf, "vw_golf8_01"),
@@ -129,9 +127,8 @@ class SeedDatabase(
             id = MOKKA_ID,
             manufacturer = "Opel",
             model = "Mokka-E",
-            registrationYear = 2022,
-            mileage = 31_400,
-            priceInEuro = 20_500,
+            year = 2022,
+            price = 20_500,
             sellerId = BERTA_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_opel_mokka, "opel_mokka_01"),
@@ -145,9 +142,8 @@ class SeedDatabase(
             id = SEAT_ID,
             manufacturer = "Seat",
             model = "Ibiza TSI",
-            registrationYear = 2024,
-            mileage = 68_310,
-            priceInEuro = 28_500,
+            year = 2024,
+            price = 28_500,
             sellerId = CORD_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_seat_ibiza_2025, "seat_ibiza_01"),
@@ -160,9 +156,8 @@ class SeedDatabase(
             id = CAPTUR_ID,
             manufacturer = "Renault",
             model = "CAPTUR E-Tech",
-            registrationYear = 2024,
-            mileage = 18_500,
-            priceInEuro = 32_500,
+            year = 2024,
+            price = 32_500,
             sellerId = DAGMAR_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_renault_captur, "renault_capture_01"),
@@ -179,9 +174,8 @@ class SeedDatabase(
             id = E308_ID,
             manufacturer = "Peugot",
             model = "E308",
-            registrationYear = 2025,
-            mileage = 12_500,
-            priceInEuro = 35_500,
+            year = 2025,
+            price = 35_500,
             sellerId = DAGMAR_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_peugot_e308, "peugot_e308_01"),
@@ -195,9 +189,8 @@ class SeedDatabase(
             id = SCALA_ID,
             manufacturer = "Scoda",
             model = "Scala TSI",
-            registrationYear = 2025,
-            mileage = 23_800,
-            priceInEuro = 35_500,
+            year = 2025,
+            price = 35_500,
             sellerId = DAGMAR_ID,
             imagePaths = listOf(
                convertDrawable(R.drawable.car_peugot_e308, "peugot_e308_01"),
@@ -228,7 +221,6 @@ class SeedDatabase(
             personId = FRIEDA_ID,
             carId = FIAT_ID,
             start = "2026-08-04T14:00:00",
-            notes = "Führerschein prüfen",
             isCompleted = false,
          )
       )
@@ -238,7 +230,6 @@ class SeedDatabase(
             personId = FRIEDA_ID,
             carId = GOLF_ID,
             start = "2026-08-06T10:30:00",
-            notes = "Kombi vergleichen",
             isCompleted = false,
          )
       )
@@ -248,7 +239,6 @@ class SeedDatabase(
             personId = HANNA_ID,
             carId = FIAT_ID,
             start = "2026-08-07T16:00:00",
-            notes = "Probefahrt Golf",
             isCompleted = true,
          )
       )

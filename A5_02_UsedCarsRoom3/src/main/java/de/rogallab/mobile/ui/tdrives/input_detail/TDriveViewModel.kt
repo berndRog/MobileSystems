@@ -65,7 +65,6 @@ class TDriveViewModel(
          is TDriveIntent.PersonChanged -> update { it.copy(personId = intent.personId) }
          is TDriveIntent.CarChanged -> update { it.copy(carId = intent.carId) }
          is TDriveIntent.StartChanged -> _stateFlow.update { state: TDriveUiState -> state.copy(startInput = intent.value) }
-         is TDriveIntent.NotesChanged -> update { it.copy(notes = intent.value.trim().takeUnless(String::isBlank)) }
          is TDriveIntent.CompletedChanged -> update { it.copy(isCompleted = intent.value) }
          TDriveIntent.Save -> save()
          TDriveIntent.Cancel -> navigateBack(BackReason.Cancel)
@@ -116,7 +115,7 @@ class TDriveViewModel(
       if (start == null) {
          showError(_validator.validateStart(state.startInput).orEmpty()); return
       }
-      val normalized = tDrive.copy(start = start, notes = tDrive.notes?.trim()?.takeUnless(String::isBlank))
+      val normalized = tDrive.copy(start = start)
       val error = _validator.validateTestDrive(normalized, state.startInput)
       if (error != null) { showError(error); return }
       _stateFlow.update { current: TDriveUiState -> current.copy(tDrive = normalized) }
