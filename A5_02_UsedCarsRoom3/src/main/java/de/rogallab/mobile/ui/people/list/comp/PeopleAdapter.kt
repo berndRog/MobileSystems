@@ -78,10 +78,8 @@ fun PeopleAdapter(
             containerColor = colorScheme.secondary,
             onClick = { viewModel.onIntent(PeopleIntent.Create) },
             icon = {
-               Icon(
-                  imageVector = Icons.Default.Add,
-                  contentDescription = null,
-               )
+               Icon(imageVector = Icons.Default.Add,
+                  contentDescription = null)
             },
             text = { Text(text = stringResource(R.string.action_create)) },
          )

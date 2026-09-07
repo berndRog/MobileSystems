@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,29 +60,22 @@ fun TDriveAdapter(
       topBar = {
          TopAppBar(
             title = {
-               Text(
-                  stringResource(
+               Text(stringResource(
                      if (tDriveUiState.isNew) R.string.test_drive_create_title
-                     else R.string.test_drive_edit_title,
-                  )
-               )
+                     else R.string.test_drive_edit_title))
             },
             navigationIcon = {
                IconButton(onClick = { viewModel.onIntent(TDriveIntent.Save) }) {
-                  Icon(
-                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save),
-                  )
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                     contentDescription = stringResource(R.string.action_save))
                }
             },
          )
       },
       bottomBar = bottomBar,
       snackbarHost = {
-         SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.imePadding(),
-         )
+         SnackbarHost(hostState = snackbarHostState,
+            modifier = Modifier.imePadding())
       },
    ) { innerPadding ->
       if (tDriveUiState.isLoading) {
@@ -100,7 +95,10 @@ fun TDriveAdapter(
             onIntent = viewModel::onIntent,
             modifier = Modifier
                .fillMaxSize()
-               .padding(innerPadding),
+               .padding(innerPadding)
+               .padding(horizontal = 16.dp)
+               .verticalScroll(rememberScrollState())
+               .imePadding(),
          )
       }
    }

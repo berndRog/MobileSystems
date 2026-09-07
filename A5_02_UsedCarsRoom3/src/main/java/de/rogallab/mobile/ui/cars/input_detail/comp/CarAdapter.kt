@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,12 +72,9 @@ fun CarAdapter(
       topBar = {
          TopAppBar(
             title = {
-               Text(
-                  stringResource(
+               Text(text = stringResource(
                      if (carUiState.isNew) R.string.car_create_title
-                     else R.string.car_edit_title,
-                  )
-               )
+                     else R.string.car_edit_title))
             },
             navigationIcon = {
                IconButton(onClick = { viewModel.onIntent(CarIntent.Save) }) {
@@ -128,16 +127,15 @@ fun CarAdapter(
                CarScreen(
                   carUiState = carUiState,
                   validator = validator,
-                  onSelectImages = {
-                     if (canAddMoreImages) galleryActions.selectFromGallery()
-                  },
-                  onTakePhoto = {
-                     if (canAddMoreImages) cameraActions.takePhoto()
-                  },
+                  onSelectImages = { if (canAddMoreImages) galleryActions.selectFromGallery() },
+                  onTakePhoto = { if (canAddMoreImages) cameraActions.takePhoto() },
                   onIntent = viewModel::onIntent,
                   modifier = Modifier
                      .fillMaxSize()
-                     .padding(innerPadding),
+                     .padding(innerPadding)
+                     .padding(horizontal = 16.dp)
+                     .verticalScroll(rememberScrollState())
+                     .imePadding(),
                )
             }
          }

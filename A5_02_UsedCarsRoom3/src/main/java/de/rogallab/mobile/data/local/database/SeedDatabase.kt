@@ -89,80 +89,136 @@ class SeedDatabase(
    }
 
    private suspend fun seedCars() {
-      _carDao.insert(
-         listOf(
-            CarDto(
-               id = GOLF_ID,
-               manufacturer = "Volkswagen",
-               model = "Golf VIII",
-               registrationYear = 2021,
-               mileage = 42_500,
-               priceInEuro = 21_900,
-               sellerId = ARNE_ID,
-               imagePaths = listOf(
-                  GOLF_FRONT,
-                  GOLF_REAR,
-                  GOLF_INTERIOR,
-               ),
+
+      val cars = listOf(
+         CarDto(
+            id = FIAT_ID,
+            manufacturer = "Fiat",
+            model = "500",
+            registrationYear = 2023,
+            mileage = 42_500,
+            priceInEuro = 18_900,
+            sellerId = ARNE_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_fiat_500, "fiat_500_01"),
+               convertDrawable(R.drawable.digit_2, "fiat_500_02"),
+               convertDrawable(R.drawable.digit_3, "fiat_500_03"),
+               convertDrawable(R.drawable.digit_4, "fiat_500_04"),
+               convertDrawable(R.drawable.digit_5, "fiat_500_05"),
             ),
-            CarDto(
-               id = OCTAVIA_ID,
-               manufacturer = "Škoda",
-               model = "Octavia IV",
-               registrationYear = 2020,
-               mileage = 68_900,
-               priceInEuro = 18_900,
-               sellerId = BERTA_ID,
-               imagePaths = listOf(
-                  OCTAVIA_FRONT,
-                  OCTAVIA_REAR,
-                  OCTAVIA_INTERIOR,
-               ),
+         ),
+         CarDto(
+            id = GOLF_ID,
+            manufacturer = "Volkswagen",
+            model = "Golf 8",
+            registrationYear = 2022,
+            mileage = 42_500,
+            priceInEuro = 18_900,
+            sellerId = ARNE_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_vw_golf, "vw_golf8_01"),
+               convertDrawable(R.drawable.digit_2, "vw_golf8_02"),
+               convertDrawable(R.drawable.digit_3, "vw_golf8_03"),
+               convertDrawable(R.drawable.digit_4, "vw_golf8_04"),
+               convertDrawable(R.drawable.digit_5, "vw_golf8_05"),
+               convertDrawable(R.drawable.digit_6, "vw_golf8_06"),
+               convertDrawable(R.drawable.digit_7, "vw_golf8_07"),
             ),
-            CarDto(
-               id = ASTRA_ID,
-               manufacturer = "Opel",
-               model = "Astra L",
-               registrationYear = 2022,
-               mileage = 31_400,
-               priceInEuro = 20_500,
-               sellerId = CORD_ID,
-               imagePaths = listOf(
-                  ASTRA_FRONT,
-                  ASTRA_REAR,
-                  ASTRA_INTERIOR,
-               ),
+         ),
+         CarDto(
+            id = MOKKA_ID,
+            manufacturer = "Opel",
+            model = "Mokka-E",
+            registrationYear = 2022,
+            mileage = 31_400,
+            priceInEuro = 20_500,
+            sellerId = BERTA_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_opel_mokka, "opel_mokka_01"),
+               convertDrawable(R.drawable.digit_2, "opel_mokka_02"),
+               convertDrawable(R.drawable.digit_3, "opel_mokka_03"),
+               convertDrawable(R.drawable.digit_4, "opel_mokka_04"),
+               convertDrawable(R.drawable.digit_5, "opel_mokka_05"),
             ),
-            CarDto(
-               id = BMW_ID,
-               manufacturer = "BMW",
-               model = "320d xDrive M Sport",
-               registrationYear = 2019,
-               mileage = 76_300,
-               priceInEuro = 24_900,
-               sellerId = ARNE_ID,
-               imagePaths = listOf(
-                  BMW_FRONT,
-                  BMW_REAR,
-                  BMW_INTERIOR,
-               ),
+         ),
+         CarDto(
+            id = SEAT_ID,
+            manufacturer = "Seat",
+            model = "Ibiza TSI",
+            registrationYear = 2024,
+            mileage = 68_310,
+            priceInEuro = 28_500,
+            sellerId = CORD_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_seat_ibiza_2025, "seat_ibiza_01"),
+               convertDrawable(R.drawable.digit_2, "seat_ibiza_02"),
+               convertDrawable(R.drawable.digit_3, "seat_ibiza_03"),
+               convertDrawable(R.drawable.digit_4, "seat_ibiza_04"),
             ),
-            CarDto(
-               id = FOCUS_ID,
-               manufacturer = "Ford",
-               model = "Focus ST-Line",
-               registrationYear = 2018,
-               mileage = 91_200,
-               priceInEuro = 13_900,
-               sellerId = BERTA_ID,
-               imagePaths = listOf(
-                  FOCUS_FRONT,
-                  FOCUS_REAR,
-                  FOCUS_INTERIOR,
-               ),
+         ),
+         CarDto(
+            id = CAPTUR_ID,
+            manufacturer = "Renault",
+            model = "CAPTUR E-Tech",
+            registrationYear = 2024,
+            mileage = 18_500,
+            priceInEuro = 32_500,
+            sellerId = DAGMAR_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_renault_captur, "renault_capture_01"),
+               convertDrawable(R.drawable.digit_2, "renault_capture_02"),
+               convertDrawable(R.drawable.digit_3, "renault_capture_03"),
+               convertDrawable(R.drawable.digit_4, "renault_capture_04"),
+               convertDrawable(R.drawable.digit_5, "renault_capture_05"),
+               convertDrawable(R.drawable.digit_6, "renault_capture_06"),
+               convertDrawable(R.drawable.digit_7, "renault_capture_07"),
+               convertDrawable(R.drawable.digit_8, "renault_capture_08"),
+            ),
+         ),
+         CarDto(
+            id = E308_ID,
+            manufacturer = "Peugot",
+            model = "E308",
+            registrationYear = 2025,
+            mileage = 12_500,
+            priceInEuro = 35_500,
+            sellerId = DAGMAR_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_peugot_e308, "peugot_e308_01"),
+               convertDrawable(R.drawable.digit_2, "peugot_e308_02"),
+               convertDrawable(R.drawable.digit_3, "peugot_e308_03"),
+               convertDrawable(R.drawable.digit_4, "peugot_e308_04"),
+               convertDrawable(R.drawable.digit_5, "peugot_e308_05")
+            ),
+         ),
+         CarDto(
+            id = SCALA_ID,
+            manufacturer = "Scoda",
+            model = "Scala TSI",
+            registrationYear = 2025,
+            mileage = 23_800,
+            priceInEuro = 35_500,
+            sellerId = DAGMAR_ID,
+            imagePaths = listOf(
+               convertDrawable(R.drawable.car_peugot_e308, "peugot_e308_01"),
+               convertDrawable(R.drawable.digit_2, "peugot_e308_02"),
+               convertDrawable(R.drawable.digit_3, "peugot_e308_03"),
+               convertDrawable(R.drawable.digit_4, "peugot_e308_04"),
+               convertDrawable(R.drawable.digit_5, "peugot_e308_05")
             ),
          )
       )
+      _carDao.insert(cars)
+
+   }
+
+   private suspend fun convertDrawable(drawableResId: Int, fileName: String): String {
+      return _imageFileStorage.saveDrawableToAppStorage(
+         drawableResId = drawableResId,
+         fileName = fileName,
+         format = ImageFileFormat.Png,
+         quality = 90,
+      ).getOrThrow()
    }
 
    private suspend fun seedTestDrives() {
@@ -170,7 +226,7 @@ class SeedDatabase(
          TDriveDto(
             id = TDRIVE_1_ID,
             personId = FRIEDA_ID,
-            carId = GOLF_ID,
+            carId = FIAT_ID,
             start = "2026-08-04T14:00:00",
             notes = "Führerschein prüfen",
             isCompleted = false,
@@ -180,7 +236,7 @@ class SeedDatabase(
          TDriveDto(
             id = TDRIVE_2_ID,
             personId = FRIEDA_ID,
-            carId = OCTAVIA_ID,
+            carId = GOLF_ID,
             start = "2026-08-06T10:30:00",
             notes = "Kombi vergleichen",
             isCompleted = false,
@@ -190,7 +246,7 @@ class SeedDatabase(
          TDriveDto(
             id = TDRIVE_3_ID,
             personId = HANNA_ID,
-            carId = GOLF_ID,
+            carId = FIAT_ID,
             start = "2026-08-07T16:00:00",
             notes = "Probefahrt Golf",
             isCompleted = true,
@@ -205,79 +261,28 @@ class SeedDatabase(
          index + 1,
       )
 
-   private companion object {
-      const val ARNE_ID = "01000000-0000-0000-0000-000000000000"
-      const val BERTA_ID = "02000000-0000-0000-0000-000000000000"
-      const val CORD_ID = "03000000-0000-0000-0000-000000000000"
-      const val FRIEDA_ID = "06000000-0000-0000-0000-000000000000"
-      const val HANNA_ID = "08000000-0000-0000-0000-000000000000"
 
-      const val GOLF_ID = "795937c2-f61a-4fd8-9343-d2280140e1e1"
-      const val OCTAVIA_ID = "44a39e30-eb2e-4095-a2f2-6744fa1d12d0"
-      const val ASTRA_ID = "35000000-0000-0000-0000-000000000001"
-      const val BMW_ID = "35000000-0000-0000-0000-000000000002"
-      const val FOCUS_ID = "35000000-0000-0000-0000-000000000003"
+   private companion object {
+      const val ARNE_ID   = "01000000-0000-0000-0000-000000000000"
+      const val BERTA_ID  = "02000000-0000-0000-0000-000000000000"
+      const val CORD_ID   = "03000000-0000-0000-0000-000000000000"
+      const val DAGMAR_ID = "04000000-0000-0000-0000-000000000000"
+      const val ERNST_ID  = "05000000-0000-0000-0000-000000000000"
+      const val FRIEDA_ID = "06000000-0000-0000-0000-000000000000"
+      const val HANNA_ID  = "08000000-0000-0000-0000-000000000000"
+
+      const val FIAT_ID   = "00000000-0100-0000-0000-000000000000"
+      const val GOLF_ID   = "00000000-0200-0000-0000-000000000000"
+      const val MOKKA_ID  = "00000000-0300-0000-0000-000000000000"
+      const val SEAT_ID   = "00000000-0400-0000-0000-000000000000"
+      const val CAPTUR_ID = "00000000-0500-0000-0000-000000000000"
+      const val E308_ID   = "00000000-0600-0000-0000-000000000000"
+      const val SCALA_ID  = "00000000-0700-0000-0000-000000000000"
+
 
       const val TDRIVE_1_ID = "50df1fbc-c915-4ce4-8d3e-168fe3013e03"
       const val TDRIVE_2_ID = "50df1fbc-c915-4ce4-8d3e-168fe3013e04"
       const val TDRIVE_3_ID = "50df1fbc-c915-4ce4-8d3e-168fe3013e05"
-
-      const val GOLF_FRONT =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Volkswagen%20Golf%20VIII%20IMG%203381.jpg?width=1280"
-      const val GOLF_REAR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Volkswagen%20Golf%20VIII%20IMG%202052.jpg?width=1280"
-      const val GOLF_INTERIOR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Volkswagen%20Golf%20VIII%20-%20Life%201st%20-%20" +
-            "Int%C3%A9rieur.jpg?width=1280"
-
-      const val OCTAVIA_FRONT =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2021%20Skoda%20Octavia%20SE%20First%20Edition%20TSi%20" +
-            "e-TEC%20SA%201.0%20Front.jpg?width=1280"
-      const val OCTAVIA_REAR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2021%20Skoda%20Octavia%20SE%20First%20Edition%20TSi%20" +
-            "e-TEC%20SA%201.0%20Rear.jpg?width=1280"
-      const val OCTAVIA_INTERIOR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Skoda%20Octavia%20IV%20interior.jpg?width=1280"
-
-      const val ASTRA_FRONT =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Opel%20Astra%20L%201X7A0336.jpg?width=1280"
-      const val ASTRA_REAR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "Opel%20Astra%20L%201X7A0338.jpg?width=1280"
-      const val ASTRA_INTERIOR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2022%20Vauxhall%20Astra%20GS-Line%201.2%20" +
-            "%28Interior%29.jpg?width=1280"
-
-      const val BMW_FRONT =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2019%20BMW%20320d%20xDrive%20M%20Sport%202.0%20" +
-            "Front.jpg?width=1280"
-      const val BMW_REAR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2019%20BMW%20320d%20xDrive%20M%20Sport%202.0%20" +
-            "Rear.jpg?width=1280"
-      const val BMW_INTERIOR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2019%20BMW%20320d%20xDrive%20M%20Sport%202.0%20" +
-            "Interior.jpg?width=1280"
-
-      const val FOCUS_FRONT =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2018%20Ford%20Focus%20ST-Line%20Front.jpg?width=1280"
-      const val FOCUS_REAR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2018%20Ford%20Focus%20ST-Line%20Rear.jpg?width=1280"
-      const val FOCUS_INTERIOR =
-         "https://commons.wikimedia.org/wiki/Special:Redirect/file/" +
-            "2018%20Ford%20Focus%20ST-Line%20X%20Interior.jpg?width=1280"
    }
 }
 

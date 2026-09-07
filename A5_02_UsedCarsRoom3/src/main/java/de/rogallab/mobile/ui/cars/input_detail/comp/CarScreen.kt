@@ -70,15 +70,6 @@ fun CarScreen(
 
    Column(
       modifier = modifier
-         .verticalScroll(rememberScrollState())
-         .imePadding()
-         .padding(
-            start = 16.dp,
-            top = 8.dp,
-            end = 16.dp,
-            bottom = 24.dp,
-         ),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
    ) {
       InputValueString(
          value = car.manufacturer,
@@ -228,8 +219,8 @@ private fun CarImagePreviewList(
                      R.string.car_image_preview_numbered,
                      imageIndex + 1,
                   ),
-                  contentScale = ContentScale.Crop,
-                  modifier = Modifier.fillMaxWidth(),
+                  contentScale = ContentScale.Fit,
+                  //modifier = Modifier.fillMaxWidth(),
                )
             }
 

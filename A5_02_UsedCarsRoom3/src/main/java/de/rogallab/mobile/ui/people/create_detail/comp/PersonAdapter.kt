@@ -161,9 +161,7 @@ fun PersonAdapter(
                   imageActionsEnabled = !cameraActions.isBusy,
                   onSelectPhoto = galleryActions.selectFromGallery,
                   onTakePhoto = cameraActions.takePhoto,
-                  onRemovePhoto = {
-                     viewModel.onIntent(PersonIntent.RemoveImage(null))
-                  },
+                  onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
                   onSave = { viewModel.onIntent(PersonIntent.Save) },
                   onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
                   modifier = Modifier
