@@ -1,6 +1,6 @@
 package de.rogallab.mobile.data.remote
 
-import de.rogallab.mobile.data.mapping.toPersonDto
+import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -18,14 +18,21 @@ class SeedApi(
 
          _seed.createPeopleList()
 
-         _seed.people.map { person ->
-            //person.toPersonDto()
+         for (person: Person in _seed.people) {
             _personWeb.create(
-               firstName = person.firstName,
-               lastName = person.lastName,
-
+               firstName = person.firstName.toTextPart(),
+               lastName = person.lastName.toTextPart(),
+               email = person.email?.toTextPart(),
+               phone = person.phone?.toTextPart(),
+               id = person.id.toTextPart(),
+               image = person.imagePath.toImagePartOrNull(),
             )
          }
+
+         // The server now owns the uploaded images. Remove temporary seed files.
+         _seed.deleteLocalImages()
+
+         Alog.i(TAG, "seed: ${_seed.people.size} people created")
          return true
       }
       catch (exception: CancellationException) {
@@ -45,6 +52,14 @@ class SeedApi(
 /*
  * Didaktik und Lernziele
  *
- * - SeedDatabase verwendet unmittelbar das lokale IPersonDao von A5_01.
- * - Die Beispieldaten werden nur in eine leere Datenbank geschrieben.
+ * - Vor dem Seeding fragt der Client nur GET /people/count ab. Die vollständige
+ *   Personenliste muss für die Leerprüfung nicht übertragen werden.
+ * - Ist die API leer, erzeugt Seed die Beispieldaten und SeedApi sendet jede Person
+ *   über denselben multipart/form-data-Vertrag wie normale Create-Operationen.
+ * - Damit werden auch die Seed-Bilder vom People-UseCase der WebAPI gespeichert und
+ *   die resultierende ImageUrl serverseitig der jeweiligen Person zugeordnet.
+ * - Nach erfolgreichem Upload sind die lokalen Drawable-Kopien nur noch temporäre
+ *   Dateien und werden wieder aus dem privaten App-Verzeichnis entfernt.
+ * - CancellationException wird nicht verschluckt, damit Coroutine-Cancellation
+ *   weiterhin korrekt funktioniert.
  */
