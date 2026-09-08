@@ -1,7 +1,7 @@
 # all versions are actual on 2026-07-19
 [versions]
 activityCompose = "1.13.0"
-coil = "3.5.0"
+coil = "3.6.1"
 core = "1.19.0"
 composeBom = "2026.08.00"
 googleJson = "2.14.0"
