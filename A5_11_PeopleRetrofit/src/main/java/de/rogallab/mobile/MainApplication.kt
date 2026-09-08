@@ -1,17 +1,25 @@
 package de.rogallab.mobile
 
 import android.app.Application
+import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.di.appModule
 import de.rogallab.mobile.di.effectModule
 import de.rogallab.mobile.shared.di.imageStorageModule
 import de.rogallab.mobile.shared.di.utilitiesModule
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 
 class MainApplication : Application() {
+
+   private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
    override fun onCreate() {
       super.onCreate()
@@ -38,6 +46,12 @@ class MainApplication : Application() {
          modules(utilitiesModule())
          modules(imageStorageModule(Globals.imageDirectoryName))
       }
+
+      // Seed PeopleApi only when its People table is still empty.
+      val seedApi: SeedApi = get()
+      appScope.launch {
+         seedApi.seedPerson()
+      }
    }
 
    companion object {
@@ -51,13 +65,14 @@ class MainApplication : Application() {
  * - A5_11_PeopleRetrofit übernimmt UI, Navigation und UDF aus A5_01, ersetzt
  *   aber die lokale Room-Persistenz vollständig durch PeopleApi und Retrofit.
  *
- * - Es gibt deshalb keine lokale AppDatabase, kein DAO und kein SeedDatabase.
- *   Die 26 Beispieldatensätze werden vom Server bereitgestellt.
+ * - Die Beispieldaten werden jetzt ebenfalls vom Android-Client initialisiert:
+ *   SeedApi prüft zunächst GET /people/count und sendet die 26 Personen nur an
+ *   einen leeren Server. Die WebAPI selbst benötigt damit kein automatisches Seed.
  *
- * - appModule() registriert OkHttp, Retrofit, IPersonWebservice und das neue
+ * - appModule() registriert OkHttp, Retrofit, IPersonWebservice, SeedApi und das
  *   PersonRepository. Die ViewModels arbeiten weiterhin gegen IPersonRepository.
  *
- * - imageStorageModule() bleibt erhalten, weil Galerie und Kamera zunächst eine
- *   private lokale Datei liefern. Diese Datei existiert nur bis zum erfolgreichen
- *   Multipart-Upload; das persistente Bild wird anschließend vom Server verwaltet.
+ * - imageStorageModule() bleibt erhalten, weil Galerie, Kamera und Seed zunächst
+ *   private lokale Dateien liefern. Diese Dateien existieren nur bis zum
+ *   erfolgreichen Multipart-Upload; persistente Bilder verwaltet der Server.
  */
