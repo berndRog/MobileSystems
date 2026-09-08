@@ -1,4 +1,4 @@
-package de.rogallab.mobile.data.local
+package de.rogallab.mobile.data.remote
 
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
@@ -19,7 +19,7 @@ class Seed(
 
    var people: MutableList<Person> = mutableListOf<Person>()
 
-   suspend fun createPeopleList() {
+   fun createPeopleList() {
       val firstNames = mutableListOf(
          "Arne", "Berta", "Cord", "Dagmar", "Ernst", "Frieda", "Günter", "Hanna",
          "Ingo", "Johanna", "Klaus", "Luise", "Martin", "Nadja", "Otto", "Patrizia",
@@ -38,7 +38,6 @@ class Seed(
 //         var indexLast = random.nextInt(lastNames.size)
          val firstName = firstNames[index]
          val lastName = lastNames[index]
-
 
          val provider = emailProvider[index % emailProvider.size]   // rotiert bei Überlauf wieder von vorne
          val email = sanitizeEmailInput(
