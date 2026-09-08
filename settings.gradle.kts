@@ -51,5 +51,5 @@ include(":A4_01_ImagePicker")
 include(":A5_01_PeopleRoom3")
 include(":A5_02_UsedCarsRoom3")
 include(":A5_10_NewsRetrofit")
+include(":A5_11_PeopleRetrofit")
 include(":Shared")
-
