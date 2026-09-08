@@ -1,9 +1,7 @@
 package de.rogallab.mobile
 
 object Globals {
-   // 10.0.2.2 addresses the host computer from the Android Emulator.
-   // On a physical device replace this host with the computer's WLAN address.
-   // const val baseUrl = "http://10.0.2.2:5080/"
+   // adb reverse tcp:5080 tcp:5080 forwards this emulator loopback port to the Mac.
    const val baseUrl = "http://127.0.0.1:5080/"
 
    // Local image files are only temporary upload files in A5_11.
@@ -16,8 +14,10 @@ object Globals {
  * Didaktik und Lernziele
  *
  * - Retrofit benötigt eine Base-URL, die mit '/' endet.
- * - Im Android Emulator bezeichnet localhost das Android-Gerät selbst. Der Host-
- *   Rechner ist über 10.0.2.2 erreichbar.
- * - Das lokale Bildverzeichnis enthält in A5_11 nur temporäre Picker-Dateien.
+ * - A5_11 verwendet adb reverse. Dadurch kann der Android-Client die lokale
+ *   PeopleApi über 127.0.0.1:5080 ansprechen, obwohl die API auf dem Mac läuft.
+ * - Auch vom Server erzeugte ImageUrls verwenden denselben Host und benötigen
+ *   deshalb keine zusätzliche 10.0.2.2-Umschreibung im Client.
+ * - Das lokale Bildverzeichnis enthält nur temporäre Picker- und Seed-Dateien.
  *   Persistente Bilder werden von PeopleApi gespeichert und als URL geliefert.
  */
