@@ -17,6 +17,9 @@ interface IPersonWebservice {
    @GET("peopleapi/v1/people")
    suspend fun getAll(): List<PersonDto>
 
+   @GET("peopleapi/v1/people/count")
+   suspend fun countAll(): Int
+
    @GET("peopleapi/v1/people/{id}")
    suspend fun getById(
       @Path("id") id: String,
@@ -55,7 +58,9 @@ interface IPersonWebservice {
  * Didaktik und Lernziele
  *
  * - IPersonWebservice beschreibt ausschließlich den HTTP-Vertrag der PeopleApi.
- * - GET liefert JSON und wird durch Gson direkt in PersonDto übersetzt.
+ * - GET liefert JSON und wird durch Gson direkt in PersonDto bzw. Int übersetzt.
+ * - countAll() ermöglicht eine leichte Vorabprüfung, ob der Server bereits
+ *   Personendaten enthält, ohne dafür die komplette Liste übertragen zu müssen.
  * - POST und PUT verwenden multipart/form-data, weil Personendaten und optional
  *   eine Bilddatei gemeinsam in genau einem Request übertragen werden.
  * - Das Webservice kennt weder Domain-Entität noch ViewModel. Diese Entkopplung
