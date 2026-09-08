@@ -19,7 +19,7 @@ class Seed(
 
    var people: MutableList<Person> = mutableListOf<Person>()
 
-   suspend fun createPeopleList() {
+   fun createPeopleList() {
       val firstNames = mutableListOf(
          "Arne", "Berta", "Cord", "Dagmar", "Ernst", "Frieda", "Günter", "Hanna",
          "Ingo", "Johanna", "Klaus", "Luise", "Martin", "Nadja", "Otto", "Patrizia",
@@ -30,8 +30,8 @@ class Seed(
          "Imhoff", "Jung", "Klein", "Lang", "Meier", "Neumann", "Olbrich", "Peters",
          "Quart", "Richter", "Schmidt", "Thormann", "Ulrich", "Vogel", "Wagner", "Xander",
          "Yakov", "Zander")
-      val emailProvider = mutableListOf("gmail.com", "icloud.com", "outlook.com", "yahoo.com",
-         "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "yahoo.com", "web.de")
+      val emailProvider = mutableListOf("gmail.com", "icloud.com", "outlook.com",
+         "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "posteo.de", "yahoo.com", "web.de")
       val random = Random(0)
       for (index in firstNames.indices) {
 //         var indexFirst = random.nextInt(firstNames.size)
@@ -39,10 +39,11 @@ class Seed(
          val firstName = firstNames[index]
          val lastName = lastNames[index]
 
+         val provider = emailProvider[index % emailProvider.size]   // rotiert bei Überlauf wieder von vorne
          val email = sanitizeEmailInput(
             "${firstName.lowercase(locale = Locale.ROOT)}." +
-            "${lastName.lowercase(locale = Locale.ROOT)}@" +
-            "${emailProvider.random()}")
+               "${lastName.lowercase(locale = Locale.ROOT)}@" +
+               "${provider}")
 
          val phone: String = sanitizePhoneInput(
             "0${random.nextInt(1234, 9999)} " +
@@ -84,12 +85,12 @@ class Seed(
             format = ImageFileFormat.Jpeg,
             quality = 90,
          )
-         .getOrElse { throwable ->
-            val message = throwable.localizedMessage
-               ?: "Failed to create seed image: $uuidString"
-            Alog.e("<-Seed", message)
-            throw throwable
-         }
+            .getOrElse { throwable ->
+               val message = throwable.localizedMessage
+                  ?: "Failed to create seed image: $uuidString"
+               Alog.e("<-Seed", message)
+               throw throwable
+            }
          Alog.d("<-Seed", "Uri: $imagePath")
 
          // Update the person with the image path

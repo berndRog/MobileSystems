@@ -30,7 +30,7 @@ fun appModule(): Module = module {
    single<HttpLoggingInterceptor> {
       HttpLoggingInterceptor().apply {
          level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.HEADERS
+            HttpLoggingInterceptor.Level.BASIC
          }
          else {
             HttpLoggingInterceptor.Level.NONE
