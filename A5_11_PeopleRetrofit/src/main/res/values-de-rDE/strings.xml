@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">A5_01 PeopleRoom3</string>
+  <string name="app_name">A5_11 PeopleRetrofit</string>
 
   <string name="person_create">Person hinzufügen</string>
   <string name="person_detail">Person bearbeiten</string>

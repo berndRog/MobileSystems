@@ -23,15 +23,12 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the observable UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
 
-   // Exposes the state as a read-only StateFlow to the UI.
    val stateFlow: StateFlow<PeopleUiState> =
       _stateFlow.asStateFlow()
 
-   // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
 
    init {
@@ -39,7 +36,6 @@ class PeopleViewModel(
       observePeople()
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -51,16 +47,12 @@ class PeopleViewModel(
       }
    }
 
-   // Emits the navigation effect. A null id opens the create destination.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
-         _effectDelegate.emit(
-            PeopleEffect.NavigateTo(personId)
-         )
+         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
       }
    }
 
-   // Requests confirmation before the repository is changed.
    private fun requestRemove(personId: String) {
       val person = _stateFlow.value.people.find { person: Person ->
          person.id == personId
@@ -89,7 +81,6 @@ class PeopleViewModel(
       }
    }
 
-   // Deletes the person only after the confirmation action was selected.
    private fun confirmRemove(personId: String) {
       val person = _stateFlow.value.people.find { person: Person ->
          person.id == personId
@@ -103,18 +94,14 @@ class PeopleViewModel(
       remove(person)
    }
 
-   // Observes the repository and publishes its current list as UI state.
    private fun observePeople() {
       _observeJob?.cancel()
 
       _observeJob = viewModelScope.launch {
-
-         // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
             state.copy(isLoading = true)
          }
 
-         // Simulate a longer loading operation.
          delay(1000)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
@@ -137,7 +124,6 @@ class PeopleViewModel(
       }
    }
 
-   // Deletes the confirmed person from the repository.
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
@@ -149,7 +135,6 @@ class PeopleViewModel(
       }
    }
 
-   // Reports that the requested person is no longer available.
    private fun emitPersonNotFound() {
       viewModelScope.launch {
          val error =
@@ -166,28 +151,31 @@ class PeopleViewModel(
 /*
  * Didaktik und Lernziele
  *
- * - A5_01_PeopleRoom3 übernimmt den UDF-Ablauf der vorherigen Beispiele
- *   unverändert: Die UI sendet Intents, PeopleViewModel aktualisiert den State
- *   beziehungsweise erzeugt einmalige Effects.
+ * - A5_11_PeopleRetrofit übernimmt PeopleViewModel aus A5_01 nahezu unverändert.
+ *   Die UI sendet weiterhin Intents, das ViewModel aktualisiert State und erzeugt
+ *   einmalige Effects.
  *
- * - Swipe-to-Delete verwendet weiterhin die einfache Bestätigung aus A4_01.
- *   RequestRemove verändert die Datenbank noch nicht. Das ViewModel erzeugt
- *   zunächst ConfirmRemove mit Meldung, Action-Label und Person-ID.
+ * - Der entscheidende Austausch findet hinter IPersonRepository statt:
  *
- * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
- *   PeopleIntent.ConfirmRemove. Danach wird _repository.remove(...) ausgeführt.
- *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person erhalten.
+ *      A5_01 -> Room 3 / SQLite
+ *      A5_11 -> Retrofit / PeopleApi
  *
- * - Neu ist nicht das ViewModel, sondern die Implementierung hinter
- *   IPersonRepository: PersonRepository greift in A5_01 auf das lokale
- *   Room-3-DAO zu. Dadurch bleibt die UI unabhängig von der Persistenztechnik.
+ *   Dadurch ist im ViewModel keine Retrofit-, HTTP- oder JSON-Klasse sichtbar.
  *
- * - A5_01 verwendet bewusst keinen VisualRemovalDelegate und kein Undo. Die
- *   komplexere Undo-Variante bleibt als eigener Lernschritt in A4_02 sichtbar.
+ * - observeAll() bleibt ein Flow. Da REST im Gegensatz zu Room keinen lokalen
+ *   beobachtbaren Datenbank-Flow bereitstellt, bildet PersonRepository die zuletzt
+ *   geladene Serverliste auf einen kleinen StateFlow-Cache ab. Erfolgreiche POST-,
+ *   PUT- und DELETE-Aufrufe aktualisieren diesen Cache.
+ *
+ * - Swipe-to-Delete verwendet weiterhin die einfache Bestätigung: Erst nach der
+ *   Snackbar-Aktion wird _repository.remove(...) ausgeführt. Das Repository sendet
+ *   daraufhin DELETE /people/{id}; die PeopleApi löscht auch ein zugehöriges
+ *   Serverbild in der richtigen Reihenfolge.
  *
  * Lernziele:
  *
- * - Eine bestehende UI gegen eine neue Persistenzimplementierung weiterverwenden.
- * - Repository als Grenze zwischen ViewModel und Room verstehen.
- * - Delete-Bestätigung und persistente Löschung klar voneinander trennen.
+ * - UI und ViewModel von der konkreten Datenquelle entkoppeln.
+ * - Einen stabilen Repository-Port für lokale und entfernte Datenquellen nutzen.
+ * - Den Unterschied zwischen beobachtbarer lokaler DB und request-basierter REST-
+ *   API erkennen.
  */

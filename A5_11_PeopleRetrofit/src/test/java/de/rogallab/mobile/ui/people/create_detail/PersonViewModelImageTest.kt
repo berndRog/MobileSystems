@@ -7,7 +7,6 @@ import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -38,7 +37,8 @@ class PersonViewModelImageTest {
 
    private val repository = FakePersonRepository()
    private val storage = FakeImageFileStorage()
-   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+   private val context =
+      ApplicationProvider.getApplicationContext<android.content.Context>()
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
@@ -49,116 +49,176 @@ class PersonViewModelImageTest {
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = storage,
-         _imageEdit = ImageEditDelegate(storage),
          _effectDelegate = EffectDelegate(),
       )
 
    @Test
-   fun galleryImageSelected_copiesImageAndUpdatesState() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      val sourceUri = Uri.parse("content://gallery/image/1")
+   fun galleryImageSelected_copiesImageAndUpdatesState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         val sourceUri = Uri.parse("content://gallery/image/1")
 
-      viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
-      advanceUntilIdle()
-
-      assertEquals(listOf(sourceUri), storage.copiedUris)
-      assertEquals("/images/copied.jpg", viewModel.stateFlow.value.person.imagePath)
-   }
-
-   @Test
-   fun galleryCopyFailure_emitsShowErrorAndKeepsState() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      val sourceUri = Uri.parse("content://gallery/image/1")
-      storage.copyResult = Result.failure(IllegalStateException("copy failed"))
-
-      viewModel.effects.test {
          viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
          advanceUntilIdle()
+
          assertEquals(listOf(sourceUri), storage.copiedUris)
-         assertNull(viewModel.stateFlow.value.person.imagePath)
-         assertTrue(awaitItem() is PersonEffect.ShowError)
-         cancelAndIgnoreRemainingEvents()
+         assertEquals("/images/copied.jpg", viewModel.stateFlow.value.person.imagePath)
       }
-   }
 
    @Test
-   fun imagePathChange_updatesState() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
-      advanceUntilIdle()
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
-   }
+   fun galleryCopyFailure_emitsShowErrorAndKeepsState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         val sourceUri = Uri.parse("content://gallery/image/1")
+         storage.copyResult = Result.failure(IllegalStateException("copy failed"))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
+            advanceUntilIdle()
+
+            assertEquals(listOf(sourceUri), storage.copiedUris)
+            assertNull(viewModel.stateFlow.value.person.imagePath)
+            assertTrue(awaitItem() is PersonEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 
    @Test
-   fun replacingUnsavedImage_deletesPreviousReplacement() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/one.jpg"))
-      advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/two.jpg"))
-      advanceUntilIdle()
-      assertTrue("/images/one.jpg" in storage.deletedPaths)
-      assertEquals("/images/two.jpg", viewModel.stateFlow.value.person.imagePath)
-   }
+   fun imagePathChange_updatesState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
+         advanceUntilIdle()
+
+         assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+      }
 
    @Test
-   fun cancel_deletesUnsavedReplacementAndEmitsNavigateBack() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
-      advanceUntilIdle()
+   fun replacingUnsavedImage_deletesPreviousReplacement() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
 
-      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/one.jpg"))
+         advanceUntilIdle()
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/two.jpg"))
+         advanceUntilIdle()
+
+         assertTrue("/images/one.jpg" in storage.deletedPaths)
+         assertEquals("/images/two.jpg", viewModel.stateFlow.value.person.imagePath)
+      }
+
+   @Test
+   fun cancel_deletesUnsavedReplacementAndEmitsNavigateBack() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
+         advanceUntilIdle()
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Cancel)
+            advanceUntilIdle()
+
+            assertTrue("/images/new.jpg" in storage.deletedPaths)
+            val effect = awaitItem() as PersonEffect.NavigateBack
+            assertEquals(BackReason.Cancel, effect.reason)
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun saveReplacement_keepsServerOriginalAndDeletesLocalTemporaryAfterSuccess() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val originalUrl =
+            "http://10.0.2.2:5080/peopleapi/v1/images/original.jpg"
+         val original = Person(
+            firstName = "Ada",
+            lastName = "Lovelace",
+            imagePath = originalUrl,
+            id = "p1",
+         )
+         repository.findResult = Result.success(original)
+
+         val viewModel = createViewModel("p1")
+         advanceUntilIdle()
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
+         advanceUntilIdle()
+
+         assertFalse(originalUrl in storage.deletedPaths)
+
+         viewModel.onIntent(PersonIntent.Save)
+         advanceUntilIdle()
+
+         assertFalse(originalUrl in storage.deletedPaths)
+         assertTrue("/images/new.jpg" in storage.deletedPaths)
+         assertEquals(1, repository.updated.size)
+      }
+
+   @Test
+   fun failedSave_keepsServerOriginalAndLocalReplacementForRetry() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val originalUrl =
+            "http://10.0.2.2:5080/peopleapi/v1/images/original.jpg"
+         val original = Person(
+            firstName = "Ada",
+            lastName = "Lovelace",
+            imagePath = originalUrl,
+            id = "p1",
+         )
+         repository.findResult = Result.success(original)
+         repository.updateResult =
+            Result.failure(IllegalStateException("write failed"))
+
+         val viewModel = createViewModel("p1")
+         advanceUntilIdle()
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
+         advanceUntilIdle()
+         viewModel.onIntent(PersonIntent.Save)
+         advanceUntilIdle()
+
+         assertFalse(originalUrl in storage.deletedPaths)
+         assertFalse("/images/new.jpg" in storage.deletedPaths)
+         assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+
          viewModel.onIntent(PersonIntent.Cancel)
          advanceUntilIdle()
          assertTrue("/images/new.jpg" in storage.deletedPaths)
-         val effect = awaitItem() as PersonEffect.NavigateBack
-         assertEquals(BackReason.Cancel, effect.reason)
-         cancelAndIgnoreRemainingEvents()
       }
-   }
 
    @Test
-   fun saveReplacement_deletesPersistedOriginalOnlyAfterSuccessfulSave() = runTest(mainDispatcherRule.testDispatcher) {
-      val original = Person(firstName = "Ada",lastName = "Lovelace",imagePath = "/images/original.jpg",id = "p1")
-      repository.findResult = Result.success(original)
-      val viewModel = createViewModel("p1")
-      advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
-      advanceUntilIdle()
-      assertFalse("/images/original.jpg" in storage.deletedPaths)
-      viewModel.onIntent(PersonIntent.Save)
-      advanceUntilIdle()
-      assertTrue("/images/original.jpg" in storage.deletedPaths)
-      assertEquals(1, repository.updated.size)
-   }
+   fun cancelWithPersistedServerImage_doesNotDeleteRemoteUrl() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val originalUrl =
+            "http://10.0.2.2:5080/peopleapi/v1/images/original.jpg"
+         repository.findResult = Result.success(
+            Person(
+               firstName = "Ada",
+               lastName = "Lovelace",
+               imagePath = originalUrl,
+               id = "p1",
+            )
+         )
 
-   @Test
-   fun failedSave_keepsPersistedOriginalAndReplacementPending() = runTest(mainDispatcherRule.testDispatcher) {
-      val original = Person(firstName = "Ada",lastName = "Lovelace",imagePath = "/images/original.jpg",id = "p1")
-      repository.findResult = Result.success(original)
-      repository.updateResult = Result.failure(IllegalStateException("write failed"))
-      val viewModel = createViewModel("p1")
-      advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
-      advanceUntilIdle()
-      viewModel.onIntent(PersonIntent.Save)
-      advanceUntilIdle()
-      assertFalse("/images/original.jpg" in storage.deletedPaths)
-      assertFalse("/images/new.jpg" in storage.deletedPaths)
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
-      viewModel.onIntent(PersonIntent.Cancel)
-      advanceUntilIdle()
-      assertTrue("/images/new.jpg" in storage.deletedPaths)
-   }
-
-   @Test
-   fun imageStorageFailed_isForwardedAsShowErrorString() = runTest(mainDispatcherRule.testDispatcher) {
-      val viewModel = createViewModel()
-      viewModel.effects.test {
-         viewModel.onIntent(PersonIntent.ImageFailed("camera failed"))
+         val viewModel = createViewModel("p1")
          advanceUntilIdle()
-         val effect = awaitItem() as PersonEffect.ShowError
-         assertEquals("camera failed", effect.message)
-         cancelAndIgnoreRemainingEvents()
+         viewModel.onIntent(PersonIntent.Cancel)
+         advanceUntilIdle()
+
+         assertFalse(originalUrl in storage.deletedPaths)
       }
-   }
+
+   @Test
+   fun imageStorageFailed_isForwardedAsShowErrorString() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.ImageFailed("camera failed"))
+            advanceUntilIdle()
+
+            val effect = awaitItem() as PersonEffect.ShowError
+            assertEquals("camera failed", effect.message)
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 }

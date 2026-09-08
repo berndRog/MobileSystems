@@ -1,6 +1,7 @@
 package de.rogallab.mobile.data.mapping
 
-import de.rogallab.mobile.data.local.dtos.PersonDto
+import de.rogallab.mobile.data.remote.dtos.PersonDto
+import de.rogallab.mobile.data.remote.network.ServerUrl
 import de.rogallab.mobile.domain.entities.Person
 
 fun PersonDto.toPerson(): Person =
@@ -9,23 +10,15 @@ fun PersonDto.toPerson(): Person =
       lastName = lastName,
       email = email,
       phone = phone,
-      imagePath = imagePath,
+      imagePath = ServerUrl.resolve(imageUrl),
       id = id,
-   )
-
-fun Person.toPersonDto(): PersonDto =
-   PersonDto(
-      id = id,
-      firstName = firstName,
-      lastName = lastName,
-      email = email,
-      phone = phone,
-      imagePath = imagePath,
    )
 
 /*
  * Didaktik und Lernziele
  *
- * - Die Mapping-Funktionen verhindern, dass Room-Typen die Data-Schicht
+ * - Die Mapping-Funktion verhindert, dass Retrofit-/JSON-DTOs die Data-Schicht
  *   verlassen. ViewModels und UI arbeiten weiterhin nur mit Person.
+ * - Die vom Server gelieferte ImageUrl wird beim Mapping für den Android Emulator
+ *   aufgelöst, falls ihr Host localhost ist.
  */
