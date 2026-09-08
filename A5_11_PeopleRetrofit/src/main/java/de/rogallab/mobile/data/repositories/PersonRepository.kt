@@ -3,20 +3,16 @@ package de.rogallab.mobile.data.repositories
 import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.remote.IPersonWebservice
 import de.rogallab.mobile.data.remote.dtos.PersonDto
+import de.rogallab.mobile.data.remote.toImagePartOrNull
+import de.rogallab.mobile.data.remote.toTextPart
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 class PersonRepository(
@@ -131,33 +127,6 @@ class PersonRepository(
             .thenBy { person -> person.firstName.lowercase() }
       )
 
-   private fun String.toTextPart(): RequestBody =
-      toRequestBody(TEXT_MEDIA_TYPE)
-
-   private fun String?.toImagePartOrNull(): MultipartBody.Part? {
-      val imagePath = this?.takeUnless(String::isBlank) ?: return null
-      if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
-         return null
-
-      val file = File(imagePath)
-      require(file.isFile) {
-         "The selected image file does not exist: $imagePath"
-      }
-
-      val contentType = when (file.extension.lowercase()) {
-         "jpg", "jpeg" -> "image/jpeg"
-         "png" -> "image/png"
-         "webp" -> "image/webp"
-         else -> "application/octet-stream"
-      }.toMediaType()
-
-      return MultipartBody.Part.createFormData(
-         "Image",
-         file.name,
-         file.asRequestBody(contentType),
-      )
-   }
-
    private suspend fun <T> resultOf(
       block: suspend () -> T,
    ): Result<T> =
@@ -173,7 +142,6 @@ class PersonRepository(
 
    companion object {
       private const val TAG = "<-PersonRepository"
-      private val TEXT_MEDIA_TYPE = "text/plain".toMediaType()
    }
 }
 
