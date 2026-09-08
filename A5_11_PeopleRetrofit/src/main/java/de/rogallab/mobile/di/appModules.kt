@@ -3,6 +3,8 @@ package de.rogallab.mobile.di
 import de.rogallab.mobile.BuildConfig
 import de.rogallab.mobile.Globals
 import de.rogallab.mobile.data.remote.IPersonWebservice
+import de.rogallab.mobile.data.remote.Seed
+import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -59,6 +61,21 @@ fun appModule(): Module = module {
       get<Retrofit>().create(IPersonWebservice::class.java)
    }
 
+   Alog.i(tag, "single    -> Seed")
+   single<Seed> {
+      Seed(
+         _imageFileStorage = get<IImageFileStorage>(),
+      )
+   }
+
+   Alog.i(tag, "single    -> SeedApi")
+   single<SeedApi> {
+      SeedApi(
+         _personWeb = get<IPersonWebservice>(),
+         _seed = get<Seed>(),
+      )
+   }
+
    Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
    single<IPersonRepository> {
       PersonRepository(
@@ -107,6 +124,10 @@ fun appModule(): Module = module {
  *   übersetzt JSON in PersonDto. PersonRepository bildet diese DTOs anschließend
  *   auf die Domain-Entität Person ab.
  *
+ * - Seed und SeedApi demonstrieren zusätzlich eine Initialisierung über REST:
+ *   countAll() prüft, ob der Server leer ist; nur dann werden die Beispieldaten
+ *   einschließlich ihrer Bilder über den normalen People-Endpunkt übertragen.
+ *
  * - Die Abhängigkeitskette lautet damit:
  *
  *      PeopleViewModel / PersonViewModel
@@ -118,8 +139,8 @@ fun appModule(): Module = module {
  *          -> PeopleApi
  *
  * - IImageFileStorage bleibt Shared-Infrastruktur, wird jetzt aber nur für lokale
- *   temporäre Galerie-/Kamera-Dateien benötigt. Persistente Bilder gehören dem
- *   Server und werden nicht durch IImageEdit im Android-Client verwaltet.
+ *   temporäre Galerie-/Kamera- und Seed-Dateien benötigt. Persistente Bilder
+ *   gehören dem Server und werden nicht durch IImageEdit im Client verwaltet.
  *
  * Lernziele:
  *
