@@ -68,8 +68,7 @@ class PersonViewModel(
          _repository.findById(id)
             .onSuccess { person ->
                if (person == null) {
-                  val error =
-                     _stringProvider.getString(R.string.error_person_not_found)
+                  val error = _stringProvider.getString(R.string.error_person_not_found)
                   _effectDelegate.emit(PersonEffect.ShowError(error))
 
                   _stateFlow.update { state: PersonUiState ->
@@ -85,8 +84,7 @@ class PersonViewModel(
                }
             }
             .onFailure {
-               val error =
-                  _stringProvider.getString(R.string.error_person_load)
+               val error = _stringProvider.getString(R.string.error_person_load)
                _effectDelegate.emit(PersonEffect.ShowError(error))
 
                _stateFlow.update { state: PersonUiState ->
@@ -133,7 +131,6 @@ class PersonViewModel(
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty()) emailNullable = email.trim()
-
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
@@ -154,9 +151,8 @@ class PersonViewModel(
          val imagePath = _imageFileStorage
             .copyImageToAppStorage(sourceUri)
             .getOrElse {
-               showError(
-                  _stringProvider.getString(SharedR.string.error_image_save)
-               )
+               val error = _stringProvider.getString(R.string.error_image_save)
+               showError(error)
                return@launch
             }
 

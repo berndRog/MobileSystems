@@ -36,6 +36,7 @@ class PersonRepository(
          // GET one person from the server and synchronize the observation state.
          val person = _webservice.getById(id).toPerson()
          upsertPerson(person)
+         Alog.d(TAG, "findById: $person")
          Result.success(person)
       }
       catch (exception: CancellationException) {
@@ -51,8 +52,7 @@ class PersonRepository(
       }
 
    override suspend fun create(person: Person): Result<Unit> =
-      resultOf {
-         // Send person data and an optional local image in one multipart request.
+      try {
          val created = _webservice.create(
             firstName = person.firstName.toTextPart(),
             lastName = person.lastName.toTextPart(),
@@ -61,14 +61,20 @@ class PersonRepository(
             id = person.id.toTextPart(),
             image = person.imagePath.toImagePartOrNull(),
          ).toPerson()
-
-         // Use the server response because it may contain the generated image URL.
          upsertPerson(created)
          Alog.d(TAG, "create: $created")
+         Result.success(Unit)
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
       }
 
    override suspend fun update(person: Person): Result<Unit> =
-      resultOf {
+
+      try {
          // Read the current observation state to distinguish keeping from removing an image.
          val current = currentPerson(person.id)
          val imagePart = person.imagePath.toImagePartOrNull()
@@ -93,10 +99,17 @@ class PersonRepository(
          // Replace the local observation state with the authoritative server result.
          upsertPerson(updated)
          Alog.d(TAG, "update: $updated")
+         Result.success(Unit)
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
       }
 
    override suspend fun remove(person: Person): Result<Unit> =
-      resultOf {
+      try {
          // DELETE returns no Person body, therefore the observation state is changed explicitly.
          val response = _webservice.delete(person.id)
          if (!response.isSuccessful)
@@ -104,16 +117,29 @@ class PersonRepository(
 
          removePersonFromState(person.id)
          Alog.d(TAG, "remove: $person")
+         Result.success(Unit)
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
       }
 
    private suspend fun refresh() {
       // Replace the complete observation state with the current server snapshot.
-      _peopleStateFlow.value = resultOf {
+      _peopleStateFlow.value = try {
          val people = _webservice
             .getAll()
             .map(PersonDto::toPerson)
          Alog.d(TAG, "refresh: get webApi: ${people.count()} people")
-         sorted(people)
+         Result.success(sorted(people))
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (throwable: Throwable) {
+         Result.failure(throwable)
       }
    }
 
@@ -145,20 +171,6 @@ class PersonRepository(
             .thenBy { person -> person.firstName.lowercase() }
       )
 
-   // Convert technical failures into Result while preserving coroutine cancellation.
-   private suspend fun <T> resultOf(
-      block: suspend () -> T,
-   ): Result<T> =
-      try {
-         Result.success(block())
-      }
-      catch (exception: CancellationException) {
-         throw exception
-      }
-      catch (throwable: Throwable) {
-         Result.failure(throwable)
-      }
-
    companion object {
       private const val TAG = "<-PersonRepository"
    }
@@ -176,8 +188,8 @@ class PersonRepository(
  *
  *    IPersonDao.observeAll() -> Flow<List<PersonDto>>
  *
- * Room beobachtet die Tabelle. Nach INSERT, UPDATE oder DELETE wird die SELECT-
- * Abfrage automatisch erneut ausgeführt und der Flow liefert eine neue Liste.
+ * Room beobachtet die Tabelle. Nach INSERT, UPDATE oder DELETE wird
+ * SELECT automatisch erneut ausgeführt und der Flow liefert eine neue Liste.
  * Das A5_01-Repository benötigt deshalb weder eine eigene Personenliste noch
  * einen MutableStateFlow.
  *

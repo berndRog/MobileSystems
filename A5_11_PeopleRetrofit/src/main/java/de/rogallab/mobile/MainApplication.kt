@@ -47,7 +47,7 @@ class MainApplication : Application() {
          modules(imageStorageModule(Globals.imageDirectoryName))
       }
 
-      // Seed PeopleApi only when its People table is still empty.
+      // Seed PeopleApi only when its People table is empty.
       val seedApi: SeedApi = get()
       appScope.launch {
          seedApi.seedPerson()
