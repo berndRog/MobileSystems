@@ -74,7 +74,14 @@ class Seed(
             throw throwable
          }
 
-         val person = PersonDto(firstName, lastName, email, phone, imagePath, uuidString)
+         val person = PersonDto(
+            id = uuidString,
+            firstName = firstName,
+            lastName = lastName,
+            email = email,
+            phone = phone,
+            imagePath = imagePath
+         )
          personDtos.add(person)
       }
 

@@ -12,7 +12,7 @@ class FakePersonDao : IPersonDao {
    override fun observeAll(): Flow<List<PersonDto>> = _people
    override suspend fun findById(personId: String): PersonDto? =
       _people.value.firstOrNull { it.id == personId }
-   override suspend fun findWithCars(personId: String): Map<PersonDto, List<CarDto>> =
+   override suspend fun findByIdWithCars(personId: String): Map<PersonDto, List<CarDto>> =
       findById(personId)?.let { mapOf(it to emptyList()) } ?: emptyMap()
    override suspend fun findWithTestDriveCars(personId: String): Map<PersonDto, List<CarDto>> =
       findById(personId)?.let { mapOf(it to emptyList()) } ?: emptyMap()

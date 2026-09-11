@@ -56,7 +56,7 @@ class UsedCarsRelationshipTest {
       personDao.insert(seller)
       carDao.insert(listOf(first, second))
 
-      val relation = personDao.findWithCars(seller.id)
+      val relation = personDao.findByIdWithCars(seller.id)
 
       assertEquals(setOf(seller), relation.keys)
       assertEquals(
