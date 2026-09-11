@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -126,29 +127,6 @@ fun PersonScreen(
          onRemovePhoto = onRemovePhoto,
       )
 
-      if (!isNew) {
-         OutlinedButton(
-            onClick = onCarsRequested,
-            enabled = !isCarsLoading,
-            modifier = Modifier.fillMaxWidth(),
-         ) {
-            if (isCarsLoading) {
-               CircularProgressIndicator(
-                  modifier = Modifier.size(20.dp),
-                  strokeWidth = 2.dp,
-               )
-            }
-            else {
-               androidx.compose.material3.Icon(
-                  imageVector = Icons.Default.DirectionsCar,
-                  contentDescription = null,
-               )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = stringResource(R.string.person_offered_cars))
-         }
-      }
-
       Row(
          modifier = Modifier.fillMaxWidth(),
          horizontalArrangement = Arrangement.spacedBy(
@@ -166,6 +144,30 @@ fun PersonScreen(
             Text(text = stringResource(R.string.action_save))
          }
       }
+
+      if (!isNew) {
+         OutlinedButton(
+            onClick = onCarsRequested,
+            enabled = !isCarsLoading,
+            modifier = Modifier.fillMaxWidth(),
+         ) {
+            if (isCarsLoading) {
+               CircularProgressIndicator(
+                  modifier = Modifier.size(20.dp),
+                  strokeWidth = 2.dp,
+               )
+            }
+            else {
+               Icon(
+                  imageVector = Icons.Default.DirectionsCar,
+                  contentDescription = null,
+               )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = stringResource(R.string.person_offered_cars))
+         }
+      }
+
    }
 
    if (showCars) {

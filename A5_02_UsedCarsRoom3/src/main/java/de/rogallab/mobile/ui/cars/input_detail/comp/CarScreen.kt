@@ -106,6 +106,7 @@ fun CarScreen(
          onPersonSelected = { personId ->
             onIntent(CarIntent.SellerChanged(personId))
          },
+         modifier = Modifier.padding(top = 4.dp)
       )
 
       ImageSelectionButtons(
@@ -114,6 +115,7 @@ fun CarScreen(
          onSelectPhoto = onSelectImages,
          onTakePhoto = onTakePhoto,
          onRemovePhoto = {},
+         modifier = Modifier.padding(top = 8.dp)
       )
 
       Text(
@@ -148,7 +150,7 @@ fun CarScreen(
       }
 
       Row(
-         modifier = Modifier.fillMaxWidth(),
+         modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
          horizontalArrangement = Arrangement.spacedBy(
             40.dp,
             Alignment.CenterHorizontally,
