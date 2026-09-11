@@ -21,6 +21,8 @@
   <string name="person_no_data">Keine Kontaktdaten</string>
   <string name="person_full_name">%1$s %2$s</string>
   <string name="person_image_list">Bild der Person</string>
+  <string name="person_offered_cars">Angebotene Fahrzeuge</string>
+  <string name="person_offered_cars_empty">Keine Fahrzeuge angeboten.</string>
 
   <!-- Names used by the current People/Person feature from A5_01. -->
   <string name="people_list">Personen</string>
@@ -43,6 +45,7 @@
   <string name="car_field_seller">Verkäufer</string>
   <string name="car_no_details">Keine Fahrzeugdaten</string>
   <string name="car_card_details">EZ %1$s · %2$s km · %3$s €</string>
+  <string name="car_offer_price">%1$d €</string>
   <string name="car_images_sheet_title">Fahrzeugbilder</string>
   <string name="car_images_empty">Mindestens ein Fahrzeugbild ist erforderlich.</string>
   <string name="car_images_limit">Maximal %1$d Bilder</string>

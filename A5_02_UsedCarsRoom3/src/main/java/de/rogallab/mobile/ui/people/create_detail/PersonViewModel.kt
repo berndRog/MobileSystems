@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
+import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -26,6 +27,7 @@ import de.rogallab.mobile.shared.R as SharedR
 class PersonViewModel(
    val personId: String?,
    private val _repository: IPersonRepository,
+   private val _carRepository: ICarRepository,
    private val _stringProvider: IStringProvider,
    private val _validator: PersonValidator,
    private val _imageFileStorage: IImageFileStorage,
@@ -94,8 +96,8 @@ class PersonViewModel(
             .onFailure {
                // Repository failures are converted into a localized UI effect.
                val error = _stringProvider.getString(
-                     R.string.error_person_load
-                  )
+                  R.string.error_person_load
+               )
                _effectDelegate.emit(PersonEffect.ShowError(error))
 
                _stateFlow.update { state: PersonUiState ->
@@ -110,7 +112,7 @@ class PersonViewModel(
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
-         is PersonIntent.FirstNameChange ->changeFirstName(intent.firstName)
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
@@ -124,6 +126,7 @@ class PersonViewModel(
          // Technical image errors are converted into the common error effect.
          is PersonIntent.ImageFailed -> showError(intent.message)
 
+         PersonIntent.CarsRequested -> loadCars()
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
       }
@@ -144,7 +147,7 @@ class PersonViewModel(
    // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
-      if (email.trim().isNotEmpty())  emailNullable = email.trim()
+      if (email.trim().isNotEmpty()) emailNullable = email.trim()
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
@@ -156,6 +159,37 @@ class PersonViewModel(
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(phone = phoneNullable))
+      }
+   }
+
+   // Loads the cars offered by this person only when the UI requests them.
+   private fun loadCars() {
+      val personId = _personId ?: return
+      if (_stateFlow.value.isCarsLoading) return
+
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isCarsLoading = true)
+      }
+
+      viewModelScope.launch {
+         _carRepository.findByPersonId(personId)
+            .onSuccess { cars ->
+               _stateFlow.update { state: PersonUiState ->
+                  state.copy(
+                     cars = cars,
+                     isCarsLoading = false,
+                  )
+               }
+               // Open the bottom sheet only after the relation data is available.
+               _effectDelegate.emit(PersonEffect.ShowCars)
+            }
+            .onFailure {
+               _stateFlow.update { state: PersonUiState ->
+                  state.copy(isCarsLoading = false)
+               }
+               val error = _stringProvider.getString(R.string.error_cars_load)
+               _effectDelegate.emit(PersonEffect.ShowError(error))
+            }
       }
    }
 
@@ -190,7 +224,6 @@ class PersonViewModel(
          replaceImage(imagePath)
       }
    }
-
 
    // Delegate image lifecycle management to IImageEdit.
    //
@@ -278,7 +311,10 @@ class PersonViewModel(
                _imageEdit.commit()
 
                // First show the success message...
-               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName,)
+               val message = _stringProvider.getString(
+                  R.string.message_person_saved,
+                  person.fullName,
+               )
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
 
                // ...and then request reverse navigation with Save semantics.
@@ -322,6 +358,12 @@ class PersonViewModel(
  *   die Personenbearbeitung. Der Screen beobachtet weiterhin genau einen
  *   StateFlow<PersonUiState>, während einmalige Meldungen und Navigationen
  *   getrennt über PersonEffect ausgegeben werden.
+ *
+ * - Die angebotenen Fahrzeuge werden bewusst nicht zusammen mit der Person
+ *   geladen. Erst PersonIntent.CarsRequested startet die relationale Abfrage.
+ *   PersonUiState hält die geladene List<Car> getrennt von der Domain-Person.
+ *   Nach erfolgreichem Laden löst PersonEffect.ShowCars einmalig das Öffnen
+ *   des Bottom Sheets aus.
  *
  * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
  *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.
@@ -421,7 +463,7 @@ class PersonViewModel(
  * - Beim Abbrechen gilt:
  *
  *      Cancel
- *          -> IImageEdit.cancel()
+ *          -> IImageEdit.discard()
  *          -> neu erzeugte, nicht gespeicherte Bilder löschen
  *          -> ursprüngliche Bilder erhalten
  *          -> NavigateBack
@@ -458,12 +500,13 @@ class PersonViewModel(
  *
  * - Einen einzigen Intent-Einstiegspunkt im ViewModel verwenden.
  * - Persistent State und einmalige Effects voneinander unterscheiden.
+ * - Relationsdaten bei Bedarf statt zusammen mit der Hauptentität laden.
  * - Content-Uri und internen Dateipfad unterscheiden.
  * - Galerie-Bilder vor der weiteren Verarbeitung in den App-Speicher kopieren.
  * - Technische Dateiverwaltung über IImageFileStorage kapseln.
  * - Bild-Lebenszyklen einer Bearbeitung über IImageEdit delegieren.
  * - Original- und Ersatzbilder bei Save und Cancel sicher behandeln.
  * - commit() erst nach erfolgreichem Repository-Zugriff ausführen.
- * - cancel() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
+ * - discard() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
  * - Bestehenden UDF-/MVI-Datenfluss auch bei komplexerer Bildlogik beibehalten.
  */

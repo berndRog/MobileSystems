@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface ICarRepository {
    fun observeAll(): Flow<Result<List<Car>>>
    suspend fun findById(id: String): Result<Car?>
+   suspend fun findByPersonId(personId: String): Result<List<Car>>
    suspend fun create(car: Car): Result<Unit>
    suspend fun update(car: Car): Result<Unit>
    suspend fun remove(car: Car): Result<Unit>

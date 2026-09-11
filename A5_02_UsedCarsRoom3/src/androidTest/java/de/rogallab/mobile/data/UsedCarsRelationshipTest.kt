@@ -32,6 +32,23 @@ class UsedCarsRelationshipTest {
    }
    @After fun tearDown() { database.close() }
 
+   @Test fun findByPersonId_returnsCarsOfSellerOnly() = runTest {
+      val seller = person("seller", "Anna", "Schulz")
+      val otherSeller = person("other", "Berta", "Bauer")
+      val first = car("car-1", seller.id, "Golf")
+      val second = car("car-2", seller.id, "Passat")
+      val other = car("car-3", otherSeller.id, "Polo")
+      personDao.insert(listOf(seller, otherSeller))
+      carDao.insert(listOf(first, second, other))
+
+      val cars = carDao.findByPersonId(seller.id)
+
+      assertEquals(
+         listOf(first.id, second.id),
+         cars.map(CarDto::id),
+      )
+   }
+
    @Test fun findWithCars_returnsOneToManyMultimap() = runTest {
       val seller = person("seller", "Anna", "Schulz")
       val first = car("car-1", seller.id, "Golf")
@@ -72,7 +89,7 @@ class UsedCarsRelationshipTest {
    private fun person(id: String, first: String, last: String) =
       PersonDto(id, first, last, null, null, null)
    private fun car(id: String, personId: String, model: String) =
-      CarDto(id, "Volkswagen", model, 42500,  emptyList(), personId)
+      CarDto(id, "Volkswagen", model, 42500, emptyList(), personId)
    private fun drive(id: String, personId: String, carId: String, start: String) =
-      TDriveDto(id, personId, carId, start,  false)
+      TDriveDto(id, personId, carId, start, false)
 }

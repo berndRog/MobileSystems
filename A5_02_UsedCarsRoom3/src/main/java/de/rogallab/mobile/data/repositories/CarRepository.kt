@@ -20,7 +20,10 @@ class CarRepository(private val _carDao: ICarDao) : ICarRepository {
             if (throwable is CancellationException) throw throwable
             emit(Result.failure(throwable))
          }
-   override suspend fun findById(id: String): Result<Car?> = resultOf { _carDao.findById(id)?.toCar() }
+   override suspend fun findById(id: String): Result<Car?> =
+      resultOf { _carDao.findById(id)?.toCar() }
+   override suspend fun findByPersonId(personId: String): Result<List<Car>> =
+      resultOf { _carDao.findByPersonId(personId).map(CarDto::toCar) }
    override suspend fun create(car: Car): Result<Unit> = write("create", car) { _carDao.insert(car.toCarDto()) }
    override suspend fun update(car: Car): Result<Unit> = write("update", car) {
       check(_carDao.update(car.toCarDto()) == 1) { "Car ${car.id} was not found." }

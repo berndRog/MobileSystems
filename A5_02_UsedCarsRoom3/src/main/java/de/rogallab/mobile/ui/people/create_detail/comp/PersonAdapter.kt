@@ -22,7 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -52,6 +54,7 @@ fun PersonAdapter(
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
+   onNavigateToCar: (String) -> Unit,
    imageFileStorage: IImageFileStorage = koinInject(),
 ) {
    val tag = "<-PersonAdapter"
@@ -63,11 +66,13 @@ fun PersonAdapter(
 
    val person = personUiState.person
    val enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
+   var showCars by remember { mutableStateOf(false) }
 
    EffectHandler(viewModel.effects) { personEffect ->
       when (personEffect) {
          is PersonEffect.ShowMessage -> onMessage(personEffect.message)
          is PersonEffect.ShowError -> onError(personEffect.message)
+         PersonEffect.ShowCars -> showCars = true
          is PersonEffect.NavigateBack -> onNavigateBack(personEffect.reason)
       }
    }
@@ -161,7 +166,22 @@ fun PersonAdapter(
                   imageActionsEnabled = !cameraActions.isBusy,
                   onSelectPhoto = galleryActions.selectFromGallery,
                   onTakePhoto = cameraActions.takePhoto,
-                  onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
+                  onRemovePhoto = {
+                     viewModel.onIntent(PersonIntent.RemoveImage(null))
+                  },
+                  cars = personUiState.cars,
+                  isCarsLoading = personUiState.isCarsLoading,
+                  showCars = showCars,
+                  onCarsRequested = {
+                     viewModel.onIntent(PersonIntent.CarsRequested)
+                  },
+                  onDismissCars = {
+                     showCars = false
+                  },
+                  onCarClick = { carId ->
+                     showCars = false
+                     onNavigateToCar(carId)
+                  },
                   onSave = { viewModel.onIntent(PersonIntent.Save) },
                   onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
                   modifier = Modifier
@@ -184,6 +204,10 @@ fun PersonAdapter(
  *   SnackbarHost und die zustandslose Eingabemaske klar getrennt.
  * - GalleryPickerHandler und CameraPickerHandler bleiben ebenfalls Aufgabe des
  *   Adapters; PersonScreen erhält nur Werte und Callback-Funktionen.
+ * - PersonEffect.ShowCars öffnet das Bottom Sheet erst nach erfolgreichem Laden
+ *   der angebotenen Fahrzeuge. Die Sichtbarkeit bleibt lokaler UI-Zustand.
+ * - Die Navigation zu einem Fahrzeug wird über onNavigateToCar an
+ *   AppNavigation delegiert.
  * - Der gemeinsame SnackbarHostState und die Bottom-Navigation werden von
  *   AppNavigation bereitgestellt und in diesem Scaffold verwendet.
  */

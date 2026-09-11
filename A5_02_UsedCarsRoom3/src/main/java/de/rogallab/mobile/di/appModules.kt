@@ -85,6 +85,7 @@ fun appModule(): Module = module {
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
          _repository = get<IPersonRepository>(),
+         _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),

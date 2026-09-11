@@ -103,6 +103,9 @@ fun AppNavigation() {
                currentPopReason = reason.toPopReason()
                navigator.pop()
             },
+            onNavigateToCar = { carId ->
+               navigator.push(CarKey(carId))
+            },
          )
       }
 
@@ -234,6 +237,8 @@ private fun AppBottomNavigationBar(
  *   von NavDisplay erzeugt und von allen Adaptern wiederverwendet.
  * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
  *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
+ * - Aus dem Person-Detail kann über das Fahrzeug-Bottom-Sheet direkt zu
+ *   CarKey(carId) navigiert werden. PersonKey bleibt dabei auf dem Backstack.
  * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine
  *   navigierbare TopAppBar. Die Screens selbst bleiben zustandslos.
  * - Save/Cancel und Predictive Back verwenden weiterhin die bekannten

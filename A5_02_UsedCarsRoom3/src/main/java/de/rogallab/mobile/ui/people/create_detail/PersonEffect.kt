@@ -13,6 +13,9 @@ sealed interface PersonEffect {
    // Shows an error message that must be acknowledged by the user.
    data class ShowError(val message: String) : PersonEffect
 
+   // Opens the offered-cars bottom sheet after the cars were loaded.
+   data object ShowCars : PersonEffect
+
    // Navigates back to the previous screen. Handled by the Navigation 3 layer.
    data class NavigateBack(
       val reason: BackReason,

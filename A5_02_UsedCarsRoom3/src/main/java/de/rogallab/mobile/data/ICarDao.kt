@@ -15,6 +15,8 @@ interface ICarDao {
    fun observeAll(): Flow<List<CarDto>>
    @Query("SELECT * FROM Car WHERE id = :carId LIMIT 1")
    suspend fun findById(carId: String): CarDto?
+   @Query("SELECT * FROM Car WHERE personId = :personId ORDER BY manufacturer, model")
+   suspend fun findByPersonId(personId: String): List<CarDto>
    @Query("SELECT COUNT(*) FROM Car")
    suspend fun count(): Int
    @Insert(onConflict = OnConflictStrategy.ABORT)
