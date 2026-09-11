@@ -192,7 +192,7 @@ fun PersonScreen(
  * - Nach einer Galerieauswahl erhält das ViewModel zunächst eine Uri.
  *   Dort wird das ausgewählte Bild über IImageFileStorage in den privaten
  *   App-Speicher kopiert. Erst der dadurch entstandene interne Dateipfad
- *   wird anschließend über ImageEditDelegate in die laufende Edit-Session
+ *   wird anschließend über ImageEdit in die laufende Edit-Session
  *   übernommen.
  *
  * - Bei einer Kameraaufnahme wird die Zieldatei bereits vor dem Start der
@@ -206,7 +206,7 @@ fun PersonScreen(
  *
  * - Auch das Entfernen eines Bildes führt nicht direkt zu einer Dateioperation.
  *   PersonScreen meldet lediglich onRemovePhoto. Die weitere Verarbeitung
- *   erfolgt über PersonAdapter, PersonViewModel und ImageEditDelegate.
+ *   erfolgt über PersonAdapter, PersonViewModel und ImageEdit.
  *
  * Lernziele:
  *

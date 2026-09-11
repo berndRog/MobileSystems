@@ -80,7 +80,7 @@ private fun TDrivesList(
          ) {
             val personName = people
                .firstOrNull { it.id == tDrive.personId }
-               ?.displayName
+               ?.fullName
                ?: stringResource(R.string.value_not_available)
             val carName = cars
                .firstOrNull { it.id == tDrive.carId }

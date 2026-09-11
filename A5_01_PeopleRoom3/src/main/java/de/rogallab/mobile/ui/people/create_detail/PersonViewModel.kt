@@ -375,7 +375,7 @@ class PersonViewModel(
  *          Save und Cancel absichern
  *
  * - PersonViewModel kennt dadurch nicht die einzelnen Löschregeln für alte und
- *   neue Bilder. Diese Logik wird an ImageEditDelegate delegiert.
+ *   neue Bilder. Diese Logik wird an ImageEdit delegiert.
  *
  * - Beim Laden einer bestehenden Person startet das ViewModel die Edit-Session
  *   mit dem bereits gespeicherten Bild:

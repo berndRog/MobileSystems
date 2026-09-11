@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Euro
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,10 +56,8 @@ fun CarScreen(
    onIntent: (CarIntent) -> Unit,
    modifier: Modifier = Modifier,
 ) {
-   var compositionCount by remember { mutableIntStateOf(0) }
-   SideEffect {
-      AppLogger.compose(TAG, "Composition #${compositionCount++}")
-   }
+   var nCount by remember { mutableIntStateOf(0) }
+   SideEffect { AppLogger.compose(TAG, "Composition #${nCount++}") }
 
    val car = carUiState.car ?: return
 
@@ -91,29 +87,6 @@ fun CarScreen(
       )
 
       InputValueString(
-         value = carUiState.registrationYearInput,
-         onValueChange = { registrationYear ->
-            onIntent(CarIntent.RegistrationYearChanged(registrationYear))
-         },
-         label = stringResource(R.string.car_field_registration_year),
-         leadingIcon = Icons.Default.CalendarMonth,
-         validate = validator::validateRegistration,
-         keyboardType = KeyboardType.Number,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
-         value = carUiState.mileageInput,
-         onValueChange = { mileage ->
-            onIntent(CarIntent.MileageChanged(mileage))
-         },
-         label = stringResource(R.string.car_field_mileage),
-         leadingIcon = Icons.Default.Speed,
-         keyboardType = KeyboardType.Number,
-         imeAction = ImeAction.Next,
-      )
-
-      InputValueString(
          value = carUiState.priceInput,
          onValueChange = { price ->
             onIntent(CarIntent.PriceChanged(price))
@@ -127,7 +100,7 @@ fun CarScreen(
 
       PersonSelectionField(
          people = carUiState.people,
-         selectedPersonId = car.sellerId,
+         selectedPersonId = car.personId,
          label = stringResource(R.string.car_field_seller),
          allowNone = false,
          onPersonSelected = { personId ->

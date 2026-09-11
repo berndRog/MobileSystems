@@ -7,7 +7,7 @@ import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -49,7 +49,7 @@ class PersonViewModelImageTest {
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = storage,
-         _imageEdit = ImageEditDelegate(storage),
+         _imageEdit = ImageEdit(storage),
          _effectDelegate = EffectDelegate(),
       )
 

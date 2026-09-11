@@ -19,7 +19,7 @@ class Seed(
 
    var people: MutableList<Person> = mutableListOf<Person>()
 
-   suspend fun createPeopleList() {
+   fun createPeopleList() {
       val firstNames = mutableListOf(
          "Arne", "Berta", "Cord", "Dagmar", "Ernst", "Frieda", "Günter", "Hanna",
          "Ingo", "Johanna", "Klaus", "Luise", "Martin", "Nadja", "Otto", "Patrizia",
@@ -57,7 +57,8 @@ class Seed(
       }
 
       // convert the drawables into image files
-      if (_withImages) runBlocking { createImages() }
+      runBlocking { createImages() }
+
    }
 
    private suspend fun createImages() {

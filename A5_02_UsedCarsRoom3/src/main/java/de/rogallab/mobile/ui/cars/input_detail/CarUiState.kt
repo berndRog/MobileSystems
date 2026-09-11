@@ -5,7 +5,6 @@ import de.rogallab.mobile.domain.entities.Person
 
 data class CarUiState(
    val car: Car? = null,
-   val registrationYearInput: String = "",
    val mileageInput: String = "",
    val priceInput: String = "",
    val people: List<Person> = emptyList(),

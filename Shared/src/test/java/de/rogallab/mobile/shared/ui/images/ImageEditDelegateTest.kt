@@ -13,7 +13,7 @@ import org.junit.Test
 class ImageEditDelegateTest {
 
    private val storage = FakeImageFileStorage()
-   private val delegate = ImageEditDelegate(storage)
+   private val delegate = ImageEdit(storage)
 
    @Test
    fun replace_normalizesBlankAndDuplicatePaths() = runTest {

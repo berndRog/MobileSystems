@@ -6,7 +6,7 @@ import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.io.IImageMediaStore
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.images.IImageEdit
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEdit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
@@ -39,9 +39,9 @@ fun imageStorageModule(
       )
    }
 
-   Alog.i(tag,"factory   -> ImageEditDelegate: IImageEdit")
+   Alog.i(tag,"factory   -> ImageEdit: IImageEdit")
    factory<IImageEdit> {
-      ImageEditDelegate(
+      ImageEdit(
          _imageFileStorage = get<IImageFileStorage>(),
       )
    }

@@ -55,8 +55,8 @@ fun CarsScreen(
             modifier = Modifier.animateItem(),
          ) {
             val sellerName = carsUiState.people
-               .firstOrNull { it.id == car.sellerId }
-               ?.displayName
+               .firstOrNull { it.id == car.personId }
+               ?.fullName
                .orEmpty()
             CarCard(car = car, sellerName = sellerName)
          }

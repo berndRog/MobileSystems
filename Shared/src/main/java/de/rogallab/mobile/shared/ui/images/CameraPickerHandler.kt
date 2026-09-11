@@ -77,7 +77,7 @@ fun CameraPickerHandler(
                .confirmCameraImageFile(imagePath)
                .onSuccess { confirmedImagePath ->
                   // Only confirmed internal file paths are forwarded to
-                  // PersonAdapter and eventually to the ImageEditDelegate.
+                  // PersonAdapter and eventually to the ImageEdit.
                   currentOnPhotoStored(confirmedImagePath)
                }
                .onFailure { throwable ->
@@ -258,7 +258,7 @@ fun CameraPickerHandler(
  *
  * - Die fachliche Lebensdauer des Bildes während der Personenbearbeitung ist
  *   dagegen nicht Aufgabe des CameraPickerHandler. Sobald onPhotoStored einen
- *   bestätigten internen Dateipfad liefert, übernimmt ImageEditDelegate die
+ *   bestätigten internen Dateipfad liefert, übernimmt ImageEdit die
  *   weitere Verwaltung innerhalb der Edit-Session.
  *
  * - Damit sind die Verantwortlichkeiten klar getrennt:
@@ -272,7 +272,7 @@ fun CameraPickerHandler(
  *      IImageFileStorage
  *          technische Dateioperationen durchführen
  *
- *      ImageEditDelegate
+ *      ImageEdit
  *          bestätigte Bilder innerhalb einer Edit-Session verwalten
  *
  * - Der aufrufende PersonAdapter kennt die technischen Details des

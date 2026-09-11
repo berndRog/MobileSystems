@@ -10,7 +10,7 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
  * compares the images that existed when editing started with the images that
  * are currently selected.
  */
-class ImageEditDelegate(
+class ImageEdit(
    private val _imageFileStorage: IImageFileStorage,
 ): IImageEdit {
    private var _originalImages: List<String> = emptyList()
@@ -75,14 +75,14 @@ class ImageEditDelegate(
    }
 
    companion object {
-      private const val TAG = "<-ImageEditDelegate"
+      private const val TAG = "<-ImageEdit"
    }
 }
 
 /*
  * Didaktik und Lernziele
  *
- * - ImageEditDelegate kapselt die technische Lebensdauer von Bilddateien und
+ * - ImageEdit kapselt die technische Lebensdauer von Bilddateien und
  *   kennt keine fachliche Entität wie Person oder Car.
  *
  * - start(...) übernimmt den persistenten Ausgangszustand einer Bearbeitung.

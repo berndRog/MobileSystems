@@ -214,7 +214,7 @@ fun PersonAdapter(
  *          -> PersonViewModel
  *          -> IImageFileStorage.copyImageToAppStorage(...)
  *          -> interner Dateipfad
- *          -> ImageEditDelegate
+ *          -> ImageEdit
  *          -> PersonUiState
  *
  * - Für die Kamera ist der Ablauf anders. Eine Kamera-Anwendung benötigt schon
@@ -233,7 +233,7 @@ fun PersonAdapter(
  *          -> PersonAdapter
  *          -> PersonIntent.CameraImageTaken
  *          -> PersonViewModel
- *          -> ImageEditDelegate
+ *          -> ImageEdit
  *          -> PersonUiState
  *
  * - Damit liegt IImageFileStorage absichtlich an zwei unterschiedlichen Stellen
@@ -246,14 +246,14 @@ fun PersonAdapter(
  *          CameraPickerHandler benötigt IImageFileStorage bereits vor dem
  *          Start der Kamera.
  *
- * - ImageEditDelegate bleibt von diesen Android-spezifischen Abläufen
+ * - ImageEdit bleibt von diesen Android-spezifischen Abläufen
  *   unabhängig. Er erhält nur interne Dateipfade und verwaltet damit die
  *   Edit-Session. Er entscheidet insbesondere, welche neuen Bilder bei Cancel
  *   entfernt und welche alten Bilder erst nach erfolgreichem Save gelöscht
  *   werden dürfen.
  *
  * - PersonScreen kennt weder GalleryPickerHandler noch CameraPickerHandler,
- *   IImageFileStorage oder ImageEditDelegate. Für den Screen bestehen die
+ *   IImageFileStorage oder ImageEdit. Für den Screen bestehen die
  *   Bildoperationen lediglich aus den Callback-Funktionen:
  *
  *      onSelectPhoto
@@ -275,7 +275,7 @@ fun PersonAdapter(
  *          Gallery-Uri in internen Dateipfad umwandeln
  *          PersonUiState aktualisieren
  *
- *      ImageEditDelegate
+ *      ImageEdit
  *          Lebensdauer der Bilder innerhalb einer Edit-Session verwalten
  *
  *      IImageFileStorage

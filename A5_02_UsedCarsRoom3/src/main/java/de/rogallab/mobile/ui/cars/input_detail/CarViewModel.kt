@@ -66,23 +66,13 @@ class CarViewModel(
          is CarIntent.ModelChanged ->
             updateCar { car -> car.copy(model = intent.value) }
 
-         is CarIntent.RegistrationYearChanged ->
-            _stateFlow.update { state: CarUiState ->
-               state.copy(registrationYearInput = intent.value)
-            }
-
-         is CarIntent.MileageChanged ->
-            _stateFlow.update { state: CarUiState ->
-               state.copy(mileageInput = intent.value)
-            }
-
          is CarIntent.PriceChanged ->
             _stateFlow.update { state: CarUiState ->
                state.copy(priceInput = intent.value)
             }
 
          is CarIntent.SellerChanged ->
-            updateCar { car -> car.copy(sellerId = intent.personId) }
+            updateCar { car -> car.copy(personId = intent.personId) }
 
          is CarIntent.GalleryImagesSelected ->
             storeGalleryImages(intent.sourceUris)
@@ -139,8 +129,6 @@ class CarViewModel(
                   _stateFlow.update { state: CarUiState ->
                      state.copy(
                         car = car,
-                        registrationYearInput =
-                           car.registration?.toString().orEmpty(),
                         priceInput = car.price?.toString().orEmpty(),
                         isLoading = false,
                      )
@@ -230,14 +218,11 @@ class CarViewModel(
       val normalized = car.copy(
          manufacturer = car.manufacturer.trim(),
          model = car.model.trim(),
-         registration = state.registrationYearInput.trim().toIntOrNull(),
          price = state.priceInput.trim().toIntOrNull(),
       )
 
       val error = _validator.validateCar(
          normalized,
-         state.registrationYearInput,
-         state.mileageInput,
          state.priceInput,
       )
       if (error != null) {

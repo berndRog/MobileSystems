@@ -5,7 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -48,7 +48,7 @@ class PersonBackEffectTest {
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = imageFileStorage,
-         _imageEdit = ImageEditDelegate(imageFileStorage),
+         _imageEdit = ImageEdit(imageFileStorage),
          _effectDelegate = EffectDelegate(),
       )
 

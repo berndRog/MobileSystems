@@ -5,8 +5,6 @@ import android.net.Uri
 sealed interface CarIntent {
    data class ManufacturerChanged(val value: String) : CarIntent
    data class ModelChanged(val value: String) : CarIntent
-   data class RegistrationYearChanged(val value: String) : CarIntent
-   data class MileageChanged(val value: String) : CarIntent
    data class PriceChanged(val value: String) : CarIntent
    data class SellerChanged(val personId: String?) : CarIntent
 

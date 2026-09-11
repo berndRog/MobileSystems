@@ -27,7 +27,6 @@ fun CarCard(
    sellerName: String,
 ) {
    val notAvailable = stringResource(R.string.value_not_available)
-   val registration = car.registration?.toString() ?: notAvailable
    val price = car.price?.toString() ?: notAvailable
 
    Card(
@@ -64,14 +63,6 @@ fun CarCard(
                   style = MaterialTheme.typography.bodyMedium,
                )
             }
-            Text(
-               text = stringResource(
-                  R.string.car_card_details,
-                  registration,
-                  price,
-               ),
-               style = MaterialTheme.typography.bodyMedium,
-            )
          }
       }
    }

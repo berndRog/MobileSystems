@@ -9,7 +9,7 @@ data class Person(
    val phone: String? = "",
    val imagePath: String? = null,
    val id: String = newUuid(),
+   var cars: MutableList<Car> = mutableListOf()
 ) {
    val fullName: String get() = "$firstName $lastName".trim()
-   val displayName: String get() = fullName
 }

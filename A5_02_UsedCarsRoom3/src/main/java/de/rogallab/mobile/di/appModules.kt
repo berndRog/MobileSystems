@@ -6,6 +6,7 @@ import de.rogallab.mobile.Globals
 import de.rogallab.mobile.data.ICarDao
 import de.rogallab.mobile.data.IPersonDao
 import de.rogallab.mobile.data.ITDriveDao
+import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.database.AppDatabase
 import de.rogallab.mobile.data.local.database.SeedDatabase
 import de.rogallab.mobile.data.local.database.migration1To2
@@ -67,12 +68,16 @@ fun appModule(): Module = module {
    single { CarValidator(context = androidContext()) }
    single { TDriveValidator(context = androidContext()) }
 
+   single { Seed(_imageFileStorage = get<IImageFileStorage>()) }
+
    single {
       SeedDatabase(
          _personDao = get(),
          _carDao = get(),
          _tDriveDao = get(),
          _imageFileStorage = get<IImageFileStorage>(),
+         _seed = get<Seed>()
+
       )
    }
 

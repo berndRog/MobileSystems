@@ -24,7 +24,7 @@ interface IPersonDao {
       """
       SELECT Person.*, Car.*
       FROM Person
-      JOIN Car ON Car.sellerId = Person.id
+      JOIN Car ON Car.personId = Person.id
       WHERE Person.id = :personId
       """
    )

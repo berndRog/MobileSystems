@@ -188,14 +188,10 @@ class PersonViewModel(
    }
 
    // Delegate image lifecycle management to IImageEdit.
-   //
-   // The ViewModel only provides the desired selection. The delegate decides
-   // which temporary images may already be deleted and which persisted originals
-   // must remain until Save has completed successfully.
    private suspend fun replaceImage(imagePath: String?) {
 
-      // Person currently supports one image, while IImageEdit deliberately
-      // uses List<String> so that it can also support multi-image entities.
+      // Person currently supports one image, while IImageEdit uses List<String>
+      //  so that it can also support multi-image entities.
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
@@ -370,7 +366,7 @@ class PersonViewModel(
  *          Save und Cancel absichern
  *
  * - PersonViewModel kennt dadurch nicht die einzelnen Löschregeln für alte und
- *   neue Bilder. Diese Logik wird an ImageEditDelegate delegiert.
+ *   neue Bilder. Diese Logik wird an ImageEdit delegiert.
  *
  * - Beim Laden einer bestehenden Person startet das ViewModel die Edit-Session
  *   mit dem bereits gespeicherten Bild:

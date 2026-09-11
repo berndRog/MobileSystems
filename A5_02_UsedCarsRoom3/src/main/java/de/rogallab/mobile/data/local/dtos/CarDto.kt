@@ -13,19 +13,18 @@ import androidx.room3.PrimaryKey
       ForeignKey(
          entity = PersonDto::class,
          parentColumns = ["id"],
-         childColumns = ["sellerId"],
+         childColumns = ["personId"],
          onDelete = ForeignKey.RESTRICT,
       )
    ],
-   indices = [Index(value = ["sellerId"])],
+   indices = [Index(value = ["personId"])],
 )
 data class CarDto(
    @PrimaryKey val id: String,
    val manufacturer: String,
    val model: String,
-   val year: Int?,
    val price: Int?,
-   val sellerId: String,
    @ColumnInfo(defaultValue = "'[]'")
    val imagePaths: List<String> = emptyList(),
+   val personId: String?,        // seller
 )
