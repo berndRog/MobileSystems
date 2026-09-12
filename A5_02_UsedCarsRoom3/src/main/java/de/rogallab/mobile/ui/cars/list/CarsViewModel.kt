@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.cars.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.Globals
+import de.rogallab.mobile.Globals.delay
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
@@ -11,6 +13,7 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -79,6 +82,9 @@ class CarsViewModel(
    private fun observeCars() {
       _observeJob?.cancel()
       _observeJob = viewModelScope.launch {
+
+         delay(Globals.delay)
+
          _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
          _repository.observeAll().collect { result: Result<List<Car>> ->
             result.onSuccess { cars ->
@@ -95,6 +101,8 @@ class CarsViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
+         delay(Globals.delay)
+
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->
                _stateFlow.update { state: CarsUiState -> state.copy(people = people) }

@@ -41,7 +41,7 @@ fun CarCard(
       ) {
          ImageRenderer(
             modifier = Modifier
-               .weight(1f)
+               .weight(0.35f)
                .padding(4.dp),
             imageVector = Icons.Default.DirectionsCar,
             imagePath = car.primaryImagePath,
@@ -50,7 +50,7 @@ fun CarCard(
 
          Column(
             modifier = Modifier
-               .weight(3f)
+               .weight(0.65f)
                .padding(horizontal = 4.dp),
          ) {
             Text(

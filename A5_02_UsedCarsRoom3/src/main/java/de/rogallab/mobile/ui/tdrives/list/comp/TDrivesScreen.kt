@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -89,8 +90,7 @@ private fun TDrivesList(
             TDriveCard(
                tDrive = tDrive,
                personName = personName,
-               carName = carName,
-               onClick = { onIntent(TDrivesIntent.Detail(tDrive.id)) },
+               carName = carName
             )
          }
       }
@@ -101,38 +101,32 @@ private fun TDrivesList(
 private fun TDriveCard(
    tDrive: TDrive,
    personName: String,
-   carName: String,
-   onClick: () -> Unit,
+   carName: String
 ) {
    Card(
       modifier = Modifier
-         .fillMaxWidth()
-         .clickable(onClick = onClick),
+         .height(90.dp)
+         .fillMaxWidth(),
       shape = RoundedCornerShape(12.dp),
    ) {
-      Row(
-         modifier = Modifier.padding(16.dp),
-         horizontalArrangement = Arrangement.spacedBy(16.dp),
-         verticalAlignment = Alignment.CenterVertically,
-      ) {
-         Icon(Icons.Default.Event, contentDescription = null)
-         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-               stringResource(R.string.test_drive_card_title, personName, carName),
-               style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-               DateTimeText.format(tDrive.start),
-               style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-               stringResource(
-                  if (tDrive.isCompleted) R.string.test_drive_status_completed
-                  else R.string.test_drive_status_planned,
-               ),
-               style = MaterialTheme.typography.bodySmall,
-            )
-         }
+
+      //Icon(Icons.Default.Event, contentDescription = null)
+      Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+         Text(
+            stringResource(R.string.test_drive_card_title, personName, carName),
+            style = MaterialTheme.typography.bodyMedium,
+         )
+         Text(
+            DateTimeText.format(tDrive.start),
+            style = MaterialTheme.typography.bodyMedium,
+         )
+         Text(
+            stringResource(
+               if (tDrive.isCompleted) R.string.test_drive_status_completed
+               else R.string.test_drive_status_planned,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+         )
       }
    }
 }

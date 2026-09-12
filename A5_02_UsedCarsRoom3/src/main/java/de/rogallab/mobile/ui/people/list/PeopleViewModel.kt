@@ -2,6 +2,7 @@ package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -50,7 +51,7 @@ class PeopleViewModel(
          }
 
          // Simulate a longer loading operation.
-         delay(1000)
+         delay(Globals.delay)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result

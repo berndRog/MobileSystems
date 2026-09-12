@@ -3,6 +3,7 @@ package de.rogallab.mobile.ui.people.create_detail
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
@@ -69,7 +70,7 @@ class PersonViewModel(
          }
 
          // Simulate a longer loading operation.
-         delay(1000)
+         delay(Globals.delay)
 
          _repository.findById(id)
             .onSuccess { person ->

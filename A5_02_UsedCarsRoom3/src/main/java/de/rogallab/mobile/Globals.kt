@@ -5,4 +5,5 @@ object Globals {
    const val databaseName = "usedcars52.db"
    const val databaseVersion = 2
    const val animationDuration = 1000
+   const val delay = 300L
 }

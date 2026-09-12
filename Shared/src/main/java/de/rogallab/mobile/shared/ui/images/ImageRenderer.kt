@@ -44,9 +44,9 @@ fun ImageRenderer(
          AsyncImage(
             model = imagePath.toImageModel(),
             contentDescription = contentDescription,
-            modifier = Modifier.fillMaxWidth(),
-            alignment = Alignment.Center,
-            contentScale = ContentScale.Fit,
+            modifier = modifier,
+            alignment = Alignment.TopCenter,
+            contentScale = ContentScale.Crop,
          )
       }
    }

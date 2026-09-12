@@ -28,13 +28,13 @@ fun ImageSelection(
    Row(
       modifier = Modifier
          .padding(vertical = 16.dp)
-         .height(220.dp)
          .fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(12.dp),
    ) {
       // Renders the current image or a placeholder icon if no image is available.
       ImageRenderer(
-         modifier = Modifier.weight(1f),
+         modifier = Modifier
+            .weight(1f),
          imageVector = Icons.Default.AccountCircle,
          imagePath = imagePath,
          contentDescription = fullName,

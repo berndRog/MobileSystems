@@ -149,7 +149,7 @@ fun PersonScreen(
          OutlinedButton(
             onClick = onCarsRequested,
             enabled = !isCarsLoading,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
          ) {
             if (isCarsLoading) {
                CircularProgressIndicator(
