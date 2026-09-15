@@ -23,8 +23,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import kotlin.coroutines.CoroutineContext
 
-fun appModule(): Module = module {
+fun appModule(
+   queryCoroutineContext: CoroutineContext = Dispatchers.IO
+): Module = module {
 
    val tag = "<-appModule"
 
@@ -36,7 +39,7 @@ fun appModule(): Module = module {
          name = Globals.databaseName,
       )
          .setDriver(BundledSQLiteDriver())
-         .setQueryCoroutineContext(Dispatchers.IO)
+         .setQueryCoroutineContext(queryCoroutineContext)
          .build()
    }
 

@@ -14,7 +14,7 @@ import retrofit2.http.Path
 
 interface IPersonWebservice {
 
-   // Request all people. Retrofit converts the JSON array into PersonDto objects.
+   // Request all people
    @GET("peopleapi/v1/people")
    suspend fun getAll(): List<PersonDto>
 

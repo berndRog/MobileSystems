@@ -12,13 +12,25 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface IPersonDao {
 
-   @Query("SELECT * FROM Person ORDER BY lastName, firstName")
+   @Query("""
+      SELECT * 
+      FROM Person 
+      ORDER BY lastName, firstName
+   """)
    fun observeAll(): Flow<List<PersonDto>>
 
-   @Query("SELECT * FROM Person WHERE id = :id LIMIT 1")
+   @Query(""" 
+      SELECT * 
+      FROM Person 
+      WHERE id = :id 
+      LIMIT 1
+   """)
    suspend fun findById(id: String): PersonDto?
 
-   @Query("SELECT COUNT(*) FROM Person")
+   @Query("""
+      SELECT COUNT(*) 
+      FROM Person
+   """)
    suspend fun count(): Int
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
