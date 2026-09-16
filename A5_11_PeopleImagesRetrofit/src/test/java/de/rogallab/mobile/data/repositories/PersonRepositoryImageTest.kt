@@ -1,5 +1,6 @@
 package de.rogallab.mobile.data.repositories
 
+import android.app.Application
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.testing.FakePersonWebservice
 import java.io.File
@@ -10,7 +11,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(
+   sdk = [35],
+   application = Application::class,
+)
 class PersonRepositoryImageTest {
 
    @get:Rule
