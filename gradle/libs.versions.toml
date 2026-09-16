@@ -96,6 +96,7 @@ coil-network-okhttp     = {module = "io.coil-kt.coil3:coil-network-okhttp", vers
 gson-json               = {  module = "com.google.code.gson:gson", version.ref = "googleJson" }
 retrofit2-core          = { module ="com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit2-gson          = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
+retrofit2-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }
 retrofit2-logging       = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "retrofitLogging" }
 
 # Google Play Services Location API
