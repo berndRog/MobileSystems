@@ -1,7 +1,5 @@
 package de.rogallab.mobile.di
 
-import de.rogallab.mobile.BuildConfig
-import de.rogallab.mobile.Globals
 import de.rogallab.mobile.data.remote.IPersonWebservice
 import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
@@ -15,46 +13,15 @@ import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 fun appModule(): Module = module {
 
    val tag = "<-appModule"
-
-   Alog.i(tag, "single    -> HttpLoggingInterceptor")
-   single<HttpLoggingInterceptor> {
-      HttpLoggingInterceptor().apply {
-         level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BASIC
-         }
-         else {
-            HttpLoggingInterceptor.Level.NONE
-         }
-      }
-   }
-
-   Alog.i(tag, "single    -> OkHttpClient")
-   single<OkHttpClient> {
-      OkHttpClient.Builder()
-         .addInterceptor(get<HttpLoggingInterceptor>())
-         .build()
-   }
-
-   Alog.i(tag, "single    -> Retrofit")
-   single<Retrofit> {
-      Retrofit.Builder()
-         .baseUrl(Globals.baseUrl)
-         .client(get<OkHttpClient>())
-         .addConverterFactory(GsonConverterFactory.create())
-         .build()
-   }
 
    Alog.i(tag, "single    -> IPersonWebservice")
    single<IPersonWebservice> {
@@ -120,9 +87,9 @@ fun appModule(): Module = module {
  * - A5_11_PeopleImagesRetrofit behält denselben Repository-Port wie A5_10.
  *   Personendaten verwenden weiterhin den bereits bekannten JSON-Vertrag.
  *
- * - OkHttp führt HTTP aus, Retrofit beschreibt die Webservice-Aufrufe und Gson
- *   übersetzt JSON in PersonDto. PersonRepository bildet diese DTOs anschließend
- *   auf die Domain-Entität Person ab.
+ * - Die generische Netzwerk-Infrastruktur mit OkHttp, Json und Retrofit liegt in
+ *   Shared. Dieses Modul registriert nur die projektspezifische Schnittstelle
+ *   IPersonWebservice und erzeugt daraus den Client für PeopleImagesApi.
  *
  * - Seed und SeedApi demonstrieren zusätzlich eine Initialisierung über REST:
  *   countAll() prüft, ob der Server leer ist. Danach werden Personendaten als
@@ -141,10 +108,4 @@ fun appModule(): Module = module {
  * - IImageFileStorage verwaltet lokale Galerie-, Kamera- und Seed-Dateien nur bis
  *   zum erfolgreichen Upload. Persistente Bilder und deren URLs gehören danach
  *   vollständig PeopleImagesApi.
- *
- * Lernziele:
- *
- * - Retrofit und OkHttp per Koin bereitstellen.
- * - Repository-Port beim Wechsel von Room zu REST unverändert weiterverwenden.
- * - HTTP-/DTO-Technik von ViewModel und Domain-Modell trennen.
  */
