@@ -246,7 +246,7 @@ class CarViewModel(
                // Only a successful database write commits the image selection.
                _imageEdit.commit()
                normalized.imagePaths
-                  .filterNot(String::isRemoteImageUrl)
+                  .filterNot { imagePath -> imagePath.isRemoteImageUrl() }
                   .forEach { imagePath -> deleteUploadedLocalImageQuietly(imagePath) }
                _effectDelegate.emit(
                   CarEffect.ShowMessage(
