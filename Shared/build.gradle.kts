@@ -14,6 +14,9 @@ dependencies {
    // SQLDriver für Android (AndroidSQLiteDriver)
    implementation(libs.androidx.sqlite.framework)
 
+   // Retrofit converter for kotlinx.serialization
+   implementation(libs.retrofit2.kotlinx.serialization)
+
    // optional Tests
    testImplementation(libs.androidx.room3.testing)
 }
