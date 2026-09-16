@@ -59,17 +59,17 @@ interface IPersonWebservice {
  *   Die suspend-Funktionen können dadurch aus Coroutines aufgerufen werden, ohne
  *   den aufrufenden Thread während der Netzwerkoperation zu blockieren.
  *
- * - GET liefert JSON. GsonConverterFactory übersetzt die Antwort automatisch in
- *   List<PersonDto>, PersonDto bzw. Int. Die Retrofit-Schnittstelle arbeitet damit
- *   mit Transportobjekten und nicht mit der Domain-Entität Person.
+ * - GET liefert JSON. Der kotlinx.serialization-Converter übersetzt die Antwort
+ *   automatisch in List<PersonDto>, PersonDto bzw. Int. Die Retrofit-Schnittstelle
+ *   arbeitet damit mit Transportobjekten und nicht mit der Domain-Entität Person.
  *
  * - countAll() ist eine gezielte Abfrage für das Client-Seeding. Statt zuerst alle
  *   Personen zu übertragen und anschließend list.size auszuwerten, liefert die
  *   WebAPI nur die Anzahl der Datensätze.
  *
- * - Create und Update verwenden @Body. Gson serialisiert PersonDto einschließlich
- *   imageUrl in ein JSON-Objekt. imageUrl ist dabei nur ein optionaler String;
- *   die referenzierte Datei wird weder gelesen noch an den Server übertragen.
+ * - Create und Update verwenden @Body. kotlinx.serialization serialisiert
+ *   PersonDto einschließlich imageUrl in ein JSON-Objekt. imageUrl ist dabei nur
+ *   ein optionaler String; die referenzierte Datei wird nicht übertragen.
  *
  * - DELETE liefert keinen PersonDto zurück. Response<Unit> wird verwendet, damit
  *   das Repository trotzdem den HTTP-Status auswerten und Fehler erkennen kann.
