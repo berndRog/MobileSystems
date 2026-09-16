@@ -1,0 +1,20 @@
+package de.rogallab.mobile.data.mapping
+
+import de.rogallab.mobile.data.remote.dtos.TDriveDto
+import de.rogallab.mobile.domain.entities.TDrive
+
+fun TDriveDto.toTestDrive(): TDrive = TDrive(
+   id = id,
+   personId = personId,
+   carId = carId,
+   start = start,
+   isCompleted = isCompleted,
+)
+
+fun TDrive.toTestDriveDto(): TDriveDto = TDriveDto(
+   id = id,
+   personId = requireNotNull(personId) { "A test drive requires a person." },
+   carId = requireNotNull(carId) { "A test drive requires a car." },
+   start = start,
+   isCompleted = isCompleted,
+)
