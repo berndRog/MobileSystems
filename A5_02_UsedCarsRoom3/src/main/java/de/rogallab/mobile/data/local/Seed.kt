@@ -12,6 +12,7 @@ import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import org.koin.core.component.KoinComponent
 import java.util.Locale
 import kotlin.random.Random
+import kotlin.time.Instant
 
 class Seed(
    private val _imageFileStorage: IImageFileStorage
@@ -202,21 +203,21 @@ class Seed(
             id = TDRIVE_1_ID,
             personId = FRIEDA_ID,
             carId = FIAT_ID,
-            start = "2026-08-04T14:00:00",
+            start = Instant.parse("2026-08-04T12:00:00Z"),
             isCompleted = false,
          ),
          TDriveDto(
             id = TDRIVE_2_ID,
             personId = FRIEDA_ID,
             carId = GOLF_ID,
-            start = "2026-08-06T10:30:00",
+            start = Instant.parse("2026-08-06T08:30:00Z"),
             isCompleted = false,
          ),
          TDriveDto(
             id = TDRIVE_3_ID,
             personId = HANNA_ID,
             carId = FIAT_ID,
-            start = "2026-08-07T16:00:00",
+            start = Instant.parse("2026-08-07T14:00:00Z"),
             isCompleted = true,
          )
       )

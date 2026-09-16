@@ -31,6 +31,8 @@ import de.rogallab.mobile.shared.ui.components.SwipeCard
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.tdrives.list.TDrivesIntent
 import de.rogallab.mobile.ui.tdrives.list.TDrivesUiState
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun TDrivesScreen(
@@ -117,7 +119,9 @@ private fun TDriveCard(
             style = MaterialTheme.typography.bodyMedium,
          )
          Text(
-            DateTimeText.format(tDrive.start),
+            DateTimeText.format(
+               tDrive.start.toLocalDateTime(TimeZone.currentSystemDefault())
+            ),
             style = MaterialTheme.typography.bodyMedium,
          )
          Text(

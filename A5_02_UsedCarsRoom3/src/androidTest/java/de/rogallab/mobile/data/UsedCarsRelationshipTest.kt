@@ -14,6 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class UsedCarsRelationshipTest {
@@ -73,8 +74,8 @@ class UsedCarsRelationshipTest {
       personDao.insert(listOf(seller, interested))
       carDao.insert(listOf(first, second))
       tDriveDao.insert(listOf(
-         drive("td-1", interested.id, first.id, "2026-08-04T14:00:00"),
-         drive("td-2", interested.id, second.id, "2026-08-05T15:00:00"),
+         drive("td-1", interested.id, first.id, Instant.parse("2026-08-04T12:00:00Z")),
+         drive("td-2", interested.id, second.id, Instant.parse("2026-08-05T13:00:00Z")),
       ))
 
       val relation = personDao.findWithTestDriveCars(interested.id)
@@ -90,6 +91,6 @@ class UsedCarsRelationshipTest {
       PersonDto(id, first, last, null, null, null)
    private fun car(id: String, personId: String, model: String) =
       CarDto(id, "Volkswagen", model, 42500, emptyList(), personId)
-   private fun drive(id: String, personId: String, carId: String, start: String) =
+   private fun drive(id: String, personId: String, carId: String, start: Instant) =
       TDriveDto(id, personId, carId, start, false)
 }

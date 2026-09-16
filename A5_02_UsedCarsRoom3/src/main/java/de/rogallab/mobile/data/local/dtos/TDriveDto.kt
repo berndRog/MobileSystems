@@ -4,6 +4,7 @@ import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
+import kotlin.time.Instant
 
 // TDrive is the association entity between Person and Car.
 @Entity(
@@ -32,6 +33,6 @@ data class TDriveDto(
    @PrimaryKey val id: String,
    val personId: String,
    val carId: String,
-   val start: String,
+   val start: Instant,
    val isCompleted: Boolean,
 )

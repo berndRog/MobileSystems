@@ -15,7 +15,7 @@ import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 )
 
 @ColumnTypeConverters(
-   LocalDateTimeConverters::class
+   InstantConverters::class
 )
 abstract class AppDatabasePerson : RoomDatabase() {
    abstract fun createPersonDao(): IPersonDao

@@ -10,13 +10,17 @@ import de.rogallab.mobile.data.ITDriveDao
 import de.rogallab.mobile.data.local.dtos.CarDto
 import de.rogallab.mobile.data.local.dtos.PersonDto
 import de.rogallab.mobile.data.local.dtos.TDriveDto
+import de.rogallab.mobile.shared.data.local.database.InstantConverters
 
 @Database(
    entities = [PersonDto::class, CarDto::class, TDriveDto::class],
    version = Globals.databaseVersion,
    exportSchema = false,
 )
-@ColumnTypeConverters(StringListColumnConverter::class)
+@ColumnTypeConverters(
+   StringListColumnConverter::class,
+   InstantConverters::class,
+)
 abstract class AppDatabase : RoomDatabase() {
    abstract fun createPersonDao(): IPersonDao
    abstract fun createCarDao(): ICarDao

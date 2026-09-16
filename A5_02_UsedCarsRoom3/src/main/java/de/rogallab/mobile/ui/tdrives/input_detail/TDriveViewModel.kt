@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 class TDriveViewModel(
@@ -36,8 +37,9 @@ class TDriveViewModel(
 
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
+   private val _localTimeZone = TimeZone.currentSystemDefault()
    private val defaultStart = Clock.System.now()
-      .toLocalDateTime(TimeZone.currentSystemDefault())
+      .toLocalDateTime(_localTimeZone)
       .let { now: LocalDateTime ->
          LocalDateTime(
             date = now.date,
@@ -47,11 +49,16 @@ class TDriveViewModel(
             ),
          )
       }
+      .toInstant(_localTimeZone)
    private var _isSaving = false
    private val _stateFlow = MutableStateFlow(
       if (_isNew) {
          val tDrive = TDrive(id = newUuid(), start = defaultStart)
-         TDriveUiState(tDrive = tDrive, startInput = DateTimeText.format(tDrive.start), isNew = true)
+         TDriveUiState(
+            tDrive = tDrive,
+            startInput = DateTimeText.format(tDrive.start.toLocalDateTime(_localTimeZone)),
+            isNew = true,
+         )
       } else TDriveUiState(isNew = false, isLoading = true)
    )
    val stateFlow: StateFlow<TDriveUiState> = _stateFlow.asStateFlow()
@@ -95,7 +102,11 @@ class TDriveViewModel(
                showErrorNow(_stringProvider.getString(R.string.error_test_drive_not_found))
             } else {
                _stateFlow.update { state: TDriveUiState ->
-                  state.copy(tDrive = tDrive, startInput = DateTimeText.format(tDrive.start), isLoading = false)
+                  state.copy(
+                     tDrive = tDrive,
+                     startInput = DateTimeText.format(tDrive.start.toLocalDateTime(_localTimeZone)),
+                     isLoading = false,
+                  )
                }
             }
          }.onFailure {
@@ -115,7 +126,7 @@ class TDriveViewModel(
       if (start == null) {
          showError(_validator.validateStart(state.startInput).orEmpty()); return
       }
-      val normalized = tDrive.copy(start = start)
+      val normalized = tDrive.copy(start = start.toInstant(_localTimeZone))
       val error = _validator.validateTestDrive(normalized, state.startInput)
       if (error != null) { showError(error); return }
       _stateFlow.update { current: TDriveUiState -> current.copy(tDrive = normalized) }

@@ -11,10 +11,10 @@ import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TDrivesViewModelDeleteTest {
@@ -24,7 +24,7 @@ class TDrivesViewModelDeleteTest {
       id = "t1",
       personId = "p1",
       carId = "c1",
-      start = LocalDateTime(2026, 8, 30, 14, 0),
+      start = Instant.parse("2026-08-30T12:00:00Z"),
    )
 
    private fun create(repository: FakeTDriveRepository) = TDrivesViewModel(
