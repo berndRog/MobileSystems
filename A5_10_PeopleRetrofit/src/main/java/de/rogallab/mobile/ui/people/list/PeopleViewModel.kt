@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -111,13 +112,14 @@ class PeopleViewModel(
                      state.copy(people = people, isLoading = false)
                   }
                }
-               .onFailure {
+               .onFailure { throwable ->
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  val error =
+                  val fallback =
                      _stringProvider.getString(R.string.error_people_observe)
+                  val error = throwable.userMessageOr(fallback)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
@@ -127,9 +129,10 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
-            .onFailure {
-               val error =
+            .onFailure { throwable ->
+               val fallback =
                   _stringProvider.getString(R.string.error_person_remove)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PeopleEffect.ShowError(error))
             }
       }
@@ -161,6 +164,8 @@ class PeopleViewModel(
  *      A5_10 -> Retrofit / PeopleApi
  *
  *   Dadurch ist im ViewModel keine Retrofit-, HTTP- oder JSON-Klasse sichtbar.
+ *   Klassifizierte Netzwerkfehler enthalten bereits die zentrale Meldung aus
+ *   Shared; bei anderen Fehlern bleibt die projektspezifische Standardmeldung.
  *
  * - observeAll() bleibt ein Flow. Da REST im Gegensatz zu Room keinen lokalen
  *   beobachtbaren Datenbank-Flow bereitstellt, bildet PersonRepository die zuletzt

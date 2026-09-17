@@ -4,6 +4,7 @@ import de.rogallab.mobile.shared.data.network.NetworkConnectionChecker
 import de.rogallab.mobile.shared.data.network.NetworkConnectionInterceptor
 import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -61,6 +62,10 @@ fun networkModule(
       OkHttpClient.Builder()
          .addInterceptor(get<NetworkConnectionInterceptor>())
          .addInterceptor(get<HttpLoggingInterceptor>())
+         .connectTimeout(10, TimeUnit.SECONDS)
+         .readTimeout(30, TimeUnit.SECONDS)
+         .writeTimeout(30, TimeUnit.SECONDS)
+         .callTimeout(60, TimeUnit.SECONDS)
          .build()
    }
 
@@ -103,6 +108,8 @@ fun networkModule(
  * - NetworkExceptionMapper übersetzt technische Netzwerk-, Timeout- und
  *   HTTP-Fehler in zentrale NetworkException-Typen mit Shared-Stringressourcen.
  * - OkHttpClient führt anschließend die eigentliche HTTP-Kommunikation aus.
+ *   Connect-, Read-, Write- und Gesamt-Timeout verhindern unbegrenzt wartende
+ *   Requests und werden zentral für alle verwendenden Projekte festgelegt.
  * - Json konfiguriert kotlinx.serialization für die JSON-Konvertierung.
  * - Retrofit verbindet Base-URL, OkHttpClient und JSON-Converter.
  *
