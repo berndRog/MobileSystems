@@ -1,11 +1,14 @@
 package de.rogallab.mobile.shared.di
 
+import de.rogallab.mobile.shared.data.network.NetworkConnectionChecker
+import de.rogallab.mobile.shared.data.network.NetworkConnectionInterceptor
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -31,9 +34,24 @@ fun networkModule(
       }
    }
 
+   Alog.i(tag, "single    -> NetworkConnectionChecker")
+   single<NetworkConnectionChecker> {
+      NetworkConnectionChecker(
+         context = androidContext(),
+      )
+   }
+
+   Alog.i(tag, "single    -> NetworkConnectionInterceptor")
+   single<NetworkConnectionInterceptor> {
+      NetworkConnectionInterceptor(
+         _networkConnectionChecker = get<NetworkConnectionChecker>(),
+      )
+   }
+
    Alog.i(tag, "single    -> OkHttpClient")
    single<OkHttpClient> {
       OkHttpClient.Builder()
+         .addInterceptor(get<NetworkConnectionInterceptor>())
          .addInterceptor(get<HttpLoggingInterceptor>())
          .build()
    }
@@ -70,7 +88,11 @@ fun networkModule(
  *   gebunden und kann deshalb von mehreren Vorlesungsprojekten verwendet werden.
  *
  * - HttpLoggingInterceptor protokolliert Requests nur in Debug-Builds.
- * - OkHttpClient führt die HTTP-Kommunikation aus.
+ * - NetworkConnectionChecker prüft das aktive Netzwerk und den von Android
+ *   validierten Internetzugang.
+ * - NetworkConnectionInterceptor führt diese Prüfung unmittelbar vor jedem
+ *   HTTP-Request aus und bricht den Request bei fehlender Verbindung ab.
+ * - OkHttpClient führt anschließend die eigentliche HTTP-Kommunikation aus.
  * - Json konfiguriert kotlinx.serialization für die JSON-Konvertierung.
  * - Retrofit verbindet Base-URL, OkHttpClient und JSON-Converter.
  *
