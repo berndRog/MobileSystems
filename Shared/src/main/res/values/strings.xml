@@ -5,5 +5,12 @@
   <string name="action_select_photo">Select photo</string>
   <string name="action_take_photo">Start camera</string>
   <string name="action_remove_photo">Delete photo</string>
+
   <string name="error_image_save">Photo could not be saved locally.</string>
+  <string name="error_no_network_connection">No network connection.</string>
+  <string name="error_no_internet_connection">No internet connection.</string>
+  <string name="error_network_timeout">The server did not respond in time.</string>
+  <string name="error_server_unreachable">The server is not reachable.</string>
+  <string name="error_http_request">Request failed (HTTP %1$d).</string>
+  <string name="error_network_request">Network communication failed.</string>
 </resources>
