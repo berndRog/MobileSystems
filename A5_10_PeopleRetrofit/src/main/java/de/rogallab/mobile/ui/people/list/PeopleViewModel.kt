@@ -103,8 +103,6 @@ class PeopleViewModel(
             state.copy(isLoading = true)
          }
 
-         delay(1000)
-
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result
                .onSuccess { people ->
@@ -117,8 +115,7 @@ class PeopleViewModel(
                      state.copy(isLoading = false)
                   }
 
-                  val fallback =
-                     _stringProvider.getString(R.string.error_people_observe)
+                  val fallback = _stringProvider.getString(R.string.error_people_observe)
                   val error = throwable.userMessageOr(fallback)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }

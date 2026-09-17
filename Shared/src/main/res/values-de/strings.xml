@@ -6,6 +6,7 @@
    <string name="action_take_photo">Kamera starten</string>
    <string name="action_remove_photo">Foto entfernen</string>
    <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+
    <string name="error_no_network_connection">Keine Netzwerkverbindung.</string>
    <string name="error_no_internet_connection">Keine Internetverbindung.</string>
    <string name="error_network_timeout">Der Server hat nicht rechtzeitig geantwortet.</string>
