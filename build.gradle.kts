@@ -278,7 +278,6 @@ subprojects {
 
       // Einheitliche SQLite-Treiber für alle Beispielmodule.
       add("implementation", sharedLibs.androidx.sqlite.bundled)
-      add("implementation", sharedLibs.androidx.sqlite.framework)
 
       // Room-Codegenerierung über Kotlin Symbol Processing
       add("ksp", sharedLibs.androidx.room3.compiler)
@@ -347,9 +346,6 @@ subprojects {
       // Robolectric für Android-nahe Tests auf der lokalen JVM
       add("testImplementation", sharedLibs.robolectric.test)
 
-      // Room-Tests auf der lokalen JVM
-      add("testImplementation", sharedLibs.androidx.room3.testing)
-
       // -----------------------------------------------------------------------
       // Instrumentierte Android Tests
       // -----------------------------------------------------------------------
@@ -375,15 +371,6 @@ subprojects {
       // Die Compose BOM wurde bereits weiter oben auch für
       // androidTestImplementation eingebunden.
       add("androidTestImplementation", sharedLibs.androidx.ui.test.junit4)
-
-      // Navigation Tests
-      // add("androidTestImplementation", sharedLibs.androidx.navigation.testing)
-
-      // Room Tests
-      add("androidTestImplementation", sharedLibs.androidx.room3.testing)
-
-      // LiveData- und Architecture-Components-Tests
-      // add("androidTestImplementation", sharedLibs.androidx.arch.core.testing)
 
       // Koin Tests
       add("androidTestImplementation", sharedLibs.koin.test)
