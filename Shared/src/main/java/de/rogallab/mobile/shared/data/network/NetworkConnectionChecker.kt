@@ -3,7 +3,6 @@ package de.rogallab.mobile.shared.data.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import java.io.IOException
 
 class NetworkConnectionChecker(
    context: Context,
@@ -39,12 +38,6 @@ class NetworkConnectionChecker(
          throw NoInternetConnectionException()
    }
 }
-
-class NoNetworkConnectionException :
-   IOException("No active network connection")
-
-class NoInternetConnectionException :
-   IOException("No validated internet connection")
 
 /*
  * Didaktik und Lernziele
