@@ -167,6 +167,10 @@ subprojects {
 
             // Jetpack Compose für alle Beispielmodule aktivieren.
             compose = true
+
+            // BuildConfig steht allen Beispiel-Apps zur Verfügung.
+            // Einzelne Apps können darin zusätzliche Felder definieren.
+            buildConfig = true
          }
       }
    }
@@ -272,6 +276,10 @@ subprojects {
       // Room Runtime und Kotlin-Coroutines-Unterstützung
       add("implementation", sharedLibs.androidx.room3.runtime)
 
+      // Einheitliche SQLite-Treiber für alle Beispielmodule.
+      add("implementation", sharedLibs.androidx.sqlite.bundled)
+      add("implementation", sharedLibs.androidx.sqlite.framework)
+
       // Room-Codegenerierung über Kotlin Symbol Processing
       add("ksp", sharedLibs.androidx.room3.compiler)
 
@@ -281,6 +289,10 @@ subprojects {
       // Coil für Jetpack Compose
       // https://coil-kt.github.io/coil/
       add("implementation", sharedLibs.coil.compose)
+      add("implementation", sharedLibs.coil.network.okhttp)
+
+      // Media3 ExoPlayer
+      add("implementation", sharedLibs.androidx.media3.exoplayer)
 
       // -----------------------------------------------------------------------
       // Dependency Injection mit Koin
@@ -303,6 +315,7 @@ subprojects {
       // Retrofit
       add("implementation", sharedLibs.retrofit2.core)
       add("implementation", sharedLibs.retrofit2.gson)
+      add("implementation", sharedLibs.retrofit2.kotlinx.serialization)
 
       // HTTP-Logging für Retrofit beziehungsweise OkHttp
       add("implementation", sharedLibs.retrofit2.logging)
@@ -333,6 +346,9 @@ subprojects {
 
       // Robolectric für Android-nahe Tests auf der lokalen JVM
       add("testImplementation", sharedLibs.robolectric.test)
+
+      // Room-Tests auf der lokalen JVM
+      add("testImplementation", sharedLibs.androidx.room3.testing)
 
       // -----------------------------------------------------------------------
       // Instrumentierte Android Tests

@@ -1,9 +1,2 @@
-plugins {
-}
-
-android {
-   // BuildConfig.DEBUG enables HTTP logging only in debug builds.
-   buildFeatures {
-      buildConfig = true
-   }
-}
+// Die Android-Konfiguration und alle Abhängigkeiten werden zentral
+// im build.gradle.kts des Root-Projekts verwaltet.

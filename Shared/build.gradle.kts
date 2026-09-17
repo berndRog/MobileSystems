@@ -1,22 +1,2 @@
-plugins {
-   // leer lassen (wird zentral im Root-Gradle gesetzt)
-}
-
-dependencies {
-   // Room3
-   implementation(libs.androidx.room3.runtime)
-   implementation(libs.androidx.sqlite.bundled)
-   ksp(libs.androidx.room3.compiler)
-
-   // Coil
-   implementation(libs.coil.compose)
-
-   // SQLDriver für Android (AndroidSQLiteDriver)
-   implementation(libs.androidx.sqlite.framework)
-
-   // Retrofit converter for kotlinx.serialization
-   implementation(libs.retrofit2.kotlinx.serialization)
-
-   // optional Tests
-   testImplementation(libs.androidx.room3.testing)
-}
+// Die Android-Konfiguration und alle Abhängigkeiten werden zentral
+// im build.gradle.kts des Root-Projekts verwaltet.
