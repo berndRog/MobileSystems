@@ -1,7 +1,7 @@
 package de.rogallab.mobile.shared.di
 
-import de.rogallab.mobile.shared.data.network.NetworkConnectionChecker
-import de.rogallab.mobile.shared.data.network.NetworkConnectionInterceptor
+import de.rogallab.mobile.shared.data.network.ConnectionChecker
+import de.rogallab.mobile.shared.data.network.ConnectionInterceptor
 import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import java.util.concurrent.TimeUnit
@@ -20,9 +20,32 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 fun networkModule(
    baseUrl: String,
    isDebug: Boolean,
+
 ): Module = module {
 
    val tag = "<-networkModule"
+
+
+   Alog.i(tag, "single    -> NetworkExceptionMapper")
+   single<NetworkExceptionMapper> {
+      NetworkExceptionMapper(
+         context = androidContext(),
+      )
+   }
+
+   Alog.i(tag, "single    -> ConnectionChecker")
+   single<ConnectionChecker> {
+      ConnectionChecker(
+         context = androidContext(),
+      )
+   }
+
+   Alog.i(tag, "single    -> ConnectionInterceptor")
+   single<ConnectionInterceptor> {
+      ConnectionInterceptor(
+         _networkConnectionChecker = get<ConnectionChecker>(),
+      )
+   }
 
    Alog.i(tag, "single    -> HttpLoggingInterceptor")
    single<HttpLoggingInterceptor> {
@@ -36,31 +59,10 @@ fun networkModule(
       }
    }
 
-   Alog.i(tag, "single    -> NetworkExceptionMapper")
-   single<NetworkExceptionMapper> {
-      NetworkExceptionMapper(
-         context = androidContext(),
-      )
-   }
-
-   Alog.i(tag, "single    -> NetworkConnectionChecker")
-   single<NetworkConnectionChecker> {
-      NetworkConnectionChecker(
-         context = androidContext(),
-      )
-   }
-
-   Alog.i(tag, "single    -> NetworkConnectionInterceptor")
-   single<NetworkConnectionInterceptor> {
-      NetworkConnectionInterceptor(
-         _networkConnectionChecker = get<NetworkConnectionChecker>(),
-      )
-   }
-
    Alog.i(tag, "single    -> OkHttpClient")
    single<OkHttpClient> {
       OkHttpClient.Builder()
-         .addInterceptor(get<NetworkConnectionInterceptor>())
+         .addInterceptor(get<ConnectionInterceptor>())
          .addInterceptor(get<HttpLoggingInterceptor>())
          .connectTimeout(10, TimeUnit.SECONDS)
          .readTimeout(30, TimeUnit.SECONDS)
@@ -72,9 +74,11 @@ fun networkModule(
    Alog.i(tag, "single    -> Json")
    single<Json> {
       Json {
-         ignoreUnknownKeys = true
-         explicitNulls = false
-         coerceInputValues = true
+         ignoreUnknownKeys = true  // JSON enthält evtl. zusätzliche Attribute, die nicht in DTOs abgebildet sind.
+         explicitNulls = false     // JSON enthält evtl. optionale Attribute, die in DTOs als null abgebildet werden.
+         coerceInputValues = true  // JSON enthält evtl. optionale Attribute, die in DTOs als default abgebildet werden.
+         isLenient = false         // JSON erlaubt evtl. zusätzliche Whitespaces, Zeilenumbrüche oder Kommentare.
+         prettyPrint = true        // JSON wird nicht formatiert, sondern kompakt übertragen. Für Debugging-Zwecke kann die Ausgabe in Logcat formatiert werden.
       }
    }
 
@@ -86,9 +90,7 @@ fun networkModule(
          .baseUrl(baseUrl)
          .client(get<OkHttpClient>())
          .addConverterFactory(
-            json.asConverterFactory(
-               "application/json".toMediaType()
-            )
+            json.asConverterFactory("application/json".toMediaType())
          )
          .build()
    }
@@ -101,9 +103,9 @@ fun networkModule(
  *   gebunden und kann deshalb von mehreren Vorlesungsprojekten verwendet werden.
  *
  * - HttpLoggingInterceptor protokolliert Requests nur in Debug-Builds.
- * - NetworkConnectionChecker prüft das aktive Netzwerk und den von Android
+ * - ConnectionChecker prüft das aktive Netzwerk und den von Android
  *   validierten Internetzugang.
- * - NetworkConnectionInterceptor führt diese Prüfung unmittelbar vor jedem
+ * - ConnectionInterceptor führt diese Prüfung unmittelbar vor jedem
  *   HTTP-Request aus und bricht den Request bei fehlender Verbindung ab.
  * - NetworkExceptionMapper übersetzt technische Netzwerk-, Timeout- und
  *   HTTP-Fehler in zentrale NetworkException-Typen mit Shared-Stringressourcen.

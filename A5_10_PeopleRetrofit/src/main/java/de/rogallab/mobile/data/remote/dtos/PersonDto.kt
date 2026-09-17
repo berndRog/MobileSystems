@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 // JSON representation returned by PeopleApi.
 @Serializable
-data class PersonDto(
+data class  PersonDto(
    val id: String,
    val firstName: String,
    val lastName: String,

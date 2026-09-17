@@ -3,11 +3,13 @@ package de.rogallab.mobile.shared.data.network
 import okhttp3.Interceptor
 import okhttp3.Response
 
-class NetworkConnectionInterceptor(
-   private val _networkConnectionChecker: NetworkConnectionChecker,
+class ConnectionInterceptor(
+   private val _networkConnectionChecker: ConnectionChecker,
 ) : Interceptor {
 
-   override fun intercept(chain: Interceptor.Chain): Response {
+   override fun intercept(
+      chain: Interceptor.Chain
+   ): Response {
       _networkConnectionChecker.checkConnection()
       return chain.proceed(chain.request())
    }

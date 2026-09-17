@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 
-class NetworkConnectionChecker(
+class ConnectionChecker(
    context: Context,
 ) {
 
