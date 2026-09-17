@@ -1,15 +1,13 @@
 package de.rogallab.mobile.data.remote
 
-import com.google.gson.GsonBuilder
 import de.rogallab.mobile.data.remote.dtos.TDriveDto
 import kotlin.time.Instant
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class InstantTypeAdapterTest {
-   private val gson = GsonBuilder()
-      .registerTypeAdapter(Instant::class.java, InstantTypeAdapter())
-      .create()
+class InstantAsStringSerializerTest {
+   private val json = Json
 
    @Test
    fun instant_isSerializedAsUtcIso8601AndParsedAgain() {
@@ -21,10 +19,10 @@ class InstantTypeAdapterTest {
          isCompleted = false,
       )
 
-      val json = gson.toJson(dto)
-      val restored = gson.fromJson(json, TDriveDto::class.java)
+      val jsonText = json.encodeToString(TDriveDto.serializer(), dto)
+      val restored = json.decodeFromString(TDriveDto.serializer(), jsonText)
 
-      assertEquals(true, json.contains("\"start\":\"2026-10-15T08:30:00Z\""))
+      assertEquals(true, jsonText.contains("\"start\":\"2026-10-15T08:30:00Z\""))
       assertEquals(dto, restored)
    }
 }

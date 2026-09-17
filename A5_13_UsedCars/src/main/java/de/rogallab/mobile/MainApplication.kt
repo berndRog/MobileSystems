@@ -5,6 +5,7 @@ import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.di.appModule
 import de.rogallab.mobile.di.effectModule
 import de.rogallab.mobile.shared.di.imageStorageModule
+import de.rogallab.mobile.shared.di.networkModule
 import de.rogallab.mobile.shared.di.utilitiesModule
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +27,12 @@ class MainApplication : Application() {
       startKoin {
          androidLogger(Level.DEBUG)
          androidContext(this@MainApplication)
+         modules(
+            networkModule(
+               baseUrl = Globals.baseUrl,
+               isDebug = BuildConfig.DEBUG,
+            )
+         )
          modules(appModule())
          modules(effectModule())
          modules(utilitiesModule())
@@ -41,5 +48,8 @@ class MainApplication : Application() {
  *
  * - A5_13 behält Domain, UI und Beziehungen aus A5_02 bei und ersetzt Room
  *   durch die UsedCarsApi als Remote-Datenquelle.
+ * - Shared stellt die gemeinsame Retrofit-, OkHttp-, JSON- und
+ *   Netzwerkfehler-Infrastruktur bereit. A5_13 ergänzt nur seine fachlichen
+ *   Webservices und Repositories.
  * - Person- und Fahrzeugbilder werden nach dem JSON-Request separat hochgeladen.
  */

@@ -6,6 +6,7 @@ import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -60,12 +61,14 @@ class PeopleViewModel(
                      state.copy(people = people, isLoading = false)
                   }
                }
-               .onFailure {
+               .onFailure { throwable ->
                   _stateFlow.update { state: PeopleUiState ->
                      state.copy(isLoading = false)
                   }
 
-                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  val fallback =
+                     _stringProvider.getString(R.string.error_people_observe)
+                  val error = throwable.userMessageOr(fallback)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
          }
@@ -138,9 +141,10 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          _repository.remove(person)
-            .onFailure {
-               val error =
+            .onFailure { throwable ->
+               val fallback =
                   _stringProvider.getString(R.string.error_person_remove)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PeopleEffect.ShowError(error))
             }
       }

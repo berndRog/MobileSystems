@@ -8,6 +8,7 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Car
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -75,7 +76,9 @@ class CarsViewModel(
       }
       viewModelScope.launch {
          _repository.remove(car)
-            .onFailure { emitErrorNow(R.string.error_car_delete) }
+            .onFailure { throwable ->
+               emitErrorNow(R.string.error_car_delete, throwable)
+            }
       }
    }
 
@@ -91,9 +94,9 @@ class CarsViewModel(
                _stateFlow.update { state: CarsUiState ->
                   state.copy(cars = cars, isLoading = false)
                }
-            }.onFailure {
+            }.onFailure { throwable ->
                _stateFlow.update { state: CarsUiState -> state.copy(isLoading = false) }
-               emitErrorNow(R.string.error_cars_load)
+               emitErrorNow(R.string.error_cars_load, throwable)
             }
          }
       }
@@ -106,8 +109,8 @@ class CarsViewModel(
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->
                _stateFlow.update { state: CarsUiState -> state.copy(people = people) }
-            }.onFailure {
-               emitErrorNow(R.string.error_people_load)
+            }.onFailure { throwable ->
+               emitErrorNow(R.string.error_people_load, throwable)
             }
          }
       }
@@ -117,8 +120,13 @@ class CarsViewModel(
       viewModelScope.launch { emitErrorNow(resourceId) }
    }
 
-   private suspend fun emitErrorNow(resourceId: Int) {
-      _effectDelegate.emit(CarsEffect.ShowError(_stringProvider.getString(resourceId)))
+   private suspend fun emitErrorNow(
+      resourceId: Int,
+      throwable: Throwable? = null,
+   ) {
+      val fallback = _stringProvider.getString(resourceId)
+      val message = throwable?.userMessageOr(fallback) ?: fallback
+      _effectDelegate.emit(CarsEffect.ShowError(message))
    }
 
    companion object { private const val TAG = "<-CarsViewModel" }

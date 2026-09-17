@@ -10,6 +10,7 @@ class FakeCarWebservice : ICarWebservice {
    var current = carDto(imageUrls = listOf(IMAGE_URL))
    var createdDto: CarDto? = null
    var updatedDto: CarDto? = null
+   var uploadFailure: Throwable? = null
 
    override suspend fun getAll(): List<CarDto> = listOf(current)
    override suspend fun countAll(): Int = 1
@@ -33,6 +34,7 @@ class FakeCarWebservice : ICarWebservice {
 
    override suspend fun uploadImage(id: String, file: MultipartBody.Part): CarDto {
       calls += "uploadImage:$id"
+      uploadFailure?.let { throwable -> throw throwable }
       current = current.copy(imageUrls = current.imageUrls + UPLOADED_IMAGE_URL)
       return current
    }

@@ -7,6 +7,7 @@ import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.newUuid
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -82,7 +83,10 @@ class TDriveViewModel(
       viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people -> _stateFlow.update { state: TDriveUiState -> state.copy(people = people) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_people_load)) }
+               .onFailure { throwable ->
+                  val fallback = _stringProvider.getString(R.string.error_people_load)
+                  showErrorNow(throwable.userMessageOr(fallback))
+               }
          }
       }
    }
@@ -90,7 +94,10 @@ class TDriveViewModel(
       viewModelScope.launch {
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars -> _stateFlow.update { state: TDriveUiState -> state.copy(cars = cars) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_cars_load)) }
+               .onFailure { throwable ->
+                  val fallback = _stringProvider.getString(R.string.error_cars_load)
+                  showErrorNow(throwable.userMessageOr(fallback))
+               }
          }
       }
    }
@@ -109,9 +116,10 @@ class TDriveViewModel(
                   )
                }
             }
-         }.onFailure {
+         }.onFailure { throwable ->
             _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
-            showErrorNow(_stringProvider.getString(R.string.error_test_drive_load))
+            val fallback = _stringProvider.getString(R.string.error_test_drive_load)
+            showErrorNow(throwable.userMessageOr(fallback))
          }
       }
    }
@@ -136,8 +144,11 @@ class TDriveViewModel(
          result.onSuccess {
             _effectDelegate.emit(TDriveEffect.ShowMessage(_stringProvider.getString(R.string.message_test_drive_saved)))
             _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
-         }.onFailure {
-            _effectDelegate.emit(TDriveEffect.ShowError(_stringProvider.getString(R.string.error_test_drive_save)))
+         }.onFailure { throwable ->
+            val fallback = _stringProvider.getString(R.string.error_test_drive_save)
+            _effectDelegate.emit(
+               TDriveEffect.ShowError(throwable.userMessageOr(fallback))
+            )
          }
          _isSaving = false
       }

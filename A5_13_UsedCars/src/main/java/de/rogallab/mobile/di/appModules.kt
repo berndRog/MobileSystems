@@ -1,13 +1,8 @@
 package de.rogallab.mobile.di
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import de.rogallab.mobile.BuildConfig
-import de.rogallab.mobile.Globals
 import de.rogallab.mobile.data.remote.ICarWebservice
 import de.rogallab.mobile.data.remote.IPersonWebservice
 import de.rogallab.mobile.data.remote.ITDriveWebservice
-import de.rogallab.mobile.data.remote.InstantTypeAdapter
 import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.CarRepository
@@ -16,8 +11,8 @@ import de.rogallab.mobile.data.repositories.TDriveRepository
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.IImageEdit
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
@@ -35,54 +30,35 @@ import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveViewModel
 import de.rogallab.mobile.ui.tdrives.list.TDrivesEffect
 import de.rogallab.mobile.ui.tdrives.list.TDrivesViewModel
-import kotlin.time.Instant
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 fun appModule(): Module = module {
-   val tag = "<-appModule"
-
-   Alog.i(tag, "single    -> HttpLoggingInterceptor")
-   single<HttpLoggingInterceptor> {
-      HttpLoggingInterceptor().apply {
-         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
-         else HttpLoggingInterceptor.Level.NONE
-      }
-   }
-
-   single<OkHttpClient> {
-      OkHttpClient.Builder()
-         .addInterceptor(get<HttpLoggingInterceptor>())
-         .build()
-   }
-
-   single<Gson> {
-      GsonBuilder()
-         .registerTypeAdapter(Instant::class.java, InstantTypeAdapter())
-         .create()
-   }
-
-   single<Retrofit> {
-      Retrofit.Builder()
-         .baseUrl(Globals.baseUrl)
-         .client(get<OkHttpClient>())
-         .addConverterFactory(GsonConverterFactory.create(get<Gson>()))
-         .build()
-   }
-
    single<IPersonWebservice> { get<Retrofit>().create(IPersonWebservice::class.java) }
    single<ICarWebservice> { get<Retrofit>().create(ICarWebservice::class.java) }
    single<ITDriveWebservice> { get<Retrofit>().create(ITDriveWebservice::class.java) }
 
-   single<IPersonRepository> { PersonRepository(get<IPersonWebservice>()) }
-   single<ICarRepository> { CarRepository(get<ICarWebservice>()) }
-   single<ITDriveRepository> { TDriveRepository(get<ITDriveWebservice>()) }
+   single<IPersonRepository> {
+      PersonRepository(
+         _webservice = get<IPersonWebservice>(),
+         _networkExceptionMapper = get<NetworkExceptionMapper>(),
+      )
+   }
+   single<ICarRepository> {
+      CarRepository(
+         _webservice = get<ICarWebservice>(),
+         _networkExceptionMapper = get<NetworkExceptionMapper>(),
+      )
+   }
+   single<ITDriveRepository> {
+      TDriveRepository(
+         _webservice = get<ITDriveWebservice>(),
+         _networkExceptionMapper = get<NetworkExceptionMapper>(),
+      )
+   }
 
    single { PersonValidator(context = androidContext()) }
    single { CarValidator(context = androidContext()) }
@@ -164,3 +140,14 @@ fun appModule(): Module = module {
       )
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Shared registriert den allgemeinen Netzwerk-Stack. Dieses App-Modul kennt
+ *   nur die drei fachlichen Retrofit-Schnittstellen der UsedCarsApi.
+ * - Person-, Car- und TDriveRepository bleiben projektspezifisch. Alle drei
+ *   erhalten denselben zentralen NetworkExceptionMapper aus Shared.
+ * - Dadurch verwenden Personen, Fahrzeuge und Probefahrten dieselben Timeout-,
+ *   Verbindungs- und HTTP-Fehlerregeln, ohne sie dreimal zu implementieren.
+ */

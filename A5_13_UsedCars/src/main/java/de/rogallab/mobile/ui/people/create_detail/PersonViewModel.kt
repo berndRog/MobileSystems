@@ -7,6 +7,7 @@ import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -95,11 +96,11 @@ class PersonViewModel(
                   state.copy(person = person, isLoading = false)
                }
             }
-            .onFailure {
+            .onFailure { throwable ->
                // Repository failures are converted into a localized UI effect.
-               val error = _stringProvider.getString(
-                  R.string.error_person_load
-               )
+               val fallback =
+                  _stringProvider.getString(R.string.error_person_load)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PersonEffect.ShowError(error))
 
                _stateFlow.update { state: PersonUiState ->
@@ -185,11 +186,12 @@ class PersonViewModel(
                // Open the bottom sheet only after the relation data is available.
                _effectDelegate.emit(PersonEffect.ShowCars)
             }
-            .onFailure {
+            .onFailure { throwable ->
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isCarsLoading = false)
                }
-               val error = _stringProvider.getString(R.string.error_cars_load)
+               val fallback = _stringProvider.getString(R.string.error_cars_load)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
       }
@@ -323,11 +325,13 @@ class PersonViewModel(
                // ...and then request reverse navigation with Save semantics.
                _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
-            .onFailure {
+            .onFailure { throwable ->
                // A failed repository write must not commit the image session.
                // The original and replacement images therefore remain available
                // so that the user can retry or cancel the edit operation.
-               val error = _stringProvider.getString(R.string.error_person_save)
+               val fallback =
+                  _stringProvider.getString(R.string.error_person_save)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 

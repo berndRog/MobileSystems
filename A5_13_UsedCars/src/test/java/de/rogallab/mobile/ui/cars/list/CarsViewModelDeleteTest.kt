@@ -3,6 +3,7 @@ package de.rogallab.mobile.ui.cars.list
 import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Car
+import de.rogallab.mobile.shared.data.network.ServerUnreachableException
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeCarRepository
 import de.rogallab.mobile.testing.FakePersonRepository
@@ -54,4 +55,27 @@ class CarsViewModelDeleteTest {
       assertEquals(listOf(golf), repository.removed)
       assertEquals(emptyList<Car>(), viewModel.stateFlow.value.cars)
    }
+
+   @Test
+   fun networkFailure_emitsSharedNetworkMessage() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val networkMessage = "Der Server ist nicht erreichbar."
+         val repository = FakeCarRepository(listOf(golf)).apply {
+            removeResult = Result.failure(
+               ServerUnreachableException(networkMessage)
+            )
+         }
+         val viewModel = create(repository)
+         advanceUntilIdle()
+
+         viewModel.effects.test {
+            viewModel.onIntent(CarsIntent.ConfirmRemove(golf.id))
+            advanceUntilIdle()
+
+            val error = awaitItem() as CarsEffect.ShowError
+            assertEquals(networkMessage, error.message)
+
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 }

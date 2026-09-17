@@ -8,6 +8,7 @@ import de.rogallab.mobile.data.remote.toImageRequestPart
 import de.rogallab.mobile.data.remote.dtos.CarDto
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.entities.Car
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import java.net.URI
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,7 @@ import retrofit2.HttpException
 
 class CarRepository(
    private val _webservice: ICarWebservice,
+   private val _networkExceptionMapper: NetworkExceptionMapper,
 ) : ICarRepository {
    private val _state = MutableStateFlow<Result<List<Car>>>(Result.success(emptyList()))
 
@@ -26,9 +28,20 @@ class CarRepository(
       emitAll(_state)
    }
 
-   override suspend fun findById(id: String): Result<Car?> = request {
-      _webservice.getById(id).toCar().also(::upsert)
-   }.recoverNotFound()
+   override suspend fun findById(id: String): Result<Car?> =
+      try {
+         Result.success(_webservice.getById(id).toCar().also(::upsert))
+      }
+      catch (exception: CancellationException) {
+         throw exception
+      }
+      catch (exception: HttpException) {
+         if (exception.code() == 404) Result.success(null)
+         else Result.failure(_networkExceptionMapper.map(exception))
+      }
+      catch (throwable: Throwable) {
+         Result.failure(_networkExceptionMapper.map(throwable))
+      }
 
    override suspend fun findByPersonId(personId: String): Result<List<Car>> = request {
       _webservice.getByPersonId(personId).map(CarDto::toCar)
@@ -115,14 +128,6 @@ class CarRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
-
-   private fun Result<Car>.recoverNotFound(): Result<Car?> = fold(
-      onSuccess = { Result.success(it) },
-      onFailure = { throwable ->
-         if (throwable is HttpException && throwable.code() == 404) Result.success(null)
-         else Result.failure(throwable)
-      }
-   )
 }

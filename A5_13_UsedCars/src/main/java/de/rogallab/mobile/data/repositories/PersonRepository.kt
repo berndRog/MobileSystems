@@ -8,6 +8,7 @@ import de.rogallab.mobile.data.remote.isRemoteImageUrl
 import de.rogallab.mobile.data.remote.toImageRequestPart
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,7 @@ import retrofit2.HttpException
 
 class PersonRepository(
    private val _webservice: IPersonWebservice,
+   private val _networkExceptionMapper: NetworkExceptionMapper,
 ) : IPersonRepository {
 
    // Retrofit GET requests return one response instead of an observable database Flow.
@@ -46,10 +48,10 @@ class PersonRepository(
       catch (exception: HttpException) {
          // HTTP 404 represents the valid result "person does not exist".
          if (exception.code() == 404) Result.success(null)
-         else Result.failure(exception)
+         else Result.failure(_networkExceptionMapper.map(exception))
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    override suspend fun create(person: Person): Result<Unit> =
@@ -88,7 +90,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    override suspend fun update(person: Person): Result<Unit> =
@@ -123,7 +125,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    // POST Person and POST Image are two independent HTTP operations. If the
@@ -154,7 +156,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    private suspend fun refresh() {
@@ -170,7 +172,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
    }
 
@@ -204,7 +206,7 @@ class PersonRepository(
 /*
  * Didaktik und Lernziele
  *
- * A5_01, A5_10 und A5_11 implementieren dieselbe Schnittstelle
+ * A5_01, A5_10, A5_11 und A5_13 implementieren dieselbe Schnittstelle
  * IPersonRepository.
  * PeopleViewModel und PersonViewModel können deshalb weiterhin observeAll(),
  * findById(), create(), update() und remove() verwenden, obwohl die Datenquelle
@@ -225,7 +227,7 @@ class PersonRepository(
  * automatisch meldet.
  *
  * Damit die aus A5_01 übernommene Repository-Schnittstelle observeAll() trotzdem
- * erhalten bleiben kann, hält A5_11 den aktuell bekannten Serverzustand in
+ * erhalten bleiben kann, hält A5_13 den aktuell bekannten Serverzustand in
  * _peopleStateFlow. Dieser StateFlow ist keine lokale Datenbank, kein Offline-
  * Speicher und keine zusätzliche Persistenzschicht. Er existiert nur im Speicher
  * der laufenden App und stellt den beobachtbaren Zustand für die UI bereit.
@@ -254,8 +256,10 @@ class PersonRepository(
  * Eine zusätzliche lokale Room-Datenbank wäre ein anderer Architekturansatz.
  * Dann müsste geklärt werden, ob Room die Source of Truth ist und wie REST- und
  * lokale Daten synchronisiert werden. Diese Offline-First-/Synchronisationslogik
- * gehört bewusst nicht zum Lernziel von A5_11_PeopleImagesRetrofit.
+ * gehört bewusst nicht zum Lernziel von A5_13_UsedCars.
  *
  * CancellationException wird nicht in Result.failure umgewandelt, damit die
  * strukturierte Coroutine-Cancellation erhalten bleibt.
+ * Andere technische Netzwerkfehler werden nach einer gegebenenfalls notwendigen
+ * Create-Rollback-Operation zentral durch Shared klassifiziert.
  */

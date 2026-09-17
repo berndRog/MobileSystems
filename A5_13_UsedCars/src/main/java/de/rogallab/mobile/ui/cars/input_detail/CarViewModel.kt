@@ -7,6 +7,7 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Car
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -101,10 +102,10 @@ class CarViewModel(
                      state.copy(people = people)
                   }
                }
-               .onFailure {
-                  showErrorNow(
+               .onFailure { throwable ->
+                  val fallback =
                      _stringProvider.getString(R.string.error_people_load)
-                  )
+                  showErrorNow(throwable.userMessageOr(fallback))
                }
          }
       }
@@ -136,13 +137,12 @@ class CarViewModel(
                   }
                }
             }
-            .onFailure {
+            .onFailure { throwable ->
                _stateFlow.update { state: CarUiState ->
                   state.copy(isLoading = false)
                }
-               showErrorNow(
-                  _stringProvider.getString(R.string.error_car_load)
-               )
+               val fallback = _stringProvider.getString(R.string.error_car_load)
+               showErrorNow(throwable.userMessageOr(fallback))
             }
       }
    }
@@ -260,10 +260,11 @@ class CarViewModel(
                   CarEffect.NavigateBack(BackReason.Save)
                )
             }
-            .onFailure {
+            .onFailure { throwable ->
+               val fallback = _stringProvider.getString(R.string.error_car_save)
                _effectDelegate.emit(
                   CarEffect.ShowError(
-                     _stringProvider.getString(R.string.error_car_save)
+                     throwable.userMessageOr(fallback)
                   )
                )
             }

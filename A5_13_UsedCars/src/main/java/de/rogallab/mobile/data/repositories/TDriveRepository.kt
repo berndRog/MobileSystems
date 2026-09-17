@@ -6,6 +6,7 @@ import de.rogallab.mobile.data.remote.ITDriveWebservice
 import de.rogallab.mobile.data.remote.dtos.TDriveDto
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import retrofit2.HttpException
 
 class TDriveRepository(
    private val _webservice: ITDriveWebservice,
+   private val _networkExceptionMapper: NetworkExceptionMapper,
 ) : ITDriveRepository {
    private val _state = MutableStateFlow<Result<List<TDrive>>>(Result.success(emptyList()))
 
@@ -33,10 +35,11 @@ class TDriveRepository(
          throw exception
       }
       catch (exception: HttpException) {
-         if (exception.code() == 404) Result.success(null) else Result.failure(exception)
+         if (exception.code() == 404) Result.success(null)
+         else Result.failure(_networkExceptionMapper.map(exception))
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    override suspend fun create(tDrive: TDrive): Result<Unit> = write {
@@ -63,7 +66,7 @@ class TDriveRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
    }
 
@@ -85,6 +88,6 @@ class TDriveRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 }
