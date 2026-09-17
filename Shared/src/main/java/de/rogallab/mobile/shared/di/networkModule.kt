@@ -2,6 +2,7 @@ package de.rogallab.mobile.shared.di
 
 import de.rogallab.mobile.shared.data.network.NetworkConnectionChecker
 import de.rogallab.mobile.shared.data.network.NetworkConnectionInterceptor
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -32,6 +33,13 @@ fun networkModule(
             HttpLoggingInterceptor.Level.NONE
          }
       }
+   }
+
+   Alog.i(tag, "single    -> NetworkExceptionMapper")
+   single<NetworkExceptionMapper> {
+      NetworkExceptionMapper(
+         context = androidContext(),
+      )
    }
 
    Alog.i(tag, "single    -> NetworkConnectionChecker")
@@ -92,6 +100,8 @@ fun networkModule(
  *   validierten Internetzugang.
  * - NetworkConnectionInterceptor führt diese Prüfung unmittelbar vor jedem
  *   HTTP-Request aus und bricht den Request bei fehlender Verbindung ab.
+ * - NetworkExceptionMapper übersetzt technische Netzwerk-, Timeout- und
+ *   HTTP-Fehler in zentrale NetworkException-Typen mit Shared-Stringressourcen.
  * - OkHttpClient führt anschließend die eigentliche HTTP-Kommunikation aus.
  * - Json konfiguriert kotlinx.serialization für die JSON-Konvertierung.
  * - Retrofit verbindet Base-URL, OkHttpClient und JSON-Converter.
