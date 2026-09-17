@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -85,11 +86,11 @@ class PersonViewModel(
                   state.copy(person = person, isLoading = false)
                }
             }
-            .onFailure {
+            .onFailure { throwable ->
                // Repository failures are converted into a localized UI effect.
-               val error = _stringProvider.getString(
-                     R.string.error_person_load
-                  )
+               val fallback =
+                  _stringProvider.getString(R.string.error_person_load)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PersonEffect.ShowError(error))
 
                _stateFlow.update { state: PersonUiState ->
@@ -274,9 +275,11 @@ class PersonViewModel(
                // ...and then request reverse navigation with Save semantics.
                _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
-            .onFailure {
+            .onFailure { throwable ->
                // Keep a local replacement after failure so Save can be retried.
-               val error = _stringProvider.getString(R.string.error_person_save)
+               val fallback =
+                  _stringProvider.getString(R.string.error_person_save)
+               val error = throwable.userMessageOr(fallback)
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 
@@ -324,6 +327,8 @@ class PersonViewModel(
  *   die Personenbearbeitung. Der Screen beobachtet weiterhin genau einen
  *   StateFlow<PersonUiState>, während einmalige Meldungen und Navigationen
  *   getrennt über PersonEffect ausgegeben werden.
+ * - Klassifizierte Netzwerkfehler werden als fertige Shared-Meldung angezeigt.
+ *   Das ViewModel kennt weiterhin keine Retrofit-, OkHttp- oder HTTP-Typen.
  *
  * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
  *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.

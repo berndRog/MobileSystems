@@ -8,6 +8,7 @@ import de.rogallab.mobile.data.remote.isRemoteImageUrl
 import de.rogallab.mobile.data.remote.toImageRequestPart
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,7 @@ import retrofit2.HttpException
 
 class PersonRepository(
    private val _webservice: IPersonWebservice,
+   private val _networkExceptionMapper: NetworkExceptionMapper,
 ) : IPersonRepository {
 
    // Retrofit GET requests return one response instead of an observable database Flow.
@@ -46,10 +48,10 @@ class PersonRepository(
       catch (exception: HttpException) {
          // HTTP 404 represents the valid result "person does not exist".
          if (exception.code() == 404) Result.success(null)
-         else Result.failure(exception)
+         else Result.failure(_networkExceptionMapper.map(exception))
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    override suspend fun create(person: Person): Result<Unit> =
@@ -88,7 +90,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    override suspend fun update(person: Person): Result<Unit> =
@@ -123,7 +125,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    // POST Person and POST Image are two independent HTTP operations. If the
@@ -154,7 +156,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
 
    private suspend fun refresh() {
@@ -170,7 +172,7 @@ class PersonRepository(
          throw exception
       }
       catch (throwable: Throwable) {
-         Result.failure(throwable)
+         Result.failure(_networkExceptionMapper.map(throwable))
       }
    }
 
@@ -258,4 +260,7 @@ class PersonRepository(
  *
  * CancellationException wird nicht in Result.failure umgewandelt, damit die
  * strukturierte Coroutine-Cancellation erhalten bleibt.
+ * Alle anderen technischen Netzwerkfehler werden erst nach einer gegebenenfalls
+ * notwendigen Create-Rollback-Operation durch den NetworkExceptionMapper aus
+ * Shared klassifiziert. Die Multipart- und Bilddateilogik bleibt davon getrennt.
  */

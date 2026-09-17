@@ -5,6 +5,7 @@ import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -47,6 +48,7 @@ fun appModule(): Module = module {
    single<IPersonRepository> {
       PersonRepository(
          _webservice = get<IPersonWebservice>(),
+         _networkExceptionMapper = get<NetworkExceptionMapper>(),
       )
    }
 
@@ -90,6 +92,8 @@ fun appModule(): Module = module {
  * - Die generische Netzwerk-Infrastruktur mit OkHttp, Json und Retrofit liegt in
  *   Shared. Dieses Modul registriert nur die projektspezifische Schnittstelle
  *   IPersonWebservice und erzeugt daraus den Client für PeopleImagesApi.
+ *   Auch der NetworkExceptionMapper kommt aus Shared und wird dem
+ *   projektspezifischen Repository injiziert.
  *
  * - Seed und SeedApi demonstrieren zusätzlich eine Initialisierung über REST:
  *   countAll() prüft, ob der Server leer ist. Danach werden Personendaten als
