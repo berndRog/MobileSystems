@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.data
+package de.rogallab.mobile.shared.data.local
 
 import androidx.room3.Dao
 import androidx.room3.Delete

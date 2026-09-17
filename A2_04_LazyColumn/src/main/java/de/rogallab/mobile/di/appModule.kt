@@ -4,7 +4,7 @@ import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
-import de.rogallab.mobile.shared.data.IPersonDao
+import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel

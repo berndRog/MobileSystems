@@ -1,7 +1,7 @@
 package de.rogallab.mobile.data.repositories
 
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.shared.data.IPersonDao
+import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto

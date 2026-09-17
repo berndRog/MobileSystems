@@ -3,6 +3,7 @@ package de.rogallab.mobile.shared.data
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 import kotlinx.coroutines.Dispatchers

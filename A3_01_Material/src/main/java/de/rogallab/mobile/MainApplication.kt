@@ -3,7 +3,7 @@ package de.rogallab.mobile
 import android.app.Application
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.di.appModule
-import de.rogallab.mobile.shared.di.databaseModule
+import de.rogallab.mobile.shared.di.databaseModulePerson
 import de.rogallab.mobile.shared.di.imageStorageModule
 import de.rogallab.mobile.shared.di.utilitiesModule
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -43,7 +43,7 @@ class MainApplication : Application() {
          // Load modules
          modules(appModule())
          modules(utilitiesModule())
-         modules(databaseModule(Globals.databaseName))
+         modules(databaseModulePerson(Globals.databaseName))
          modules(imageStorageModule(directoryName = Globals.imageDirectoryName))
       }
 

@@ -1,7 +1,7 @@
 package de.rogallab.mobile.data.local
 
 import androidx.room3.RoomDatabase
-import de.rogallab.mobile.shared.data.IPersonDao
+import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import org.koin.core.component.KoinComponent

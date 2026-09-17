@@ -1,37 +1,26 @@
 package de.rogallab.mobile.shared.di
 
 import androidx.room3.Room
+import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import de.rogallab.mobile.shared.data.IPersonDao
-import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
-import de.rogallab.mobile.shared.domain.utilities.Alog
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import kotlin.coroutines.CoroutineContext
 
-fun databaseModule(
+inline fun <reified TDatabase : RoomDatabase> databaseModule(
    databaseName: String,
-   ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+   queryCoroutineContext: CoroutineContext = Dispatchers.IO,
 ): Module = module {
 
-   val tag = "<-databaseModule"
-
-   Alog.i(tag,"single    -> AppDatabasePerson,  name=$databaseName")
-   single<AppDatabasePerson> {
-      Room.databaseBuilder<AppDatabasePerson>(
+   single<TDatabase> {
+      Room.databaseBuilder<TDatabase>(
          context = androidContext(),
          name = databaseName,
       )
-         .setDriver(BundledSQLiteDriver())
-         .setQueryCoroutineContext(ioDispatcher)
-         .build()
+      .setDriver(BundledSQLiteDriver())
+      .setQueryCoroutineContext(queryCoroutineContext)
+      .build()
    }
-
-   Alog.i(tag,"single    -> generated: IPersonDao")
-   single<IPersonDao> {
-      get<AppDatabasePerson>().createPersonDao()
-   }
-
 }

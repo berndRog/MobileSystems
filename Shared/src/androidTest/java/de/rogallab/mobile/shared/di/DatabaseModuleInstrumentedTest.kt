@@ -3,7 +3,7 @@ package de.rogallab.mobile.shared.di
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import de.rogallab.mobile.shared.data.IPersonDao
+import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +26,7 @@ class DatabaseModuleInstrumentedTest {
       val koin = koinApplication {
          androidContext(context)
          modules(
-            databaseModule(
+            databaseModulePerson(
                databaseName = databaseName,
                ioDispatcher = Dispatchers.IO,
             )

@@ -38,9 +38,9 @@ fun appModule(
          context = androidContext(),
          name = Globals.databaseName,
       )
-         .setDriver(BundledSQLiteDriver())
-         .setQueryCoroutineContext(queryCoroutineContext)
-         .build()
+      .setDriver(BundledSQLiteDriver())
+      .setQueryCoroutineContext(queryCoroutineContext)
+      .build()
    }
 
    Alog.i(tag, "single    -> IPersonDao")
