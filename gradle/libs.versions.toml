@@ -23,7 +23,7 @@ kotlinxDatetime = "0.8.0"
 kotlinxSerializationJson = "1.11.0"
 
 # Data, dependency injection, images, networking, and device services
-coil = "3.6.2"
+coil = "3.6.3"
 googleJson = "2.14.0"
 googlePlayLocation = "21.4.0"
 koin = "4.2.2"
