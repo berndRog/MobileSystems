@@ -1,8 +1,6 @@
-// Zentrale Plug-in-Verwaltung für das gesamte Gradle-Projekt.
+// Central plugin repository configuration for the complete Gradle build.
 pluginManagement {
    repositories {
-
-      // Android-, Google- und AndroidX-Plug-ins.
       google {
          content {
             includeGroupByRegex("com\\.android.*")
@@ -16,16 +14,15 @@ pluginManagement {
    }
 }
 
-// Automatische Bereitstellung einer passenden Java-Toolchain.
+// Automatically provisions a matching Java toolchain when necessary.
 plugins {
    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-// Zentrale Repository-Konfiguration für alle Bibliotheken
-// und alle Beispielmodule.
+// All modules resolve their external libraries from the same repositories.
 dependencyResolutionManagement {
 
-   // Einzelne Module dürfen keine eigenen Repositories definieren.
+   // Module-specific repository declarations are rejected deliberately.
    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
    repositories {
@@ -34,10 +31,10 @@ dependencyResolutionManagement {
    }
 }
 
-// Name des gesamten Vorlesungsprojekts.
+// Name of the complete course project.
 rootProject.name = "MobileSystems"
 
-// Eigenständig startbare Android-Beispielmodule.
+// Independently runnable Android application modules.
 include(":A2_01_Count")
 include(":A2_02_Layout")
 include(":A2_03_TextField")
@@ -54,4 +51,6 @@ include(":A5_10_PeopleRetrofit")
 include(":A5_11_PeopleImagesRetrofit")
 include(":A5_12_RetrofitNews")
 include(":A5_13_UsedCars")
+
+// Reusable Android Library used by every application module.
 include(":Shared")

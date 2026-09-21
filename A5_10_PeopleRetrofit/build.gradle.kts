@@ -1,2 +1,2 @@
-// Die Android-Konfiguration und alle Abhängigkeiten werden zentral
-// im build.gradle.kts des Root-Projekts verwaltet.
+// Android configuration, plugins, and dependencies are managed centrally in
+// the build.gradle.kts file of the root project.
