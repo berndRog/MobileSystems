@@ -5,7 +5,7 @@ import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
-class DeletePersonUseCase(
+class PersonUcDelete(
    private val _repository: IPersonRepository,
    private val _imageFileStorage: IImageFileStorage,
 ) {
@@ -27,7 +27,7 @@ class DeletePersonUseCase(
    }
 
    companion object {
-      private const val TAG = "<-DeletePersonUseCase"
+      private const val TAG = "<-PersonUcDelete"
    }
 }
 

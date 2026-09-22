@@ -5,11 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
-import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
-import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -32,8 +31,8 @@ class PersonViewModel(
    private val _validator: PersonValidator,
    private val _imageFileStorage: IImageFileStorage,
    private val _imageEdit: IImageEdit,
-   private val _createPersonUseCase: CreatePersonUseCase,
-   private val _updatePersonUseCase: UpdatePersonUseCase,
+   private val _personUcCreate: PersonUcCreate,
+   private val _personUcUpdate: PersonUcUpdate,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
@@ -263,8 +262,8 @@ class PersonViewModel(
 
          // Delegate the complete save operation to the matching use case.
          val result =
-            if (_isNew) _createPersonUseCase(person)
-            else _updatePersonUseCase(person)
+            if (_isNew) _personUcCreate(person)
+            else _personUcUpdate(person)
 
          result
             .onSuccess {
@@ -393,7 +392,7 @@ class PersonViewModel(
  * - Beim erfolgreichen Speichern gilt ab diesem Schritt folgende Reihenfolge:
  *
  *      Person validieren
- *          -> CreatePersonUseCase oder UpdatePersonUseCase
+ *          -> PersonUcCreate oder PersonUcUpdate
  *          -> Repository.create/update(...)
  *          -> IImageEdit.commit() im Use Case
  *          -> ShowMessage

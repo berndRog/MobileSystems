@@ -38,7 +38,7 @@ class PersonUseCasesTest {
       val repository = FakePersonRepository()
       val imageEdit = FakeImageEdit()
 
-      val result = CreatePersonUseCase(repository, imageEdit)(person)
+      val result = PersonUcCreate(repository, imageEdit)(person)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.created)
@@ -52,7 +52,7 @@ class PersonUseCasesTest {
       }
       val imageEdit = FakeImageEdit()
 
-      val result = CreatePersonUseCase(repository, imageEdit)(person)
+      val result = PersonUcCreate(repository, imageEdit)(person)
 
       assertTrue(result.isFailure)
       assertEquals(emptyList<Person>(), repository.created)
@@ -64,7 +64,7 @@ class PersonUseCasesTest {
       val repository = FakePersonRepository()
       val imageEdit = FakeImageEdit()
 
-      val result = UpdatePersonUseCase(repository, imageEdit)(person)
+      val result = PersonUcUpdate(repository, imageEdit)(person)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.updated)
@@ -78,7 +78,7 @@ class PersonUseCasesTest {
       }
       val imageEdit = FakeImageEdit()
 
-      val result = UpdatePersonUseCase(repository, imageEdit)(person)
+      val result = PersonUcUpdate(repository, imageEdit)(person)
 
       assertTrue(result.isFailure)
       assertEquals(emptyList<Person>(), repository.updated)
@@ -90,7 +90,7 @@ class PersonUseCasesTest {
       val repository = FakePersonRepository(listOf(person))
       val imageFileStorage = FakeImageFileStorage()
 
-      val result = DeletePersonUseCase(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.removed)
@@ -104,7 +104,7 @@ class PersonUseCasesTest {
       }
       val imageFileStorage = FakeImageFileStorage()
 
-      val result = DeletePersonUseCase(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person)
 
       assertTrue(result.isFailure)
       assertEquals(emptyList<Person>(), repository.removed)
@@ -118,7 +118,7 @@ class PersonUseCasesTest {
          deleteResult = Result.failure(IllegalStateException("cleanup failed"))
       }
 
-      val result = DeletePersonUseCase(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.removed)

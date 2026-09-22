@@ -5,8 +5,8 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
-import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
@@ -54,8 +54,8 @@ class PersonViewModelImageTest {
          _validator = validator,
          _imageFileStorage = storage,
          _imageEdit = imageEdit,
-         _createPersonUseCase = CreatePersonUseCase(repository, imageEdit),
-         _updatePersonUseCase = UpdatePersonUseCase(repository, imageEdit),
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate = EffectDelegate(),
       )
    }

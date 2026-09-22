@@ -4,19 +4,21 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.images.IImageEdit
 
-class UpdatePersonUseCase(
+class PersonUcUpdate(
    private val _repository: IPersonRepository,
    private val _imageEdit: IImageEdit,
 ) {
 
-   // Updates the person before committing the replacement image.
-   // Persisted original images remain untouched when the update fails.
    suspend operator fun invoke(person: Person): Result<Unit> {
+
+      // Updates the person before committing the replacement image.
       val result = _repository.update(person)
 
       if (result.isSuccess) {
+         // Commit the image edit session only after a successful repository write.
          _imageEdit.commit()
       }
+      // Persisted original images remain untouched when the update fails.
 
       return result
    }

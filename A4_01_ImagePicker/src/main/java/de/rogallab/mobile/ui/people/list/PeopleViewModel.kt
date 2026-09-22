@@ -5,9 +5,8 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.domain.IStringProvider
-import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import kotlinx.coroutines.Job
@@ -20,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
-   private val _deletePersonUseCase: DeletePersonUseCase,
+   private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
@@ -86,9 +85,7 @@ class PeopleViewModel(
    // Emits the navigation effect. A null id opens the create destination.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
-         _effectDelegate.emit(
-            PeopleEffect.NavigateTo(personId)
-         )
+         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
       }
    }
 
@@ -139,7 +136,7 @@ class PeopleViewModel(
    // Delegates the complete delete operation to the use case.
    private fun remove(person: Person) {
       viewModelScope.launch {
-         _deletePersonUseCase(person)
+         _personUcDelete(person)
             .onFailure {
                val error =
                   _stringProvider.getString(R.string.error_person_remove)
@@ -174,11 +171,11 @@ class PeopleViewModel(
  *   PeopleEffect.ConfirmRemove mit Meldung, Action-Label und Person-ID.
  *
  * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
- *   PeopleIntent.ConfirmRemove. Danach wird DeletePersonUseCase ausgeführt.
+ *   PeopleIntent.ConfirmRemove. Danach wird PersonUcDelete ausgeführt.
  *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person unverändert.
  *
  * - Nach der Bestätigung delegiert PeopleViewModel die zusammengesetzte
- *   Operation an DeletePersonUseCase. Dieser entfernt zuerst den Datensatz und
+ *   Operation an PersonUcDelete. Dieser entfernt zuerst den Datensatz und
  *   anschließend die zugehörige Bilddatei aus dem privaten App-Speicher.
  *
  * - Ein VisualRemovalDelegate, pending Removals und ein Restore-State sind in

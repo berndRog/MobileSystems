@@ -3,7 +3,7 @@ package de.rogallab.mobile.ui.people.list
 import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
@@ -35,7 +35,7 @@ class PeopleViewModelSwipeTest {
    private fun createViewModel(repository: FakePersonRepository) =
       PeopleViewModel(
          _repository = repository,
-         _deletePersonUseCase = DeletePersonUseCase(repository, imageFileStorage),
+         _personUcDelete = PersonUcDelete(repository, imageFileStorage),
          _stringProvider = stringProvider,
          _effectDelegate = EffectDelegate(),
       )

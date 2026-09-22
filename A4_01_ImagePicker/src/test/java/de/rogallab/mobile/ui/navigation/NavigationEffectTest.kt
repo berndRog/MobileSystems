@@ -1,7 +1,7 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
-import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
@@ -30,7 +30,7 @@ class NavigationEffectTest {
 
       return PeopleViewModel(
          _repository = repository,
-         _deletePersonUseCase = DeletePersonUseCase(
+         _personUcDelete = PersonUcDelete(
             repository,
             FakeImageFileStorage(),
          ),

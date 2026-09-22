@@ -4,19 +4,21 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.images.IImageEdit
 
-class CreatePersonUseCase(
+class PersonUcCreate(
    private val _repository: IPersonRepository,
    private val _imageEdit: IImageEdit,
 ) {
 
-   // Creates the person before committing the image edit session.
-   // A failed repository write keeps the selected image available for retry.
    suspend operator fun invoke(person: Person): Result<Unit> {
+
+      // Creates the person before committing the image edit session.
       val result = _repository.create(person)
 
       if (result.isSuccess) {
+         // Commit the image edit session only after a successful repository write.
          _imageEdit.commit()
       }
+      // A failed repository write keeps the selected image available for retry.
 
       return result
    }

@@ -4,9 +4,9 @@ import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
-import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
-import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
-import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -70,8 +70,8 @@ fun appModule(): Module = module {
            _validator = get<PersonValidator>(),
            _imageFileStorage = get<IImageFileStorage>(),
            _imageEdit = imageEdit,
-           _createPersonUseCase = CreatePersonUseCase(repository, imageEdit),
-           _updatePersonUseCase = UpdatePersonUseCase(repository, imageEdit),
+           _personUcCreate = PersonUcCreate(repository, imageEdit),
+           _personUcUpdate = PersonUcUpdate(repository, imageEdit),
            _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
         )
     }
@@ -82,7 +82,7 @@ fun appModule(): Module = module {
 
         PeopleViewModel(
            _repository = repository,
-           _deletePersonUseCase = DeletePersonUseCase(
+           _personUcDelete = PersonUcDelete(
               _repository = repository,
               _imageFileStorage = get<IImageFileStorage>(),
            ),
@@ -99,11 +99,11 @@ fun appModule(): Module = module {
  * - A4_01 konzentriert sich auf den ImagePicker und benötigt für Swipe-to-Delete
  *   keinen zusätzlichen zustandsbehafteten VisualRemovalDelegate.
  *
- * - CreatePersonUseCase und UpdatePersonUseCase verwenden dieselbe
+ * - PersonUcCreate und PersonUcUpdate verwenden dieselbe
  *   IImageEdit-Instanz wie PersonViewModel. Nur so schließen sie genau die
  *   Bild-Session ab, die das ViewModel während der Bearbeitung aufgebaut hat.
  *
- * - DeletePersonUseCase kombiniert das Repository mit IImageFileStorage, weil
+ * - PersonUcDelete kombiniert das Repository mit IImageFileStorage, weil
  *   das Löschen ab A4_01 sowohl den Datensatz als auch die Bilddatei betrifft.
  *
  * - A4_02_ImagePickerUndo ergänzt später wieder IVisualRemoval<Person> als
