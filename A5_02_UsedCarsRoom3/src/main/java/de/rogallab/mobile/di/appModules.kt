@@ -16,6 +16,9 @@ import de.rogallab.mobile.data.repositories.TDriveRepository
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -82,22 +85,34 @@ fun appModule(): Module = module {
    }
 
    viewModel { parameters ->
+      // Both person save use cases must share the ViewModel's image edit session.
+      val repository = get<IPersonRepository>()
+      val imageEdit = get<IImageEdit>()
+
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = get<IImageEdit>(),
+         _imageEdit = imageEdit,
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
    }
 
    viewModel {
+      val repository = get<IPersonRepository>()
+
       PeopleViewModel(
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
+         _personUcDelete = PersonUcDelete(
+            _repository = repository,
+            _imageFileStorage = get<IImageFileStorage>(),
+         ),
          _stringProvider = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
@@ -167,6 +182,16 @@ fun appModule(): Module = module {
  *   Dadurch verwendet der Seed für Personenbilder dieselbe Datei-Infrastruktur
  *   wie die eigentliche Anwendung.
  *
+ * - PersonUcCreate und PersonUcUpdate teilen dieselbe IImageEdit-Instanz mit
+ *   PersonViewModel. PersonUcDelete koordiniert das Room-Repository mit der
+ *   Bilddateiverwaltung und respektiert dabei relationale Löschfehler.
+ *
  * - Jeder Feature-Bereich besitzt einen eigenen EffectDelegate. Ein globales
  *   CoordinatorViewModel ist weder für Navigation noch für Meldungen notwendig.
+ *
+ * Lernziele:
+ *
+ * - Zustandsbehaftete Abhängigkeiten im Composition Root bewusst teilen.
+ * - Use Cases für zusammengesetzte Personenoperationen einsetzen.
+ * - Relationale Room-Regeln und Dateiverwaltung gemeinsam berücksichtigen.
  */

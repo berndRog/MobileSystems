@@ -9,6 +9,9 @@ import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.local.database.AppDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -80,13 +83,19 @@ fun appModule(
 
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
+      // Both save use cases must share the ViewModel's image edit session.
+      val repository = get<IPersonRepository>()
+      val imageEdit = get<IImageEdit>()
+
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = get<IImageEdit>(),
+         _imageEdit = imageEdit,
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -94,8 +103,14 @@ fun appModule(
 
    Alog.i(tag, "viewModel -> PeopleViewModel")
    viewModel {
+      val repository = get<IPersonRepository>()
+
       PeopleViewModel(
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
+         _personUcDelete = PersonUcDelete(
+            _repository = repository,
+            _imageFileStorage = get<IImageFileStorage>(),
+         ),
          _stringProvider = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
@@ -118,6 +133,10 @@ fun appModule(
  * - Allgemeine Dienste wie IImageFileStorage, IImageEdit und IStringProvider
  *   bleiben Shared-Infrastruktur und werden weiterhin per DI bezogen.
  *
+ * - PersonUcCreate und PersonUcUpdate teilen sich bewusst dieselbe
+ *   IImageEdit-Instanz mit PersonViewModel. PersonUcDelete kombiniert das
+ *   Room-Repository mit der Bilddateiverwaltung.
+ *
  * - PeopleViewModel behält die einfache Delete-Bestätigung aus A4_01. A5_01
  *   übernimmt bewusst nicht den Undo-Zustand aus A4_02.
  *
@@ -126,4 +145,6 @@ fun appModule(
  * - Room 3 innerhalb einer Data-Schicht strukturieren.
  * - DAO/DTO und Domain-Modell über Repository und Mapping entkoppeln.
  * - Bestehende ViewModels gegen eine neue Persistenzimplementierung weiterverwenden.
+ * - Zustandsbehaftete Abhängigkeiten im Composition Root bewusst teilen.
+ * - Use Cases nur für zusammengesetzte Anwendungsoperationen bereitstellen.
  */

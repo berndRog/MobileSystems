@@ -3,7 +3,9 @@ package de.rogallab.mobile.ui.people.list
 import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -20,13 +22,20 @@ class PeopleViewModelSwipeTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   private val ada = Person(firstName = "Ada", lastName = "Lovelace", id = "p1")
+   private val ada = Person(
+      firstName = "Ada",
+      lastName = "Lovelace",
+      imagePath = "/images/ada.jpg",
+      id = "p1",
+   )
    private val grace = Person(firstName = "Grace", lastName = "Hopper", id = "p2")
    private val stringProvider = FakeStringProvider()
+   private val imageFileStorage = FakeImageFileStorage()
 
    private fun createViewModel(repository: FakePersonRepository) =
       PeopleViewModel(
          _repository = repository,
+         _personUcDelete = PersonUcDelete(repository, imageFileStorage),
          _stringProvider = stringProvider,
          _effectDelegate = EffectDelegate(),
       )
@@ -74,6 +83,7 @@ class PeopleViewModelSwipeTest {
          advanceUntilIdle()
 
          assertEquals(listOf(ada), repository.removed)
+         assertEquals(listOf(ada.imagePath), imageFileStorage.deletedPaths)
          assertEquals(listOf(grace), viewModel.stateFlow.value.people)
       }
 
@@ -96,6 +106,7 @@ class PeopleViewModelSwipeTest {
                error.message,
             )
             assertEquals(emptyList<Person>(), repository.removed)
+            assertEquals(emptyList<String?>(), imageFileStorage.deletedPaths)
             assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
 
             cancelAndIgnoreRemainingEvents()
