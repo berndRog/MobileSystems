@@ -3,6 +3,8 @@ package de.rogallab.mobile.ui.navigation
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
+import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
@@ -42,13 +44,17 @@ class PersonBackEffectTest {
    @Test
    fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
       val imageFileStorage = FakeImageFileStorage()
+      val repository = FakePersonRepository()
+      val imageEdit = ImageEdit(imageFileStorage)
       val viewModel = PersonViewModel(
          personId = null,
-         _repository = FakePersonRepository(),
+         _repository = repository,
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = imageFileStorage,
-         _imageEdit = ImageEdit(imageFileStorage),
+         _imageEdit = imageEdit,
+         _createPersonUseCase = CreatePersonUseCase(repository, imageEdit),
+         _updatePersonUseCase = UpdatePersonUseCase(repository, imageEdit),
          _effectDelegate = EffectDelegate(),
       )
 

@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
+import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -30,6 +32,8 @@ class PersonViewModel(
    private val _validator: PersonValidator,
    private val _imageFileStorage: IImageFileStorage,
    private val _imageEdit: IImageEdit,
+   private val _createPersonUseCase: CreatePersonUseCase,
+   private val _updatePersonUseCase: UpdatePersonUseCase,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
@@ -257,17 +261,13 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // New entities are inserted, existing entities are updated.
+         // Delegate the complete save operation to the matching use case.
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_isNew) _createPersonUseCase(person)
+            else _updatePersonUseCase(person)
 
          result
             .onSuccess {
-               // The repository now owns the new image selection.
-               // Only at this point may obsolete persisted originals be deleted.
-               _imageEdit.commit()
-
                // First show the success message...
                val message = _stringProvider.getString(R.string.message_person_saved, person.fullName,)
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
@@ -390,24 +390,28 @@ class PersonViewModel(
  *   ob eine Datei sofort entfernt werden darf oder bis zum erfolgreichen
  *   Speichern erhalten bleiben muss.
  *
- * - Beim erfolgreichen Speichern gilt folgende Reihenfolge:
+ * - Beim erfolgreichen Speichern gilt ab diesem Schritt folgende Reihenfolge:
  *
  *      Person validieren
+ *          -> CreatePersonUseCase oder UpdatePersonUseCase
  *          -> Repository.create/update(...)
- *          -> erfolgreich
- *          -> IImageEdit.commit()
+ *          -> IImageEdit.commit() im Use Case
  *          -> ShowMessage
  *          -> NavigateBack
  *
- * - commit() wird bewusst erst nach erfolgreichem Repository-Zugriff aufgerufen.
- *   Erst dann ist sichergestellt, dass die neue Bildreferenz dauerhaft in der
- *   Datenbank gespeichert wurde. Jetzt dürfen nicht mehr verwendete Original-
- *   bilder gelöscht werden.
+ * - Das ViewModel entscheidet weiterhin anhand von isNew, welcher Use Case zur
+ *   aktuellen Benutzeraktion gehört. Die Koordination von Repository und
+ *   Bild-Session liegt jedoch nicht mehr im ViewModel.
  *
- * - Schlägt das Speichern fehl, wird commit() nicht ausgeführt. Dadurch bleiben
- *   sowohl das bisher gespeicherte Originalbild als auch das aktuell gewählte
- *   Ersatzbild erhalten. Der Benutzer kann den Speichervorgang erneut versuchen
- *   oder die Bearbeitung abbrechen.
+ * - commit() wird im jeweiligen Use Case erst nach erfolgreichem Repository-
+ *   Zugriff aufgerufen. Erst dann ist sichergestellt, dass die neue
+ *   Bildreferenz dauerhaft gespeichert wurde. Jetzt dürfen nicht mehr
+ *   verwendete Originalbilder gelöscht werden.
+ *
+ * - Schlägt das Speichern fehl, führt der Use Case commit() nicht aus. Dadurch
+ *   bleiben sowohl das bisher gespeicherte Originalbild als auch das aktuell
+ *   gewählte Ersatzbild erhalten. Der Benutzer kann den Speichervorgang erneut
+ *   versuchen oder die Bearbeitung abbrechen.
  *
  * - Beim Abbrechen gilt:
  *
@@ -454,7 +458,9 @@ class PersonViewModel(
  * - Technische Dateiverwaltung über IImageFileStorage kapseln.
  * - Bild-Lebenszyklen einer Bearbeitung über IImageEdit delegieren.
  * - Original- und Ersatzbilder bei Save und Cancel sicher behandeln.
- * - commit() erst nach erfolgreichem Repository-Zugriff ausführen.
+ * - UI-State-Logik im ViewModel und Anwendungslogik im Use Case unterscheiden.
+ * - Use Cases gezielt für zusammengesetzte Operationen einsetzen.
+ * - commit() im Use Case erst nach erfolgreichem Repository-Zugriff ausführen.
  * - cancel() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
  * - Bestehenden UDF-/MVI-Datenfluss auch bei komplexerer Bildlogik beibehalten.
  */

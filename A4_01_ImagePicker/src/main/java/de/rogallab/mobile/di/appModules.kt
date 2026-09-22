@@ -4,6 +4,9 @@ import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.CreatePersonUseCase
+import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
+import de.rogallab.mobile.domain.usecases.UpdatePersonUseCase
 import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -56,21 +59,33 @@ fun appModule(): Module = module {
 
     Alog.i(tag, "viewModel -> PersonViewModel")
     viewModel { parameters ->
+        // Both save use cases must share the ViewModel's image edit session.
+        val repository = get<IPersonRepository>()
+        val imageEdit = get<IImageEdit>()
+
         PersonViewModel(
            personId = parameters.getOrNull<String>(),
-           _repository = get<IPersonRepository>(),
+           _repository = repository,
            _stringProvider = get(),
            _validator = get<PersonValidator>(),
            _imageFileStorage = get<IImageFileStorage>(),
-           _imageEdit = get<IImageEdit>(),
+           _imageEdit = imageEdit,
+           _createPersonUseCase = CreatePersonUseCase(repository, imageEdit),
+           _updatePersonUseCase = UpdatePersonUseCase(repository, imageEdit),
            _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
         )
     }
 
     Alog.i(tag, "viewModel -> PeopleViewModel")
     viewModel {
+        val repository = get<IPersonRepository>()
+
         PeopleViewModel(
-           _repository = get<IPersonRepository>(),
+           _repository = repository,
+           _deletePersonUseCase = DeletePersonUseCase(
+              _repository = repository,
+              _imageFileStorage = get<IImageFileStorage>(),
+           ),
            _stringProvider = get(),
            _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
         )
@@ -84,13 +99,12 @@ fun appModule(): Module = module {
  * - A4_01 konzentriert sich auf den ImagePicker und benötigt für Swipe-to-Delete
  *   keinen zusätzlichen zustandsbehafteten VisualRemovalDelegate.
  *
- * - PeopleViewModel erhält deshalb nur Repository, StringProvider und
- *   EffectDelegate. Die Löschbestätigung wird vollständig über Intent und Effect
- *   modelliert; vor der Bestätigung wird kein eigener Removal-State aufgebaut.
+ * - CreatePersonUseCase und UpdatePersonUseCase verwenden dieselbe
+ *   IImageEdit-Instanz wie PersonViewModel. Nur so schließen sie genau die
+ *   Bild-Session ab, die das ViewModel während der Bearbeitung aufgebaut hat.
  *
- * - PersonViewModel erhält weiterhin IImageEdit und IImageFileStorage. Damit
- *   bleibt die Delegation des Bild-Lebenszyklus das neue Architekturthema dieses
- *   Schritts.
+ * - DeletePersonUseCase kombiniert das Repository mit IImageFileStorage, weil
+ *   das Löschen ab A4_01 sowohl den Datensatz als auch die Bilddatei betrifft.
  *
  * - A4_02_ImagePickerUndo ergänzt später wieder IVisualRemoval<Person> als
  *   zustandsbehaftete Abhängigkeit und macht die zusätzliche Komplexität damit
@@ -101,4 +115,6 @@ fun appModule(): Module = module {
  * - Nur tatsächlich benötigte Abhängigkeiten per Constructor Injection liefern.
  * - Den ImagePicker unabhängig von der Undo-Infrastruktur behandeln.
  * - Einfache Löschbestätigung und zustandsbehaftetes Undo vergleichen können.
+ * - Zustandsbehaftete Abhängigkeiten im Composition Root bewusst teilen.
+ * - Use Cases nur für zusammengesetzte Anwendungsoperationen bereitstellen.
  */

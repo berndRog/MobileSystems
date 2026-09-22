@@ -1,7 +1,9 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
+import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -23,12 +25,19 @@ class NavigationEffectTest {
    val mainDispatcherRule = MainDispatcherRule()
 
    // Creates the ViewModel with the dependencies required by A4_01.
-   private fun createViewModel() =
-      PeopleViewModel(
-         _repository = FakePersonRepository(),
+   private fun createViewModel(): PeopleViewModel {
+      val repository = FakePersonRepository()
+
+      return PeopleViewModel(
+         _repository = repository,
+         _deletePersonUseCase = DeletePersonUseCase(
+            repository,
+            FakeImageFileStorage(),
+         ),
          _stringProvider = FakeStringProvider(),
          _effectDelegate = EffectDelegate(),
       )
+   }
 
    @Test
    fun create_emitsNavigateToWithNullPersonId() = runTest(mainDispatcherRule.testDispatcher) {

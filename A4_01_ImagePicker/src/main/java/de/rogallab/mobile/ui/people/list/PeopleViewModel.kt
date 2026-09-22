@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.DeletePersonUseCase
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
+   private val _deletePersonUseCase: DeletePersonUseCase,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
@@ -134,10 +136,10 @@ class PeopleViewModel(
    }
 
 
-   // Deletes the confirmed person from the repository.
+   // Delegates the complete delete operation to the use case.
    private fun remove(person: Person) {
       viewModelScope.launch {
-         _repository.remove(person)
+         _deletePersonUseCase(person)
             .onFailure {
                val error =
                   _stringProvider.getString(R.string.error_person_remove)
@@ -172,8 +174,12 @@ class PeopleViewModel(
  *   PeopleEffect.ConfirmRemove mit Meldung, Action-Label und Person-ID.
  *
  * - Erst wenn die Action der Snackbar gewählt wurde, sendet die UI
- *   PeopleIntent.ConfirmRemove. Danach wird _repository.remove(...) ausgeführt.
+ *   PeopleIntent.ConfirmRemove. Danach wird DeletePersonUseCase ausgeführt.
  *   Wird die Snackbar verworfen oder läuft sie ab, bleibt die Person unverändert.
+ *
+ * - Nach der Bestätigung delegiert PeopleViewModel die zusammengesetzte
+ *   Operation an DeletePersonUseCase. Dieser entfernt zuerst den Datensatz und
+ *   anschließend die zugehörige Bilddatei aus dem privaten App-Speicher.
  *
  * - Ein VisualRemovalDelegate, pending Removals und ein Restore-State sind in
  *   A4_01 deshalb nicht erforderlich. Diese Erweiterungen werden bewusst in
@@ -185,4 +191,5 @@ class PeopleViewModel(
  * - Eine destruktive Aktion vor der Repository-Änderung bestätigen.
  * - Bestätigungs-Snackbar und Undo als unterschiedliche Konzepte verstehen.
  * - Den ImagePicker ohne zusätzliche Undo-Komplexität weiterverwenden.
+ * - UI-Interaktion im ViewModel und Anwendungslogik im Use Case trennen.
  */

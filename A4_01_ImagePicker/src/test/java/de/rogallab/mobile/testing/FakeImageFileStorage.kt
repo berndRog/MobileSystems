@@ -11,6 +11,7 @@ class FakeImageFileStorage : IImageFileStorage {
 
    var copyResult: Result<String> =
       Result.success("/images/copied.jpg")
+   var deleteResult: Result<Unit> = Result.success(Unit)
 
    override suspend fun copyImageToAppStorage(
       sourceUri: Uri,
@@ -39,6 +40,6 @@ class FakeImageFileStorage : IImageFileStorage {
       imagePath: String?,
    ): Result<Unit> {
       deletedPaths += imagePath
-      return Result.success(Unit)
+      return deleteResult
    }
 }
