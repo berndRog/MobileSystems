@@ -89,9 +89,9 @@ class PersonViewModel(
                // The delegate remembers this image as the original selection.
                _imageEdit.start(listOfNotNull(person.imagePath))
 
-               // Store the loaded person and finish the loading operation.
+               // Store the loaded person.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person, isLoading = false)
+                  state.copy(person = person)
                }
             }
             .onFailure {
@@ -100,11 +100,12 @@ class PersonViewModel(
                      R.string.error_person_load
                   )
                _effectDelegate.emit(PersonEffect.ShowError(error))
-
-               _stateFlow.update { state: PersonUiState ->
-                  state.copy(isLoading = false)
-               }
             }
+
+         // loading operation is finished, regardless of success or failure.
+         _stateFlow.update { state: PersonUiState ->
+            state.copy(isLoading = false)
+         }
       }
    }
 

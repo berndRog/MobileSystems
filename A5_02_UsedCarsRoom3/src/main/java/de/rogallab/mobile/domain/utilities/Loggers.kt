@@ -106,9 +106,10 @@ object AppLogger {
    ) {
       if (_useAndroidLog)
          Log.e(tag, formatMessage(message), throwable)
-      else
+      else {
          println("E/$tag: ${formatMessage(message)}")
          throwable?.printStackTrace()
+      }
    }
 
    private fun formatMessage(message: String): String =

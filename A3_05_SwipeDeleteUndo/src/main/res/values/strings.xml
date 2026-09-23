@@ -31,6 +31,7 @@
   <string name="error_person_load">Person could not be loaded.</string>
   <string name="error_person_save">Person could not be saved.</string>
   <string name="error_person_remove">Person could not be deleted.</string>
+  <string name="error_image_save">Image could not be saved locally.</string>
 
   <string name="error_firstname_too_short">First name is too short.</string>
   <string name="error_firstname_too_long">First name is too long.</string>

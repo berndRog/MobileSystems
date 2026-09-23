@@ -111,19 +111,20 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
+                     state.copy(people = people)
                   }
                }
                .onFailure { throwable ->
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(isLoading = false)
-                  }
-
                   val fallback =
                      _stringProvider.getString(R.string.error_people_observe)
                   val error = throwable.userMessageOr(fallback)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
+
+            // loading operation is finished, regardless of success or failure.
+            _stateFlow.update { state: PeopleUiState ->
+               state.copy(isLoading = false)
+            }
          }
       }
    }

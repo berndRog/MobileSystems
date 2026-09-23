@@ -80,18 +80,19 @@ class PersonViewModel(
 
                // Store the loaded person and finish the loading operation.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person, isLoading = false)
+                  state.copy(person = person)
                }
             }
             .onFailure { throwable ->
                // Repository failures are converted into a localized UI effect.
                val error = _stringProvider.getString(R.string.error_person_load)
                _effectDelegate.emit(PersonEffect.ShowError(error))
-
-               _stateFlow.update { state: PersonUiState ->
-                  state.copy(isLoading = false)
-               }
             }
+
+         // loading operation is finished, regardless of success or failure.
+         _stateFlow.update { state: PersonUiState ->
+            state.copy(isLoading = false)
+         }
       }
    }
 

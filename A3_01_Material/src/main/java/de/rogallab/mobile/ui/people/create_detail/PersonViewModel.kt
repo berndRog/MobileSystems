@@ -72,13 +72,18 @@ class PersonViewModel(
                }
                // update the state with the fetched person
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(isLoading = false, person = person)
+                  state.copy(person = person)
                }
             }
             .onFailure {
                var error = _stringProvider.getString(R.string.error_person_load)
                Alog.e(TAG, error)
             }
+
+         // set isLoading = false after loading is complete
+         _stateFlow.update { state: PersonUiState ->
+            state.copy(isLoading = false)
+         }
       }
    }
 

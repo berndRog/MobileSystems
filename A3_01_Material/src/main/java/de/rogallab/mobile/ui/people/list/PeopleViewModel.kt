@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,7 @@ class PeopleViewModel(
          _stateFlow.update { state: PeopleUiState ->
             state.copy(isLoading = true)
          }
-         delay(2500) // simulate loading delay
+         delay(1000) // simulate loading delay
 
 
          // Observe the repository for changes to the list of people.
@@ -49,7 +50,7 @@ class PeopleViewModel(
                // Update the UI state with the list of people when the repository operation succeeded.
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
+                     state.copy(people = people)
                   }
                   Alog.d(TAG, "observePeople: people=${_stateFlow.value.people.size}")
                }
@@ -62,6 +63,11 @@ class PeopleViewModel(
                   }
                   Alog.e(TAG, "observePeople failed")
                }
+
+            // set isLoading = false after loading is complete
+            _stateFlow.update { state: PeopleUiState ->
+               state.copy(isLoading = false)
+            }
          }
       }
    }

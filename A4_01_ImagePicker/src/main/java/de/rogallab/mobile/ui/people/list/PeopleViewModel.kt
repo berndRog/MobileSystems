@@ -9,6 +9,7 @@ import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,17 +57,18 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
+                     state.copy(people = people)
                   }
                }
                .onFailure {
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(isLoading = false)
-                  }
-
                   val error = _stringProvider.getString(R.string.error_people_observe)
                   _effectDelegate.emit(PeopleEffect.ShowError(error))
                }
+
+            // loading operation is finished, regardless of success or failure.
+            _stateFlow.update { state: PeopleUiState ->
+               state.copy(isLoading = false)
+            }
          }
       }
    }

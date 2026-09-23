@@ -10,6 +10,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,41 @@ class PeopleViewModel(
       Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
+
+   // Observes the repository and publishes its current list as UI state.
+   private fun observePeople() {
+      _observeJob?.cancel()
+
+      _observeJob = viewModelScope.launch {
+
+         // Show the loading indicator until the first result arrives.
+         _stateFlow.update { state: PeopleUiState ->
+            state.copy(isLoading = true)
+         }
+
+         // Simulate a longer loading operation.
+         delay(1000)
+
+         _repository.observeAll().collect { result: Result<List<Person>> ->
+            result
+               .onSuccess { people ->
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(people = people)
+                  }
+               }
+               .onFailure {
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+               }
+
+            // loading operation is finished, regardless of success or failure.
+            _stateFlow.update { state: PeopleUiState ->
+               state.copy(isLoading = false)
+            }
+         }
+      }
+   }
+
 
    // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
@@ -103,40 +139,6 @@ class PeopleViewModel(
       }
 
       remove(person)
-   }
-
-   // Observes the repository and publishes its current list as UI state.
-   private fun observePeople() {
-      _observeJob?.cancel()
-
-      _observeJob = viewModelScope.launch {
-
-         // Show the loading indicator until the first result arrives.
-         _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
-         }
-
-         // Simulate a longer loading operation.
-         delay(1000)
-
-         _repository.observeAll().collect { result: Result<List<Person>> ->
-            result
-               .onSuccess { people ->
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
-                  }
-               }
-               .onFailure {
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(isLoading = false)
-                  }
-
-                  val error =
-                     _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
-               }
-         }
-      }
    }
 
    // Delegates the complete delete operation to the use case.
