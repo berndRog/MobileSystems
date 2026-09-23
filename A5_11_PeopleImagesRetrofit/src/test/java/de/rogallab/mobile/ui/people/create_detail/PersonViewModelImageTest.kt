@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -48,6 +50,8 @@ class PersonViewModelImageTest {
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = storage,
+         _personUcCreate = PersonUcCreate(repository, storage),
+         _personUcUpdate = PersonUcUpdate(repository, storage),
          _effectDelegate = EffectDelegate(),
       )
 

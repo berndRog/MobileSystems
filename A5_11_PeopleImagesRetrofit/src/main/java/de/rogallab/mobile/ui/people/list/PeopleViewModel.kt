@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
+   private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
@@ -128,7 +130,8 @@ class PeopleViewModel(
 
    private fun remove(person: Person) {
       viewModelScope.launch {
-         _repository.remove(person)
+         // The use case preserves the ownership boundary for server image URLs.
+         _personUcDelete(person)
             .onFailure { throwable ->
                val fallback =
                   _stringProvider.getString(R.string.error_person_remove)
@@ -173,9 +176,8 @@ class PeopleViewModel(
  *   PUT- und DELETE-Aufrufe aktualisieren diesen Cache.
  *
  * - Swipe-to-Delete verwendet weiterhin die einfache Bestätigung: Erst nach der
- *   Snackbar-Aktion wird _repository.remove(...) ausgeführt. Das Repository sendet
- *   daraufhin DELETE /people/{id}. Die lokale Bilddatei wird durch ImageEdit
- *   unabhängig vom JSON-Datensatz verwaltet.
+ *   Snackbar-Aktion wird PersonUcDelete ausgeführt. Der Server entfernt Person
+ *   und Serverbild; eine HTTP(S)-URL wird niemals lokal als Datei gelöscht.
  *
  * Lernziele:
  *
@@ -183,4 +185,5 @@ class PeopleViewModel(
  * - Einen stabilen Repository-Port für lokale und entfernte Datenquellen nutzen.
  * - Den Unterschied zwischen beobachtbarer lokaler DB und request-basierter REST-
  *   API erkennen.
+ * - Die Zuständigkeit für lokale Dateien und serverseitige Bilder unterscheiden.
  */

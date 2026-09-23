@@ -5,6 +5,9 @@ import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -61,12 +64,17 @@ fun appModule(): Module = module {
 
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
+      val repository = get<IPersonRepository>()
+      val imageFileStorage = get<IImageFileStorage>()
+
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
-         _imageFileStorage = get<IImageFileStorage>(),
+         _imageFileStorage = imageFileStorage,
+         _personUcCreate = PersonUcCreate(repository, imageFileStorage),
+         _personUcUpdate = PersonUcUpdate(repository, imageFileStorage),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -74,8 +82,14 @@ fun appModule(): Module = module {
 
    Alog.i(tag, "viewModel -> PeopleViewModel")
    viewModel {
+      val repository = get<IPersonRepository>()
+
       PeopleViewModel(
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
+         _personUcDelete = PersonUcDelete(
+            _repository = repository,
+            _imageFileStorage = get<IImageFileStorage>(),
+         ),
          _stringProvider = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
@@ -112,4 +126,13 @@ fun appModule(): Module = module {
  * - IImageFileStorage verwaltet lokale Galerie-, Kamera- und Seed-Dateien nur bis
  *   zum erfolgreichen Upload. Persistente Bilder und deren URLs gehören danach
  *   vollständig PeopleImagesApi.
+ *
+ * - Die drei Person-Use-Cases werden hier mit Repository und Dateispeicher
+ *   zusammengesetzt. Create und Update räumen lokale Transportdateien erst nach
+ *   Erfolg auf; Delete respektiert die Zuständigkeit des Servers für Bild-URLs.
+ *
+ * Lernziele:
+ *
+ * - Use Cases als explizite Anwendungsgrenze per Constructor Injection einsetzen.
+ * - Client- und Serverressourcen bereits im Composition Root klar zuordnen.
  */

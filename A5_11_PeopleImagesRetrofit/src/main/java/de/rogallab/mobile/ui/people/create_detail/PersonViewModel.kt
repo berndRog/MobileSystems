@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
+import de.rogallab.mobile.domain.usecases.isLocalImagePath
 import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -29,6 +32,8 @@ class PersonViewModel(
    private val _stringProvider: IStringProvider,
    private val _validator: PersonValidator,
    private val _imageFileStorage: IImageFileStorage,
+   private val _personUcCreate: PersonUcCreate,
+   private val _personUcUpdate: PersonUcUpdate,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
@@ -192,7 +197,7 @@ class PersonViewModel(
    private suspend fun replaceImage(imagePath: String?) {
       val previousImagePath = _stateFlow.value.person.imagePath
 
-      if (isLocalImagePath(previousImagePath) && previousImagePath != imagePath)
+      if (previousImagePath.isLocalImagePath() && previousImagePath != imagePath)
          deleteTemporaryImageQuietly(previousImagePath)
 
       _stateFlow.update { state: PersonUiState ->
@@ -257,17 +262,13 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // New entities are inserted, existing entities are updated.
+         // Delegate JSON, image transport and successful cleanup to a use case.
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_isNew) _personUcCreate(person)
+            else _personUcUpdate(person)
 
          result
             .onSuccess {
-               // PeopleImagesApi now owns its server copy. A local picker file
-               // is only transport state and can be removed after full success.
-               deleteTemporaryImageQuietly(person.imagePath)
-
                // First show the success message...
                val message = _stringProvider.getString(R.string.message_person_saved, person.fullName,)
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
@@ -301,7 +302,7 @@ class PersonViewModel(
    }
 
    private suspend fun deleteTemporaryImageQuietly(imagePath: String?) {
-      if (!isLocalImagePath(imagePath)) return
+      if (!imagePath.isLocalImagePath()) return
 
       _imageFileStorage
          .deleteImageFromAppStorage(imagePath)
@@ -309,11 +310,6 @@ class PersonViewModel(
             Alog.e(TAG, "delete temporary image failed: ${throwable.message}")
          }
    }
-
-   private fun isLocalImagePath(imagePath: String?): Boolean =
-      !imagePath.isNullOrBlank() &&
-         !imagePath.startsWith("http://", ignoreCase = true) &&
-         !imagePath.startsWith("https://", ignoreCase = true)
 
    companion object {
       private const val TAG = "<-PersonViewModel"
@@ -329,6 +325,8 @@ class PersonViewModel(
  *   getrennt über PersonEffect ausgegeben werden.
  * - Klassifizierte Netzwerkfehler werden als fertige Shared-Meldung angezeigt.
  *   Das ViewModel kennt weiterhin keine Retrofit-, OkHttp- oder HTTP-Typen.
+ * - PersonUcCreate und PersonUcUpdate koordinieren Repository und das Aufräumen
+ *   lokaler Transportdateien nach einem erfolgreichen Serverzugriff.
  *
  * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
  *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.

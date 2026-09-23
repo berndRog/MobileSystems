@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
@@ -31,6 +33,8 @@ class PersonViewModel(
    private val _validator: PersonValidator,
    private val _imageFileStorage: IImageFileStorage,
    private val _imageEdit: IImageEdit,
+   private val _personUcCreate: PersonUcCreate,
+   private val _personUcUpdate: PersonUcUpdate,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
@@ -267,17 +271,13 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // New entities are inserted, existing entities are updated.
+         // Delegate the complete write operation to the matching use case.
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_isNew) _personUcCreate(person)
+            else _personUcUpdate(person)
 
          result
             .onSuccess {
-               // The repository now owns the new image selection.
-               // Only at this point may obsolete persisted originals be deleted.
-               _imageEdit.commit()
-
                // First show the success message...
                val message = _stringProvider.getString(R.string.message_person_saved, person.fullName,)
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
@@ -327,6 +327,8 @@ class PersonViewModel(
  *   getrennt über PersonEffect ausgegeben werden.
  * - Klassifizierte Netzwerkfehler werden als fertige Shared-Meldung angezeigt.
  *   Das ViewModel kennt weiterhin keine Retrofit-, OkHttp- oder HTTP-Typen.
+ * - PersonUcCreate und PersonUcUpdate koordinieren Repository und ImageEdit.
+ *   Das ViewModel entscheidet nur noch anhand von isNew über den Use Case.
  *
  * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
  *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.

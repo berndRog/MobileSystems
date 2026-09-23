@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
@@ -42,16 +44,20 @@ class PersonViewModelImageTest {
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
-   private fun createViewModel(personId: String? = null) =
-      PersonViewModel(
+   private fun createViewModel(personId: String? = null): PersonViewModel {
+      val imageEdit = ImageEdit(storage)
+      return PersonViewModel(
          personId = personId,
          _repository = repository,
          _stringProvider = stringProvider,
          _validator = validator,
          _imageFileStorage = storage,
-         _imageEdit = ImageEdit(storage),
+         _imageEdit = imageEdit,
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate = EffectDelegate(),
       )
+   }
 
    @Test
    fun galleryImageSelected_copiesImageAndUpdatesState() = runTest(mainDispatcherRule.testDispatcher) {

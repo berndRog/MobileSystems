@@ -5,6 +5,9 @@ import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -62,13 +65,19 @@ fun appModule(): Module = module {
 
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
+      // Both save use cases must share the ViewModel's image edit session.
+      val repository = get<IPersonRepository>()
+      val imageEdit = get<IImageEdit>()
+
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = get<IImageEdit>(),
+         _imageEdit = imageEdit,
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -76,8 +85,14 @@ fun appModule(): Module = module {
 
    Alog.i(tag, "viewModel -> PeopleViewModel")
    viewModel {
+      val repository = get<IPersonRepository>()
+
       PeopleViewModel(
-         _repository = get<IPersonRepository>(),
+         _repository = repository,
+         _personUcDelete = PersonUcDelete(
+            _repository = repository,
+            _imageFileStorage = get<IImageFileStorage>(),
+         ),
          _stringProvider = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
@@ -113,4 +128,13 @@ fun appModule(): Module = module {
  *
  * - IImageFileStorage und IImageEdit verwalten weiterhin die lokalen Galerie-,
  *   Kamera- und Seed-Dateien. Retrofit überträgt lediglich den imageUrl-String.
+ *
+ * - PersonUcCreate und PersonUcUpdate teilen dieselbe zustandsbehaftete
+ *   IImageEdit-Instanz mit PersonViewModel. PersonUcDelete verbindet die
+ *   erfolgreiche Serverlöschung mit lokalem Best-Effort-Dateiaufräumen.
+ *
+ * Lernziele:
+ *
+ * - Use Cases im Composition Root mit ihren Abhängigkeiten zusammensetzen.
+ * - Zustandsbehaftete Abhängigkeiten bewusst zwischen ViewModel und Use Case teilen.
  */
