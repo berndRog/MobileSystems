@@ -14,3 +14,15 @@ data class ArticleDto(
    val publishedAt: String,
    val imageUrl: String?,
 )
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - ArticleDto beschreibt die persistierte Room-Tabelle. Die URL dient als
+ *   natürlicher Primärschlüssel und verhindert doppelte gespeicherte Artikel.
+ *
+ * Lernziele:
+ *
+ * - Ein lokales Persistenzmodell unabhängig vom Domain-Modell definieren.
+ * - Einen fachlich geeigneten Primärschlüssel auswählen.
+ */

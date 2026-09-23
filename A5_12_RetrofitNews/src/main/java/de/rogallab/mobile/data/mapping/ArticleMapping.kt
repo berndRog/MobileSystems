@@ -27,6 +27,7 @@ fun Article.toDto(): ArticleDto = ArticleDto(
 )
 
 fun ArticleRemoteDto.toDomainOrNull(): Article? {
+   // Articles without a URL cannot be identified or opened and are discarded.
    val articleUrl = url?.trim().orEmpty()
    if (articleUrl.isBlank()) return null
 
@@ -41,3 +42,18 @@ fun ArticleRemoteDto.toDomainOrNull(): Article? {
       imageUrl = urlToImage?.trim()?.takeUnless(String::isBlank),
    )
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Die Mapping-Funktionen halten Remote-DTO, Room-DTO und Domain-Entität
+ *   voneinander getrennt. Jede Schicht kann ihr eigenes Modell entwickeln.
+ *
+ * - Daten der externen API werden an der Systemgrenze normalisiert. Optionale
+ *   leere Strings werden zu null; Datensätze ohne identifizierende URL entfallen.
+ *
+ * Lernziele:
+ *
+ * - Modelle unterschiedlicher Schichten explizit ineinander überführen.
+ * - Unzuverlässige externe Daten vor Eintritt in die Domain bereinigen.
+ */

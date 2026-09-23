@@ -31,6 +31,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 fun appModule(): Module = module {
+   // Local persistence -------------------------------------------------------
    single<AppDatabase> {
       Room.databaseBuilder<AppDatabase>(
          context = androidContext(),
@@ -43,6 +44,7 @@ fun appModule(): Module = module {
    single<IArticleDao> { get<AppDatabase>().createArticleDao() }
    single<IArticleRepository> { ArticleRepository(get()) }
 
+   // Remote news access ------------------------------------------------------
    single { ApiKeyInterceptor(BuildConfig.NEWS_API_KEY) }
    single {
       HttpLoggingInterceptor().apply {
@@ -72,6 +74,7 @@ fun appModule(): Module = module {
    }
    single<INewsRepository> { NewsRepository(get()) }
 
+   // Presentation layer ------------------------------------------------------
    viewModel {
       NewsViewModel(
          _newsRepository = get<INewsRepository>(),
@@ -95,3 +98,24 @@ fun appModule(): Module = module {
       )
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Das Koin-Modul ist der Composition Root von A5_12. Es verbindet Room für
+ *   gespeicherte Artikel mit Retrofit/OkHttp für die News-Suche.
+ *
+ * - ViewModels erhalten ausschließlich Repository-Ports, StringProvider und
+ *   EffectDelegate. Konkrete DAO-, Retrofit- und OkHttp-Typen bleiben in der
+ *   Data-/DI-Schicht.
+ *
+ * - Use Cases werden bewusst nicht registriert: Jede Aktion delegiert derzeit
+ *   an genau ein Repository und enthält keine zusätzliche Anwendungslogik.
+ *   Damit zeigt A5_12 zugleich, dass Use Cases kein Selbstzweck sind.
+ *
+ * Lernziele:
+ *
+ * - Lokale und entfernte Infrastruktur mit Dependency Injection zusammensetzen.
+ * - Abhängigkeiten an Ports statt an konkrete Implementierungen übergeben.
+ * - Architekturbausteine nur bei einem erkennbaren Verantwortungsgewinn einsetzen.
+ */

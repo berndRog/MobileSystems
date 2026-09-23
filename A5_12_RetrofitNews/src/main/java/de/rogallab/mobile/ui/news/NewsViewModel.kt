@@ -19,9 +19,12 @@ class NewsViewModel(
    private val _effectDelegate: EffectDelegate<NewsEffect>,
 ) : ViewModel(), IEffectSource<NewsEffect> by _effectDelegate {
 
+   // Mutable UI state remains private to the ViewModel.
    private val _stateFlow = MutableStateFlow(NewsUiState())
+   // The screen observes only this read-only state representation.
    val stateFlow: StateFlow<NewsUiState> = _stateFlow.asStateFlow()
 
+   // Dispatches all UI events through one public entry point.
    fun onIntent(intent: NewsIntent) {
       when (intent) {
          is NewsIntent.SearchTextChanged -> {
@@ -35,6 +38,7 @@ class NewsViewModel(
    }
 
    private fun search() {
+      // Normalize and validate the user input before starting network work.
       val searchText = _stateFlow.value.searchText.trim()
       if (searchText.isBlank()) {
          showError(_stringProvider.getString(R.string.error_search_required))
@@ -45,6 +49,7 @@ class NewsViewModel(
          state.copy(isLoading = true)
       }
       viewModelScope.launch {
+         // This simple read operation delegates directly to one repository.
          _newsRepository.search(searchText)
             .onSuccess { articles ->
                _stateFlow.update { state: NewsUiState ->
@@ -74,3 +79,25 @@ class NewsViewModel(
       }
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - NewsViewModel verarbeitet Suchtext, Ladezustand und Suchergebnisse als
+ *   persistenten UI-State. Fehler und Navigation bleiben einmalige Effects.
+ *
+ * - Für search(...) wird bewusst kein eigener Use Case eingeführt. Nach der
+ *   einfachen Eingabeprüfung delegiert das ViewModel genau einen Lesezugriff
+ *   an INewsRepository; zusätzliche fachliche Koordination existiert nicht.
+ *
+ * - Ein pass-through NewsUcSearch würde nur eine weitere Klasse und DI-
+ *   Abhängigkeit ergänzen, ohne Verhalten zu kapseln. Ein Use Case wäre sinnvoll,
+ *   sobald beispielsweise mehrere Quellen, Cache-Regeln oder Paging-Strategien
+ *   zu einer Anwendungsoperation kombiniert werden.
+ *
+ * Lernziele:
+ *
+ * - State und einmalige Effects im UDF-Datenfluss unterscheiden.
+ * - Use Cases aufgrund vorhandener Anwendungslogik statt pauschal einsetzen.
+ * - Einfache Read-Zugriffe direkt über einen stabilen Repository-Port ausführen.
+ */

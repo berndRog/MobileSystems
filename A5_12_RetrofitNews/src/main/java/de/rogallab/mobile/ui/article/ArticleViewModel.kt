@@ -17,6 +17,7 @@ class ArticleViewModel(
    private val _effectDelegate: EffectDelegate<ArticleEffect>,
 ) : ViewModel(), IEffectSource<ArticleEffect> by _effectDelegate {
 
+   // Dispatches events from the article screen.
    fun onIntent(intent: ArticleIntent) {
       when (intent) {
          ArticleIntent.Save -> save()
@@ -25,6 +26,7 @@ class ArticleViewModel(
 
    private fun save() {
       viewModelScope.launch {
+         // Saving is one direct local repository operation.
          _articleRepository.save(article)
             .onSuccess {
                _effectDelegate.emit(
@@ -43,3 +45,22 @@ class ArticleViewModel(
       }
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - ArticleViewModel besitzt keinen eigenen veränderlichen UI-State, weil der
+ *   ausgewählte Artikel vollständig als Navigationseintrag übergeben wird.
+ *
+ * - Save delegiert genau einen lokalen Schreibzugriff an IArticleRepository.
+ *   Ein eigener Use Case würde derzeit keine zusätzliche fachliche Regel kapseln.
+ *
+ * - Erfolgs- und Fehlermeldungen sind einmalige Effects und werden nicht als
+ *   dauerhafter Zustand im ViewModel gespeichert.
+ *
+ * Lernziele:
+ *
+ * - Auch bei Schreibzugriffen zwischen einfacher Delegation und Orchestrierung
+ *   mehrerer Schritte unterscheiden.
+ * - Rückmeldungen einer Operation über Effects ausgeben.
+ */
