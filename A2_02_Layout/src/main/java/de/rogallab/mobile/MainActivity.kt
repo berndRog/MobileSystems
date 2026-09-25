@@ -49,8 +49,6 @@ class MainActivity : BaseActivity(TAG) {
          AppTheme {
 
             Scaffold(
-               containerColor = Color.Transparent,
-               contentColor = MaterialTheme.colorScheme.onBackground,
                modifier = Modifier
                   .padding(all = 16.dp)
                   .fillMaxSize()

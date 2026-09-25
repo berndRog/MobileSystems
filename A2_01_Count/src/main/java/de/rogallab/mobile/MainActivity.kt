@@ -41,18 +41,17 @@ class MainActivity : BaseActivity(TAG) {
 
          AppTheme {
             Scaffold(
-               contentColor = MaterialTheme.colorScheme.onBackground,
                modifier = Modifier
                   .padding(all = 16.dp)
                   .fillMaxSize(),
             ) { innerPadding ->
                   Alog.d(TAG, "before CountScreen() Composition")
-//                  CountScreen1(
-//                     initCount = 0,
-//                     modifier = Modifier
-//                        .padding(innerPadding)
-//                        .fillMaxWidth()
-//                  )
+                  CountScreen1(
+                     initCount = 0,
+                     modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxWidth()
+                  )
 //                  CountScreen2(
 //                     initCount = 0,
 //                     modifier = Modifier
@@ -67,11 +66,11 @@ class MainActivity : BaseActivity(TAG) {
 //                        .fillMaxWidth()
 //                  )
 
-                  CountAdapter(
-                     modifier = Modifier
-                        .padding(innerPadding)  // StateFlow
-                        .fillMaxWidth()
-                  )
+//                  CountAdapter(
+//                     modifier = Modifier
+//                        .padding(innerPadding)  // StateFlow
+//                        .fillMaxWidth()
+//                  )
             }
          }
       }
