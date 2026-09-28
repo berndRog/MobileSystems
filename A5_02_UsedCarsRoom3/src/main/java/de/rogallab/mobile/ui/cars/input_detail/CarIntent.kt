@@ -8,7 +8,7 @@ sealed interface CarIntent {
    data class PriceChanged(val value: String) : CarIntent
    data class SellerChanged(val personId: String?) : CarIntent
 
-   // GalleryPickerHandler returns content URIs. The ViewModel copies them
+   // MultipleGalleryPickerHandler returns content URIs. The ViewModel copies them
    // into private app storage through the shared IImageFileStorage service.
    data class GalleryImagesSelected(val sourceUris: List<Uri>) : CarIntent
 

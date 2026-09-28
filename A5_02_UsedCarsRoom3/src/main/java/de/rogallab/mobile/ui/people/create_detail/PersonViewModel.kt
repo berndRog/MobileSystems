@@ -389,7 +389,7 @@ class PersonViewModel(
  *   PersonViewModel ein Galerie-Bild zunächst über IImageFileStorage in den
  *   privaten App-Speicher:
  *
- *      GalleryPickerHandler
+ *      SingleGalleryPickerHandler
  *          -> Uri
  *          -> PersonIntent.GalleryImageSelected
  *          -> PersonViewModel

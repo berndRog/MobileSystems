@@ -30,8 +30,8 @@ import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
-import de.rogallab.mobile.shared.ui.images.GalleryPickerHandler
-import de.rogallab.mobile.shared.ui.images.GallerySelectionMode
+import de.rogallab.mobile.shared.ui.images.MultipleGalleryPickerHandler
+import de.rogallab.mobile.shared.ui.images.SingleGalleryPickerHandler
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
 import de.rogallab.mobile.ui.cars.input_detail.CarIntent
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
@@ -105,38 +105,47 @@ fun CarAdapter(
          }
       }
       else {
-         GalleryPickerHandler(
-            selectionMode = if (remainingSlots == 1)
-               GallerySelectionMode.Single
-            else
-               GallerySelectionMode.Multiple,
-            maxSelectionCount = remainingSlots,
-            onImagesSelected = { sourceUris ->
-               viewModel.onIntent(CarIntent.GalleryImagesSelected(sourceUris))
+         SingleGalleryPickerHandler(
+            onImageSelected = { sourceUri ->
+               viewModel.onIntent(CarIntent.GalleryImagesSelected(listOf(sourceUri)))
             },
-         ) { galleryActions ->
-            CameraPickerHandler(
-               imageFileStorage = imageFileStorage,
-               onPhotoStored = { imagePath ->
-                  viewModel.onIntent(CarIntent.CameraImageTaken(imagePath))
-               },
-               onError = {
-                  viewModel.onIntent(CarIntent.ImageFailed(imageSaveError))
-               },
-            ) { cameraActions ->
-               CarScreen(
-                  carUiState = carUiState,
-                  validator = validator,
-                  onSelectImages = { if (canAddMoreImages) galleryActions.selectFromGallery() },
-                  onTakePhoto = { if (canAddMoreImages) cameraActions.takePhoto() },
-                  onIntent = viewModel::onIntent,
-                  modifier = Modifier
-                     .fillMaxSize()
-                     .padding(innerPadding)
-                     .padding(horizontal = 16.dp)
-                     .verticalScroll(rememberScrollState())
-                     .imePadding(),
-               )
+         ) { singleGalleryActions ->
+             MultipleGalleryPickerHandler(
+                maxSelectionCount = remainingSlots.coerceAtLeast(2),
+                onImagesSelected = { sourceUris ->
+                   viewModel.onIntent(CarIntent.GalleryImagesSelected(sourceUris))
+                },
+             ) { multipleGalleryActions ->
+               CameraPickerHandler(
+                  imageFileStorage = imageFileStorage,
+                  onPhotoStored = { imagePath ->
+                     viewModel.onIntent(CarIntent.CameraImageTaken(imagePath))
+                  },
+                  onError = {
+                     viewModel.onIntent(CarIntent.ImageFailed(imageSaveError))
+                  },
+               ) { cameraActions ->
+                  CarScreen(
+                     carUiState = carUiState,
+                     validator = validator,
+                     onSelectImages = {
+                        if (canAddMoreImages) {
+                           if (remainingSlots == 1)
+                              singleGalleryActions.selectFromGallery()
+                           else
+                              multipleGalleryActions.selectFromGallery()
+                        }
+                     },
+                     onTakePhoto = { if (canAddMoreImages) cameraActions.takePhoto() },
+                     onIntent = viewModel::onIntent,
+                     modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                        .imePadding(),
+                  )
+               }
             }
          }
       }
@@ -146,6 +155,8 @@ fun CarAdapter(
 /*
  * Didaktik und Lernziele
  *
+ * - CarAdapter bindet beide Galerie-Handler abhängig von den freien
+ *   Bildplätzen an: einer für einen Platz, der andere für mehrere Plätze.
  * - CarAdapter bindet die Shared-Picker an das Fahrzeug-Feature und enthält
  *   zusätzlich den Scaffold der Detailansicht.
  * - TopAppBar, Loading und SnackbarHost liegen damit außerhalb von CarScreen.

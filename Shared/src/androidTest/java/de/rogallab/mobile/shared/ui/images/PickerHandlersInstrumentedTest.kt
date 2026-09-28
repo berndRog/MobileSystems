@@ -22,11 +22,10 @@ class PickerHandlersInstrumentedTest {
    val composeRule = createComposeRule()
 
    @Test
-   fun galleryPickerHandler_singleMode_exposesContentAction() {
+   fun singleGalleryPickerHandler_exposesContentAction() {
       composeRule.setContent {
-         GalleryPickerHandler(
-            selectionMode = GallerySelectionMode.Single,
-            onImagesSelected = {},
+         SingleGalleryPickerHandler(
+            onImageSelected = {},
          ) {
             Text("gallery-ready")
          }
@@ -39,11 +38,10 @@ class PickerHandlersInstrumentedTest {
    }
 
    @Test
-   fun galleryPickerHandler_multipleMode_acceptsSmallConfiguredMaximum() {
+   fun multipleGalleryPickerHandler_acceptsConfiguredMaximum() {
       composeRule.setContent {
-         GalleryPickerHandler(
-            selectionMode = GallerySelectionMode.Multiple,
-            maxSelectionCount = 1,
+         MultipleGalleryPickerHandler(
+            maxSelectionCount = 2,
             onImagesSelected = {},
          ) {
             Text("multiple-ready")

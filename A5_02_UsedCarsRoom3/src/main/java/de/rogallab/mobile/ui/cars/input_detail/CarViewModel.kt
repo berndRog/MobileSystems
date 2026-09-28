@@ -295,7 +295,7 @@ class CarViewModel(
  *   vorherigen ImagePicker-Beispiele. Das Feature implementiert keine eigene
  *   Datei- oder Picker-Schicht.
  *
- * - GalleryPickerHandler liefert Content-URIs. Erst das ViewModel kopiert diese
+ * - MultipleGalleryPickerHandler liefert Content-URIs. Erst das ViewModel kopiert diese
  *   über IImageFileStorage in den privaten App-Speicher.
  *
  * - CameraPickerHandler liefert dagegen bereits einen bestätigten internen

@@ -36,8 +36,7 @@ import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
-import de.rogallab.mobile.shared.ui.images.GalleryPickerHandler
-import de.rogallab.mobile.shared.ui.images.GallerySelectionMode
+import de.rogallab.mobile.shared.ui.images.SingleGalleryPickerHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
@@ -124,12 +123,9 @@ fun PersonAdapter(
          }
       }
       else {
-         GalleryPickerHandler(
-            selectionMode = GallerySelectionMode.Single,
-            onImagesSelected = { sourceUris ->
-               sourceUris.firstOrNull()?.let { sourceUri ->
-                  viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
-               }
+         SingleGalleryPickerHandler(
+            onImageSelected = { sourceUri ->
+               viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
             },
          ) { galleryActions ->
 
@@ -202,7 +198,7 @@ fun PersonAdapter(
  *
  * - Der Scaffold liegt wie in A5_01 im PersonAdapter. Damit bleiben TopAppBar,
  *   SnackbarHost und die zustandslose Eingabemaske klar getrennt.
- * - GalleryPickerHandler und CameraPickerHandler bleiben ebenfalls Aufgabe des
+ * - SingleGalleryPickerHandler und CameraPickerHandler bleiben ebenfalls Aufgabe des
  *   Adapters; PersonScreen erhält nur Werte und Callback-Funktionen.
  * - PersonEffect.ShowCars öffnet das Bottom Sheet erst nach erfolgreichem Laden
  *   der angebotenen Fahrzeuge. Die Sichtbarkeit bleibt lokaler UI-Zustand.
