@@ -19,6 +19,7 @@ class PersonUcDelete(
          // Image cleanup is best effort because the person has already been deleted.
          _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
             .onFailure { throwable ->
+               // log the error but do not propagate it, because the main operation succeeded
                Alog.e(TAG, "delete person image failed: ${throwable.message}")
             }
       }

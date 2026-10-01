@@ -9,6 +9,7 @@ import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
+import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -25,71 +26,89 @@ import org.koin.dsl.module
 
 fun appModule(): Module = module {
 
-    val tag = "<-appModule"
+   val tag = "<-appModule"
 
-    Alog.i(tag, "single    -> Seed")
-    single<Seed> {
-        Seed(
-           _imageFileStorage = get<IImageFileStorage>()
-        )
-    }
+   Alog.i(tag, "single    -> Seed")
+   single<Seed> {
+      Seed(
+         _imageFileStorage = get<IImageFileStorage>()
+      )
+   }
 
-    Alog.i(tag, "single    -> SeedDatabase")
-    single<SeedDatabase> {
-        SeedDatabase(
-           _personDao = get<IPersonDao>(),
-           _database = get<AppDatabasePerson>(),
-           _seed = get<Seed>()
-        )
-    }
+   Alog.i(tag, "single    -> SeedDatabase")
+   single<SeedDatabase> {
+      SeedDatabase(
+         _personDao = get<IPersonDao>(),
+         _database = get<AppDatabasePerson>(),
+         _seed = get<Seed>()
+      )
+   }
 
-    Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
-    single<IPersonRepository> {
-        PersonRepository(
-           _personDao = get<IPersonDao>()
-        )
-    }
+   Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
+   single<IPersonRepository> {
+      PersonRepository(
+         _personDao = get<IPersonDao>()
+      )
+   }
 
-    Alog.i(tag, "single    -> PersonValidator")
-    single<PersonValidator> {
-        PersonValidator(
-           context = androidContext(),
-        )
-    }
+   Alog.i(tag, "single    -> PersonValidator")
+   single<PersonValidator> {
+      PersonValidator(
+         context = androidContext(),
+      )
+   }
 
-    Alog.i(tag, "viewModel -> PersonViewModel")
-    viewModel { parameters ->
-        // Both save use cases must share the ViewModel's image edit session.
-        val repository = get<IPersonRepository>()
-        val imageEdit = get<IImageEdit>()
 
-        PersonViewModel(
-           personId = parameters.getOrNull<String>(),
-           _repository = repository,
-           _stringProvider = get(),
-           _validator = get<PersonValidator>(),
-           _imageFileStorage = get<IImageFileStorage>(),
-           _imageEdit = imageEdit,
-           _personUcCreate = PersonUcCreate(repository, imageEdit),
-           _personUcUpdate = PersonUcUpdate(repository, imageEdit),
-           _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
-        )
-    }
+   Alog.i(tag, "factory   -> PersonUcCreate")
+   factory<PersonUcCreate> {
+      PersonUcCreate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = get<IImageEdit>()
+      )
+   }
 
-    Alog.i(tag, "viewModel -> PeopleViewModel")
-    viewModel {
-        val repository = get<IPersonRepository>()
+   Alog.i(tag, "factory   -> PersonUcUpdate")
+   factory<PersonUcUpdate> {
+      PersonUcUpdate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = get<IImageEdit>()
+      )
+   }
 
-        PeopleViewModel(
-           _repository = repository,
-           _personUcDelete = PersonUcDelete(
-              _repository = repository,
-              _imageFileStorage = get<IImageFileStorage>(),
-           ),
-           _stringProvider = get(),
-           _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
-        )
-    }
+   Alog.i(tag, "factory   -> PersonUcDelete")
+   factory<PersonUcDelete> {
+      PersonUcDelete(
+         _repository = get<IPersonRepository>(),
+         _imageFileStorage = get<IImageFileStorage>()
+      )
+   }
+
+   Alog.i(tag, "viewModel -> PersonViewModel")
+   viewModel { parameters ->
+      PersonViewModel(
+         personId = parameters.getOrNull<String>(),
+         _repository = get<IPersonRepository>(),         // singleton
+         _stringProvider = get<IStringProvider>(),       // singleton shared
+         _validator = get<PersonValidator>(),            // singleton
+         _imageFileStorage = get<IImageFileStorage>(),   // singleton shared
+         _imageEdit = get<IImageEdit>(),                 // factory shared
+         _personUcCreate = get<PersonUcCreate>(),        // factory
+         _personUcUpdate = get<PersonUcUpdate>(),        // factory
+         _effectDelegate =                               // factory
+            get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+      )
+   }
+
+   Alog.i(tag, "viewModel -> PeopleViewModel")
+   viewModel {
+      PeopleViewModel(
+         _repository = get<IPersonRepository>(),         // singleton
+         _stringProvider = get<IStringProvider>(),       // singleton shared
+         _personUcDelete = get<PersonUcDelete>(),        // factory
+         _effectDelegate =                               // factory
+            get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
+      )
+   }
 
 }
 
