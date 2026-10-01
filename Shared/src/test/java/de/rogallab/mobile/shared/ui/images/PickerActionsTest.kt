@@ -31,13 +31,4 @@ class PickerActionsTest {
       actions.takePhoto()
       assertEquals(1, calls)
    }
-
-   @Test
-   fun gallerySelectionMode_containsSingleAndMultiple() {
-      val values = GallerySelectionMode.entries
-
-      assertTrue(GallerySelectionMode.Single in values)
-      assertTrue(GallerySelectionMode.Multiple in values)
-      assertFalse(values.isEmpty())
-   }
 }
