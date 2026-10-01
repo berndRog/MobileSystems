@@ -34,7 +34,7 @@ fun ImageSelection(
       // Renders the current image or a placeholder icon if no image is available.
       ImageRenderer(
          modifier = Modifier
-            .weight(1f),
+            .weight(1f).height(120.dp),
          imageVector = Icons.Default.AccountCircle,
          imagePath = imagePath,
          contentDescription = fullName,

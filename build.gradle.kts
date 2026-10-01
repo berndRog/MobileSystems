@@ -54,7 +54,9 @@ subprojects {
             )
 
          namespace = "de.rogallab.mobile.$cleanLibraryName"
-         compileSdk = 37
+         compileSdk {
+            version = release(37) { minorApiLevel = 1 }
+         }
 
          defaultConfig {
             minSdk = 26
@@ -87,7 +89,9 @@ subprojects {
       extensions.configure<ApplicationExtension> {
          // All course examples deliberately use the same source namespace.
          namespace = "de.rogallab.mobile"
-         compileSdk = 37
+         compileSdk {
+            version = release(37) { minorApiLevel = 1 }
+         }
 
          defaultConfig {
             // Derive a unique application ID from the module name. This lets
