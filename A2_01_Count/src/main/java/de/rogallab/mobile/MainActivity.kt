@@ -22,8 +22,8 @@ import de.rogallab.mobile.ui.count.composables.CountScreen2
 import de.rogallab.mobile.ui.theme.AppTheme
 
 class MainActivity : BaseActivity(TAG) {
-   override fun onCreate(savedInstanceState: Bundle?) {
 
+   override fun onCreate(savedInstanceState: Bundle?) {
       super.onCreate(savedInstanceState)
 
       Alog.set(
