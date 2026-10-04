@@ -55,7 +55,7 @@ subprojects {
 
          namespace = "de.rogallab.mobile.$cleanLibraryName"
          compileSdk {
-            version = release(37) { minorApiLevel = 1 }
+            version = release(37) { minorApiLevel = 2 }
          }
 
          defaultConfig {
@@ -90,7 +90,7 @@ subprojects {
          // All course examples deliberately use the same source namespace.
          namespace = "de.rogallab.mobile"
          compileSdk {
-            version = release(37) { minorApiLevel = 1 }
+            version = release(37) { minorApiLevel = 2 }
          }
 
          defaultConfig {
