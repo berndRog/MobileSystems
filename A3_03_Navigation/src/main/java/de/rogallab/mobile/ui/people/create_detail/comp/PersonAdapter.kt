@@ -2,7 +2,6 @@ package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,9 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -60,8 +57,6 @@ fun PersonAdapter(
 
    // Person data
    val person = personUiState.person
-   var enableSave by remember { mutableStateOf(false) }
-   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Collect one-time effects and translate them into UI callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -78,8 +73,7 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  if(enableSave)
-                     viewModel.onIntent(PersonIntent.Save)
+                  viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                        contentDescription = stringResource(R.string.action_back))

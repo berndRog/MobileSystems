@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -21,9 +24,10 @@ fun ImageSelection(
    fullName: String,
    imagePath: String?,
    imageActionsEnabled: Boolean = true,
+   height: Dp = 250.dp,
    onSelectPhoto: () -> Unit,
    onTakePhoto: () -> Unit,
-   onRemovePhoto: () -> Unit,
+   onRemovePhoto: () -> Unit
 ) {
    Row(
       modifier = Modifier
@@ -34,29 +38,27 @@ fun ImageSelection(
       // Renders the current image or a placeholder icon if no image is available.
       ImageRenderer(
          modifier = Modifier
-            .weight(1f).height(120.dp),
+            .weight(1f)
+            .heightIn(min = 150.dp)
+            .height(height),
          imageVector = Icons.Default.AccountCircle,
          imagePath = imagePath,
          contentDescription = fullName,
       )
 
-      Column(
+      // Renders the buttons for selecting a photo from galleyr or
+      // taking a photo with camera or removing a photo.
+      ImageSelectionButtons(
          modifier = Modifier
             .weight(1f)
-            .fillMaxWidth(),
-         verticalArrangement = Arrangement.spacedBy(12.dp),
-         horizontalAlignment = Alignment.End,
-      ) {
-         // Renders the buttons for selecting a photo from galleyr or
-         // taking a photo with camera or removing a photo.
-         ImageSelectionButtons(
-            imagePath = imagePath,
-            enabled = imageActionsEnabled,
-            onSelectPhoto = onSelectPhoto,
-            onTakePhoto = onTakePhoto,
-            onRemovePhoto = onRemovePhoto,
-         )
-      }
+            .heightIn(min = 150.dp)
+            .height(height),
+         imagePath = imagePath,
+         enabled = imageActionsEnabled,
+         onSelectPhoto = onSelectPhoto,
+         onTakePhoto = onTakePhoto,
+         onRemovePhoto = onRemovePhoto,
+      )
    }
 }
 

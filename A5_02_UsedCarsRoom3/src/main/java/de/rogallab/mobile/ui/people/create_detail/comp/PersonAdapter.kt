@@ -64,7 +64,6 @@ fun PersonAdapter(
       by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    val person = personUiState.person
-   val enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
    var showCars by remember { mutableStateOf(false) }
 
    EffectHandler(viewModel.effects) { personEffect ->
@@ -85,7 +84,7 @@ fun PersonAdapter(
             navigationIcon = {
                IconButton(
                   onClick = {
-                     if (enableSave) viewModel.onIntent(PersonIntent.Save)
+                     viewModel.onIntent(PersonIntent.Save)
                   },
                ) {
                   Icon(

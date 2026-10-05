@@ -59,8 +59,6 @@ fun PersonAdapter(
 
    // Person data
    val person = personUiState.person
-   var enableSave by remember { mutableStateOf(false) }
-   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Collect one-time effects and translate them into UI callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -77,8 +75,7 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  if(enableSave)
-                     viewModel.onIntent(PersonIntent.Save)
+                  viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                      contentDescription = stringResource(R.string.action_back))

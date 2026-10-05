@@ -1,10 +1,7 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
-import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,16 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
-import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
@@ -46,6 +40,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import org.koin.compose.koinInject
+import de.rogallab.mobile.shared.R as SharedR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,8 +62,8 @@ fun PersonAdapter(
 
    // Person data
    val person = personUiState.person
-   var enableSave by remember { mutableStateOf(false) }
-   enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
+   //var enableSave by remember { mutableStateOf(false) }
+   //enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Handle one-time effects separately from the persistent UI state.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -90,8 +85,7 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  if (enableSave)
-                     viewModel.onIntent(PersonIntent.Save)
+                  viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                      contentDescription = stringResource(R.string.action_back))

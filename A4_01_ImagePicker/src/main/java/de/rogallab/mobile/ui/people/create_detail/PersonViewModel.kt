@@ -220,6 +220,8 @@ class PersonViewModel(
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
 
+
+
       // Sanitize the email before validation.
       if (person.email != null) {
          val email = sanitizeEmailInput(person.email)
