@@ -30,8 +30,8 @@ import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
-import de.rogallab.mobile.shared.ui.images.MultipleGalleryPickerHandler
-import de.rogallab.mobile.shared.ui.images.SingleGalleryPickerHandler
+import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerMultiple
+import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
 import de.rogallab.mobile.ui.cars.input_detail.CarIntent
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
@@ -105,12 +105,12 @@ fun CarAdapter(
          }
       }
       else {
-         SingleGalleryPickerHandler(
+         GalleryPickerHandlerSingle(
             onImageSelected = { sourceUri ->
                viewModel.onIntent(CarIntent.GalleryImagesSelected(listOf(sourceUri)))
             },
          ) { singleGalleryActions ->
-             MultipleGalleryPickerHandler(
+             GalleryPickerHandlerMultiple(
                 maxSelectionCount = remainingSlots.coerceAtLeast(2),
                 onImagesSelected = { sourceUris ->
                    viewModel.onIntent(CarIntent.GalleryImagesSelected(sourceUris))

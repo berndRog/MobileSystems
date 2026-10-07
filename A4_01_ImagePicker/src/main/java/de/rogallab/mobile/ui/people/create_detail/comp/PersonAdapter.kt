@@ -33,7 +33,7 @@ import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
-import de.rogallab.mobile.shared.ui.images.SingleGalleryPickerHandler
+import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
@@ -117,7 +117,7 @@ fun PersonAdapter(
          val person = personUiState.person
 
          // The gallery handler selects one image and returns its content URI.
-         SingleGalleryPickerHandler(
+         GalleryPickerHandlerSingle(
             onImageSelected = { sourceUri ->
                viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
             },
@@ -134,7 +134,6 @@ fun PersonAdapter(
                // Connect the current UI state and all user actions to PersonScreen.
                PersonScreen(
                   isNew = personUiState.isNew,
-                  isLoading = personUiState.isLoading,
                   firstName = person.firstName,
                   onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
                   lastName = person.lastName,

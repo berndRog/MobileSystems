@@ -2,7 +2,6 @@ package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,9 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,7 +34,7 @@ import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
-import de.rogallab.mobile.shared.ui.images.SingleGalleryPickerHandler
+import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
@@ -118,7 +115,7 @@ fun PersonAdapter(
          val person = personUiState.person
 
          // The gallery handler selects one image and returns its content URI.
-         SingleGalleryPickerHandler(
+         GalleryPickerHandlerSingle(
             onImageSelected = { sourceUri ->
                viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
             },

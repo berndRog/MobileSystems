@@ -10,7 +10,7 @@ import androidx.compose.runtime.rememberUpdatedState
 
 /** Selects up to maxSelectionCount images and forwards their content URIs. */
 @Composable
-fun MultipleGalleryPickerHandler(
+fun GalleryPickerHandlerMultiple(
    maxSelectionCount: Int,
    onImagesSelected: (List<Uri>) -> Unit,
    content: @Composable (GalleryPickerActions) -> Unit,

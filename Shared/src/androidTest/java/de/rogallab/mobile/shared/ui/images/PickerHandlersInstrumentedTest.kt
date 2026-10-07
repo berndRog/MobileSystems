@@ -24,7 +24,7 @@ class PickerHandlersInstrumentedTest {
    @Test
    fun singleGalleryPickerHandler_exposesContentAction() {
       composeRule.setContent {
-         SingleGalleryPickerHandler(
+         GalleryPickerHandlerSingle(
             onImageSelected = {},
          ) {
             Text("gallery-ready")
@@ -40,7 +40,7 @@ class PickerHandlersInstrumentedTest {
    @Test
    fun multipleGalleryPickerHandler_acceptsConfiguredMaximum() {
       composeRule.setContent {
-         MultipleGalleryPickerHandler(
+         GalleryPickerHandlerMultiple(
             maxSelectionCount = 2,
             onImagesSelected = {},
          ) {
