@@ -48,21 +48,27 @@ class MainActivity : BaseActivity(TAG) {
          val peopleViewModel = koinViewModel<PeopleViewModel>()
 
          AppTheme {
+            Scaffold(
+               contentWindowInsets = WindowInsets(0, 0, 0, 0),
+               snackbarHost = {
+                  SnackbarHost(
+                     hostState = snackbarHostState,
+                     modifier = Modifier.imePadding(),
+                  )
+               },
+            ) { _ ->
+               PersonAdapter(
+                  viewModel = personViewModel,
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
+               )
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError
-            )
-
-//            PeopleAdapter(
-//               viewModel = peopleViewModel,
-//               snackbarHostState = snackbarHostState,
-//               onMessage = snackbarController::showMessage,
-//               onError = snackbarController::showError,
-//            )
-
+//               PeopleAdapter(
+//                  viewModel = peopleViewModel,
+//                  onMessage = snackbarController::showMessage,
+//                  onError = snackbarController::showError,
+//               )
+            }
          }
       }
    }
@@ -80,6 +86,8 @@ class MainActivity : BaseActivity(TAG) {
  *
  * - Deshalb ist noch kein Coordinator erforderlich. Ein SnackbarController
  *   reicht aus, weil kein Screenwechsel eine Meldung überleben muss.
+ * - Ein SnackbarHost liegt in der Activity oberhalb des ausgewählten Screens.
+ *   Die Adapter geben Effects über Callbacks weiter und erzeugen keinen Host.
  *
  * - Effects transportieren bereits aufgelöste Strings. String-Ressourcen
  *   werden im jeweiligen ViewModel über IStringProvider aufgelöst.
@@ -92,4 +100,5 @@ class MainActivity : BaseActivity(TAG) {
  * - Effect-Handling unabhängig von Navigation kennenlernen.
  * - String-Ressourcen im ViewModel über IStringProvider auflösen.
  * - Snackbar-Ausgabe kapseln, ohne selbst CoroutineScope.launch aufzurufen.
+ * - Einen gemeinsamen SnackbarHost außerhalb der Screen-Adapter platzieren.
  */

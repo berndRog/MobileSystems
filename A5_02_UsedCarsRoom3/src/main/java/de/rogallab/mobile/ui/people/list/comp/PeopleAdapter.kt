@@ -2,7 +2,6 @@ package de.rogallab.mobile.ui.people.list.comp
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -13,8 +12,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,8 +36,6 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   snackbarHostState: SnackbarHostState,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
@@ -84,13 +79,6 @@ fun PeopleAdapter(
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      bottomBar = bottomBar,
-      snackbarHost = {
-         SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.imePadding(),
-         )
-      },
    ) { innerPadding ->
       if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
          Box(
@@ -125,10 +113,7 @@ fun PeopleAdapter(
  *
  * - Der PeopleAdapter verbindet PeopleViewModel und PeopleScreen und enthält
  *   wie in A5_01 den Scaffold für diesen Bildschirm.
- * - TopAppBar, FAB und SnackbarHost gehören damit zum stateful Adapter; der
- *   PeopleScreen bleibt zustandslos und enthält nur die eigentliche Liste.
- * - Der SnackbarHostState wird in AppNavigation einmal erzeugt und von allen
- *   Adaptern wiederverwendet.
- * - Die Bottom-Navigation wird als Composable übergeben, damit A5_02 trotz der
- *   drei Top-Level-Bereiche keinen übergeordneten Scaffold benötigt.
+ * - TopAppBar und FAB gehören zum Adapter; PeopleScreen enthält nur die Liste.
+ * - Der einzige SnackbarHost und die Bottom-Navigation liegen im äußeren
+ *   Scaffold von AppNavigation und gelten für alle Ziele.
  */

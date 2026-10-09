@@ -253,6 +253,7 @@ private fun CarsBottomSheet(
  *   eingeblendet. Seine LazyColumn ist vom scrollbaren Personenformular getrennt.
  * - Ein Klick auf ein Fahrzeug wird über onCarClick nach außen delegiert und
  *   kann dadurch in AppNavigation zu CarKey(carId) navigieren.
- * - TopAppBar, Loading-Anzeige und SnackbarHost liegen im PersonAdapter.
+ * - TopAppBar und Loading-Anzeige liegen im PersonAdapter; der einzige
+ *   SnackbarHost liegt in AppNavigation.
  * - UI-Aktionen werden ausschließlich über Callback-Funktionen weitergegeben.
  */

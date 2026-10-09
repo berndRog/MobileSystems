@@ -2,7 +2,9 @@ package de.rogallab.mobile.ui.navigation.comp
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
@@ -50,7 +52,7 @@ fun AppNavigation() {
    // Reuse the saveable Navigation 3 back stack introduced in A3_03.
    val backStack = rememberNavBackStack(PeopleKey)
 
-   // One SnackbarHostState is shared by all destinations.
+   // One SnackbarHostState, controller, and visible host serve all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
    // The controller and its CoroutineScope live above NavDisplay. Therefore a
    // Snackbar started by one destination can remain active after navigation.
@@ -71,97 +73,108 @@ fun AppNavigation() {
    }
 
 
-   NavDisplay(
-      backStack = backStack,
-
-      // Handles system back navigation as a cancel operation.
-      onBack = {
-         currentPopReason = PopReason.CANCEL
-         pop(backStack)
+   Scaffold(
+      contentWindowInsets = WindowInsets(0, 0, 0, 0),
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+               .imePadding()
+               .padding(bottom = if (backStack.lastOrNull() == PeopleKey) 80.dp else 0.dp),
+         )
       },
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         backStack = backStack,
 
-      // Preserves saveable Compose state and ViewModels per NavEntry.
-      entryDecorators = listOf(
-         rememberSaveableStateHolderNavEntryDecorator(
-            rememberSaveableStateHolder()
+         // Handles system back navigation as a cancel operation.
+         onBack = {
+            currentPopReason = PopReason.CANCEL
+            pop(backStack)
+         },
+
+         // Preserves saveable Compose state and ViewModels per NavEntry.
+         entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(
+               rememberSaveableStateHolder()
+            ),
+            rememberViewModelStoreNavEntryDecorator(),
          ),
-         rememberViewModelStoreNavEntryDecorator(),
-      ),
 
-      // Navigation animations remain unchanged from the preceding step.
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
-      popTransitionSpec =
-         NavigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec =
-         NavigationAnimations.predictivePopTransitionSpec,
+         // Navigation animations remain unchanged from the preceding step.
+         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         popTransitionSpec =
+            NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec =
+            NavigationAnimations.predictivePopTransitionSpec,
 
-      entryProvider = entryProvider {
+         entryProvider = entryProvider {
 
-         // Root destination: list of people.
-         entry<PeopleKey> {
-            val peopleViewModel = koinViewModel<PeopleViewModel>()
+            // Root destination: list of people.
+            entry<PeopleKey> {
+               val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-            PeopleAdapter(
-               viewModel = peopleViewModel,
-               snackbarHostState = snackbarHostState,
+               PeopleAdapter(
+                  viewModel = peopleViewModel,
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
 
-               // Confirm the destructive action before the repository is changed.
-               onConfirmRemove = { message, actionLabel, personId ->
-                  snackbarController.showAction(
-                     message = message,
-                     actionLabel = actionLabel,
-                     onAction = {
-                        peopleViewModel.onIntent(
-                           PeopleIntent.ConfirmRemove(personId)
-                        )
-                     },
-                  )
-               },
+                  // Confirm the destructive action before the repository is changed.
+                  onConfirmRemove = { message, actionLabel, personId ->
+                     snackbarController.showAction(
+                        message = message,
+                        actionLabel = actionLabel,
+                        onAction = {
+                           peopleViewModel.onIntent(
+                              PeopleIntent.ConfirmRemove(personId)
+                           )
+                        },
+                     )
+                  },
 
-               onNavigateBack = {
-                  currentPopReason = PopReason.CANCEL
-                  pop(backStack)
-               },
+                  onNavigateBack = {
+                     currentPopReason = PopReason.CANCEL
+                     pop(backStack)
+                  },
 
-               // null -> create, id -> detail.
-               onNavigateTo = { personId ->
-                  push(
-                     destination = PersonKey(personId),
-                     backStack = backStack,
-                  )
-               },
-            )
-         }
-
-         // Person editing is unchanged from A3_03. A3_04 adds Swipe only to
-         // the list feature; image selection is intentionally not introduced yet.
-         entry<PersonKey> { personKey ->
-            val personViewModel = koinViewModel<PersonViewModel> {
-               parametersOf(personKey.personId)
+                  // null -> create, id -> detail.
+                  onNavigateTo = { personId ->
+                     push(
+                        destination = PersonKey(personId),
+                        backStack = backStack,
+                     )
+                  },
+               )
             }
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
+            // Person editing is unchanged from A3_03. A3_04 adds Swipe only to
+            // the list feature; image selection is intentionally not introduced yet.
+            entry<PersonKey> { personKey ->
+               val personViewModel = koinViewModel<PersonViewModel> {
+                  parametersOf(personKey.personId)
+               }
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+               PersonAdapter(
+                  viewModel = personViewModel,
 
-               onNavigateBack = { reason ->
-                  currentPopReason =
-                     when (reason) {
-                        BackReason.Save -> PopReason.SAVE
-                        BackReason.Cancel -> PopReason.CANCEL
-                     }
-                  pop(backStack)
-               },
-            )
-         }
-      },
-   )
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
+
+                  onNavigateBack = { reason ->
+                     currentPopReason =
+                        when (reason) {
+                           BackReason.Save -> PopReason.SAVE
+                           BackReason.Cancel -> PopReason.CANCEL
+                        }
+                     pop(backStack)
+                  },
+               )
+            }
+         },
+      )
+   }
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -240,6 +253,9 @@ private fun logNavigationOperation(
  * - PeopleViewModel kann weiterhin innerhalb des PeopleKey-Eintrags erzeugt
  *   werden. A3_04 hält keinen pending Delete-State. Erst A3_05 benötigt einen
  *   länger lebenden ViewModel-State für visuelles Entfernen und Undo.
+ *
+ * - Ein äußerer Scaffold zeigt genau einen SnackbarHost oberhalb von NavDisplay.
+ *   Die Screen-Adapter leiten Effects weiter und erzeugen keinen eigenen Host.
  *
  * Lernziele:
  *

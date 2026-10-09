@@ -2,7 +2,9 @@ package de.rogallab.mobile.ui.navigation.comp
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
@@ -54,7 +56,7 @@ fun AppNavigation() {
    // and Undo callbacks survive navigation to a person destination.
    val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-   // One SnackbarHostState is shared by all destinations.
+   // One SnackbarHostState, controller, and visible host serve all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
    // The controller and its CoroutineScope live above NavDisplay. Therefore a
    // Snackbar started by one destination can remain active after navigation.
@@ -74,95 +76,106 @@ fun AppNavigation() {
       )
    }
 
-   NavDisplay(
-      backStack = backStack,
-
-      // Handles system back navigation as a cancel operation.
-      onBack = {
-         currentPopReason = PopReason.Cancel
-         pop(backStack)
+   Scaffold(
+      contentWindowInsets = WindowInsets(0, 0, 0, 0),
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+               .imePadding()
+               .padding(bottom = if (backStack.lastOrNull() == PeopleKey) 80.dp else 0.dp),
+         )
       },
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         backStack = backStack,
 
-      // Preserves saveable Compose state and ViewModels per NavEntry.
-      entryDecorators = listOf(
-         rememberSaveableStateHolderNavEntryDecorator(
-            rememberSaveableStateHolder()
+         // Handles system back navigation as a cancel operation.
+         onBack = {
+            currentPopReason = PopReason.Cancel
+            pop(backStack)
+         },
+
+         // Preserves saveable Compose state and ViewModels per NavEntry.
+         entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(
+               rememberSaveableStateHolder()
+            ),
+            rememberViewModelStoreNavEntryDecorator(),
          ),
-         rememberViewModelStoreNavEntryDecorator(),
-      ),
 
-      // Navigation animations remain unchanged from the preceding step.
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
-      popTransitionSpec =
-         NavigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec =
-         NavigationAnimations.predictivePopTransitionSpec,
+         // Navigation animations remain unchanged from the preceding step.
+         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         popTransitionSpec =
+            NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec =
+            NavigationAnimations.predictivePopTransitionSpec,
 
-      entryProvider = entryProvider {
+         entryProvider = entryProvider {
 
-         // Root destination: list of people.
-         entry<PeopleKey> {
+            // Root destination: list of people.
+            entry<PeopleKey> {
 
-            PeopleAdapter(
-               viewModel = peopleViewModel,
-               snackbarHostState = snackbarHostState,
+               PeopleAdapter(
+                  viewModel = peopleViewModel,
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
 
-               // Remove is visual first. The Snackbar result decides whether
-               // the item is restored or finally removed from the repository.
-               onUndo = { message, actionLabel, personId ->
-                  snackbarController.showAction(
-                     message = message,
-                     actionLabel = actionLabel,
-                     onAction = {
-                        peopleViewModel.onIntent(PeopleIntent.UndoRemove(personId))
-                     },
-                     onDismiss = {
-                        peopleViewModel.onIntent(PeopleIntent.CommitRemove(personId))
-                     },
-                  )
-               },
+                  // Remove is visual first. The Snackbar result decides whether
+                  // the item is restored or finally removed from the repository.
+                  onUndo = { message, actionLabel, personId ->
+                     snackbarController.showAction(
+                        message = message,
+                        actionLabel = actionLabel,
+                        onAction = {
+                           peopleViewModel.onIntent(PeopleIntent.UndoRemove(personId))
+                        },
+                        onDismiss = {
+                           peopleViewModel.onIntent(PeopleIntent.CommitRemove(personId))
+                        },
+                     )
+                  },
 
-               onNavigateBack = {
-                  currentPopReason = PopReason.Cancel
-                  pop(backStack)
-               },
+                  onNavigateBack = {
+                     currentPopReason = PopReason.Cancel
+                     pop(backStack)
+                  },
 
-               // null -> create, id -> detail/edit.
-               onNavigateTo = { personId ->
-                  push(PersonKey(personId), backStack)
-               },
-            )
-         }
-
-         // Person editing remains unchanged. A3_05 extends the list behavior
-         // with Undo; image selection is intentionally not introduced yet.
-         entry<PersonKey> { personKey ->
-            val personViewModel = koinViewModel<PersonViewModel> {
-               parametersOf(personKey.personId)
+                  // null -> create, id -> detail/edit.
+                  onNavigateTo = { personId ->
+                     push(PersonKey(personId), backStack)
+                  },
+               )
             }
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
+            // Person editing remains unchanged. A3_05 extends the list behavior
+            // with Undo; image selection is intentionally not introduced yet.
+            entry<PersonKey> { personKey ->
+               val personViewModel = koinViewModel<PersonViewModel> {
+                  parametersOf(personKey.personId)
+               }
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+               PersonAdapter(
+                  viewModel = personViewModel,
 
-               onNavigateBack = { reason ->
-                  currentPopReason =
-                     when (reason) {
-                        BackReason.Save -> PopReason.SAVE
-                        BackReason.Cancel -> PopReason.Cancel
-                     }
-                  pop(backStack)
-               },
-            )
-         }
-      },
-   )
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
+
+                  onNavigateBack = { reason ->
+                     currentPopReason =
+                        when (reason) {
+                           BackReason.Save -> PopReason.SAVE
+                           BackReason.Cancel -> PopReason.Cancel
+                        }
+                     pop(backStack)
+                  },
+               )
+            }
+         },
+      )
+   }
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -248,6 +261,9 @@ private fun logNavigationOperation(
  *   Das Repository wird erst angefasst, wenn die Undo-Möglichkeit nicht genutzt
  *   wurde. Damit bleibt die destruktive Änderung bis zum Ende des Undo-Fensters
  *   reversibel.
+ *
+ * - Ein äußerer Scaffold zeigt genau einen SnackbarHost oberhalb von NavDisplay.
+ *   Die Screen-Adapter leiten Effects weiter und erzeugen keinen eigenen Host.
  *
  * Lernziele:
  *

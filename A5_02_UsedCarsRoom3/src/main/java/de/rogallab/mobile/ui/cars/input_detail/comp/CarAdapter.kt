@@ -14,8 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -44,8 +42,6 @@ import org.koin.compose.koinInject
 @Composable
 fun CarAdapter(
    viewModel: CarViewModel,
-   snackbarHostState: SnackbarHostState,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
@@ -84,13 +80,6 @@ fun CarAdapter(
                   )
                }
             },
-         )
-      },
-      bottomBar = bottomBar,
-      snackbarHost = {
-         SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.imePadding(),
          )
       },
    ) { innerPadding ->
@@ -159,7 +148,8 @@ fun CarAdapter(
  *   Bildplätzen an: einer für einen Platz, der andere für mehrere Plätze.
  * - CarAdapter bindet die Shared-Picker an das Fahrzeug-Feature und enthält
  *   zusätzlich den Scaffold der Detailansicht.
- * - TopAppBar, Loading und SnackbarHost liegen damit außerhalb von CarScreen.
+ * - TopAppBar und Loading liegen im Adapter; der einzige SnackbarHost liegt
+ *   in AppNavigation. CarScreen enthält keinen dieser UI-Rahmenteile.
  * - CarScreen bleibt für Eingabefelder, Bildvorschau und Benutzeraktionen
  *   zuständig und erhält diese Abhängigkeiten nur über Parameter und Callbacks.
  */
