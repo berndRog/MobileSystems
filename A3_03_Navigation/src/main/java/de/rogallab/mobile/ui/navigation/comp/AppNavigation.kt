@@ -216,8 +216,9 @@ private fun logNavigationOperation(
  *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
  *   People-Liste weiter angezeigt werden.
  *
- * - Ein Ladefehler im PersonScreen erzeugt dagegen nur ShowError. Es findet
- *   keine Navigation statt und die Fehlermeldung erscheint im selben Screen.
+ * - Ladefehler bleiben im jeweiligen Screen-State sichtbar. Im PersonScreen
+ *   führt "nicht gefunden" zurück zur Liste; ein Repository-Fehler bietet
+ *   "Erneut versuchen". Einzelne Aktionsfehler nutzen weiter ShowError.
  *
  * - Eine eigene Coordinator-Queue ist nicht erforderlich. SnackbarHostState
  *   serialisiert gleichzeitig angeforderte Snackbars bereits selbst.

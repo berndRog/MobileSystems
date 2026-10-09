@@ -19,8 +19,12 @@ class FakePersonRepository(
    val created = mutableListOf<Person>()
    val updated = mutableListOf<Person>()
    val removed = mutableListOf<Person>()
+   var observeCalls = 0
 
-   override fun observeAll(): Flow<Result<List<Person>>> = peopleFlow
+   override fun observeAll(): Flow<Result<List<Person>>> {
+      observeCalls++
+      return peopleFlow
+   }
 
    override suspend fun findById(id: String): Result<Person?> = findResult
 

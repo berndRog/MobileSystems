@@ -45,12 +45,11 @@ class PeopleViewModel(
       // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
+      // Clear the previous failure as soon as the retry starts.
+      _stateFlow.update { state: PeopleUiState ->
+         state.copy(isLoading = true, loadError = null)
+      }
       _observeJob = viewModelScope.launch {
-
-         // Show the loading indicator until the first result arrives.
-         _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
-         }
 
          // Simulate a longer loading operation.
          delay(1000)
@@ -59,12 +58,15 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people)
+                     state.copy(people = people, loadError = null)
                   }
                }
                .onFailure { throwable ->
                   val error = _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+                  Alog.e(TAG, error, throwable)
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(loadError = error)
+                  }
                }
 
             // set isLoading = false after loading is complete
@@ -82,6 +84,7 @@ class PeopleViewModel(
 
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
+         PeopleIntent.RetryLoad -> observePeople()
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> remove(intent.person)
       }
@@ -122,7 +125,8 @@ class PeopleViewModel(
  * - PeopleUiState beschreibt den dauerhaften Zustand der Personenliste.
  *   Änderungen verwenden konsequent state: PeopleUiState als Lambda-Parameter.
  *
- * - Repository-Fehler werden als einmalige ShowError-Effects ausgegeben.
+ * - Ein Fehler beim Beobachten der Liste bleibt als loadError im UI-State
+ *   sichtbar. Fehler einzelner Aktionen werden als ShowError-Effects ausgegeben.
  *
  * - ShowUndo ist bereits vorbereitet und enthält Meldung, Action-Text sowie die id der
  *   gelöschten Person. Die eigentliche Wiederherstellung wird erst beim

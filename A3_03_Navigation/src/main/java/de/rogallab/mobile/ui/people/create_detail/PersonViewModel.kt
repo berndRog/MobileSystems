@@ -54,12 +54,12 @@ class PersonViewModel(
 
    // Loads an existing person from the repository.
    private fun loadPerson(id: String) {
+      // Clear the previous failure before launching; repeated RetryLoad taps
+      // cannot start parallel loads while this attempt is in progress.
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isLoading = true, loadFailure = null)
+      }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
-
          // Simulate a longer loading operation.
          delay(1000)
 
@@ -70,23 +70,25 @@ class PersonViewModel(
                // A successful Result may still contain null if no person exists.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
-
+                  Alog.e(TAG, error)
                   _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+                     state.copy(loadFailure = PersonLoadFailure.NotFound(error))
                   }
                   return@onSuccess
                }
 
                // Store the loaded person.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+                  state.copy(person = person, loadFailure = null)
                }
             }
             .onFailure { throwable ->
-               // Repository failures are converted into a localized UI effect.
+               // Loading failures remain visible until a retry succeeds or the user leaves.
                val error = _stringProvider.getString(R.string.error_person_load)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               Alog.e(TAG, error, throwable)
+               _stateFlow.update { state: PersonUiState ->
+                  state.copy(loadFailure = PersonLoadFailure.Failed(error))
+               }
             }
 
          // set isLoading = false after loading is complete
@@ -107,6 +109,8 @@ class PersonViewModel(
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
+         PersonIntent.RetryLoad ->
+            if (_stateFlow.value.loadFailure is PersonLoadFailure.Failed) loadPerson(_personId!!)
       }
    }
 
@@ -146,7 +150,7 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -246,8 +250,9 @@ class PersonViewModel(
  *   Dadurch ist bereits am Lambda-Bezeichner erkennbar, welcher State
  *   verändert wird.
  *
- * - Meldungen, Fehler und vorbereitete Navigation werden als PersonEffect
- *   ausgegeben und nicht im dauerhaften State gespeichert.
+ * - Fehler beim Laden bleiben als loadFailure im State sichtbar und bieten
+ *   je nach Ursache Rücknavigation oder einen erneuten Ladeversuch. Fehler bei
+ *   einzelnen Aktionen und vorbereitete Navigation bleiben einmalige Effects.
  *
  * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
  *
