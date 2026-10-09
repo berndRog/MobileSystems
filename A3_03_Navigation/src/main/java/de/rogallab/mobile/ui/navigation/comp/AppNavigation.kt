@@ -61,6 +61,8 @@ fun AppNavigation() {
 
    // Selects the visible remove animation for Save or Cancel.
    var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
+   var activePersonViewModel by remember { mutableStateOf<PersonViewModel?>(null) }
+   var activePersonKey by remember { mutableStateOf<PersonKey?>(null) }
 
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
@@ -84,8 +86,15 @@ fun AppNavigation() {
 
          // Handles system back navigation as a cancel operation.
          onBack = {
-            currentPopReason = PopReason.Cancel
-            remove(backStack)
+            val top = backStack.lastOrNull()
+            if (top !is PersonKey ||
+               (activePersonKey === top && activePersonViewModel?.canLeaveScreen == true)) {
+               activePersonViewModel?.onScreenLeft()
+               activePersonViewModel = null
+               activePersonKey = null
+               currentPopReason = PopReason.Cancel
+               remove(backStack)
+            }
          },
 
          // Preserves saveable Compose state and ViewModels per NavEntry.
@@ -112,8 +121,12 @@ fun AppNavigation() {
                PeopleAdapter(
                   viewModel = peopleViewModel,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
+                  onMessage = { message ->
+                     deliverIfCurrent(backStack, PeopleKey) { snackbarController.showMessage(message) }
+                  },
+                  onError = { error ->
+                     deliverIfCurrent(backStack, PeopleKey) { snackbarController.showError(error) }
+                  },
 
                   onNavigateBack = {
                      currentPopReason = PopReason.Cancel
@@ -121,10 +134,13 @@ fun AppNavigation() {
                   },
                   // null -> create, id -> detail/edit.
                   onNavigateTo = { personId ->
-                     add(
-                        destination = PersonKey(personId),
-                        backStack = backStack,
-                     )
+                     if (backStack.lastOrNull() == PeopleKey) {
+                        peopleViewModel.onScreenLeft()
+                        add(
+                           destination = PersonKey(personId),
+                           backStack = backStack,
+                        )
+                     }
                   },
                )
             }
@@ -134,25 +150,51 @@ fun AppNavigation() {
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
                }
+               SideEffect {
+                  if (backStack.lastOrNull() === personKey) {
+                     activePersonViewModel = personViewModel
+                     activePersonKey = personKey
+                  }
+               }
 
                PersonAdapter(
                   viewModel = personViewModel,
 
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
+                  onMessage = { message ->
+                     deliverIfCurrent(backStack, personKey) { snackbarController.showMessage(message) }
+                  },
+                  onError = { error ->
+                     deliverIfCurrent(backStack, personKey) { snackbarController.showError(error) }
+                  },
 
                   onNavigateBack = { reason ->
-                     currentPopReason = when (reason) {
-                        BackReason.Save -> PopReason.SAVE
-                        BackReason.Cancel -> PopReason.Cancel
+                     if (backStack.lastOrNull() === personKey &&
+                        activePersonViewModel === personViewModel) {
+                        personViewModel.onScreenLeft()
+                        activePersonViewModel = null
+                        activePersonKey = null
+                        currentPopReason = when (reason) {
+                           BackReason.Save -> PopReason.SAVE
+                           BackReason.Cancel -> PopReason.Cancel
+                        }
+                        remove(backStack)
                      }
-                     remove(backStack)
                   },
                )
             }
          },
       )
    }
+}
+
+// Compare the actual entry: reopening the same person creates an equal key but
+// must not receive effects buffered by the previous entry.
+internal fun deliverIfCurrent(
+   backStack: List<NavKey>,
+   source: NavKey,
+   deliver: () -> Unit,
+) {
+   if (backStack.lastOrNull() === source) deliver()
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -215,6 +257,8 @@ private fun logNavigationOperation(
  *   CoroutineScope bleibt deshalb bei einem Destination-Wechsel bestehen.
  *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
  *   People-Liste weiter angezeigt werden.
+ *   Meldungen aus einer nicht mehr aktuellen Destination gelangen dagegen
+ *   nicht erst nach der Navigation zum Host. Während Save blockiert System-Back.
  *
  * - Ladefehler bleiben im jeweiligen Screen-State sichtbar. Im PersonScreen
  *   führt "nicht gefunden" zurück zur Liste; ein Repository-Fehler bietet
@@ -239,6 +283,8 @@ private fun logNavigationOperation(
  *   SnackbarController darstellen.
  * - Navigation und globale UI-Meldungen als getrennte Verantwortlichkeiten
  *   verstehen.
+ * - Laufende Screen-Operationen beim Verlassen entwerten und späte Effects
+ *   anhand der aktuellen Destination verwerfen.
  * - Vorhandene Material-3-Infrastruktur statt einer eigenen Message-Queue nutzen.
  * - Unterschiedliche Navigationsarten über Animationen sichtbar machen.
  */

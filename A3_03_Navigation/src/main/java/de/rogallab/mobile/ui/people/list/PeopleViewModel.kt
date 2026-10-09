@@ -33,6 +33,8 @@ class PeopleViewModel(
 
    // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
+   private var _removeJob: Job? = null
+   private var _actionGeneration = 0
 
    init {
       Alog.i(TAG, "init: observePeople()")
@@ -90,6 +92,12 @@ class PeopleViewModel(
       }
    }
 
+   // List actions belong to this destination, even while its ViewModel remains alive below detail.
+   fun onScreenLeft() {
+      _actionGeneration++
+      _removeJob?.cancel()
+   }
+
    // Emits the prepared navigation effect.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
@@ -100,8 +108,14 @@ class PeopleViewModel(
 
    // Removes a person from the repository.
    private fun remove(person: Person) {
-      viewModelScope.launch {
-         _repository.remove(person)
+      val generation = _actionGeneration
+      _removeJob = viewModelScope.launch {
+         val result = _repository.remove(person)
+         if (generation != _actionGeneration) {
+            result.exceptionOrNull()?.let { Alog.e(TAG, "Ignored remove failure after leaving", it) }
+            return@launch
+         }
+         result
             .onSuccess {
                val message = _stringProvider.getString(
                   R.string.message_person_removed, person.fullName)
@@ -127,6 +141,8 @@ class PeopleViewModel(
  *
  * - Ein Fehler beim Beobachten der Liste bleibt als loadError im UI-State
  *   sichtbar. Fehler einzelner Aktionen werden als ShowError-Effects ausgegeben.
+ *   Eine laufende Listenaktion wird beim Wechsel zur Detailansicht entwertet;
+ *   ihr späteres Ergebnis erzeugt dort keine Meldung.
  *
  * - ShowUndo ist bereits vorbereitet und enthält Meldung, Action-Text sowie die id der
  *   gelöschten Person. Die eigentliche Wiederherstellung wird erst beim

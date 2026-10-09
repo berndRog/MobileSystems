@@ -74,7 +74,7 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(onClick = {
+               IconButton(enabled = !personUiState.isSaving, onClick = {
                   viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -127,6 +127,7 @@ fun PersonAdapter(
          PersonScreen(
             isNew = personUiState.isNew,
             isLoading = personUiState.isLoading,
+            isSaving = personUiState.isSaving,
 
             firstName = person.firstName,
             onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
@@ -170,6 +171,8 @@ fun PersonAdapter(
  *   erfolgreichem Speichern folgt NavigateBack(BackReason.Save). Bei einem
  *   Ladefehler führt der Pfeil stattdessen zurück. Das Formular wird dann
  *   durch einen dauerhaften Fehlerzustand mit Rückweg oder Retry ersetzt.
+ *   Während Save läuft, ist der Pfeil deaktiviert; System-Back wird zusätzlich
+ *   in AppNavigation abgefangen.
  *
  * Lernziele:
  *

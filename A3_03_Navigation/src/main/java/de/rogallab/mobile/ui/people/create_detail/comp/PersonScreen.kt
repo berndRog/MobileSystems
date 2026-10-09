@@ -47,6 +47,7 @@ import org.koin.compose.koinInject
 fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
+   isSaving: Boolean,
 
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
@@ -138,13 +139,14 @@ fun PersonScreen(
       ) {
          OutlinedButton(
             onClick = onCancel,
+            enabled = !isSaving,
          ) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
          Button(
             onClick = onSave,
-            enabled = enableSave,
+            enabled = enableSave && !isSaving,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
@@ -157,6 +159,7 @@ fun PersonScreen(
  * - Der Zurück-Pfeil liegt in der TopAppBar des PersonAdapter und löst
  *   Speichern aus. Der Abbrechen-Button im PersonScreen bleibt eine eigene
  *   Aktion. Der zustandslose Screen kennt keinen Navigation-3-Back-Stack.
+ *   Save und Cancel sind während eines laufenden Speichervorgangs deaktiviert.
  *
  * - Der Adapter übersetzt Benutzeraktionen in Save- oder Cancel-Intents.
  *   Erst ein NavigateBack-Effect verändert später den Back Stack.

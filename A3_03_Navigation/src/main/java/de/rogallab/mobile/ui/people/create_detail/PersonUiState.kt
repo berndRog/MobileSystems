@@ -6,6 +6,7 @@ data class PersonUiState(
    val person: Person = Person(),
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
+   val isSaving: Boolean = false,
    val loadFailure: PersonLoadFailure? = null,
 )
 
