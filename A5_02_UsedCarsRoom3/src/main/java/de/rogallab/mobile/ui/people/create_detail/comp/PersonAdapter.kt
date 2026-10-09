@@ -89,7 +89,7 @@ fun PersonAdapter(
                ) {
                   Icon(
                      imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_back),
+                     contentDescription = stringResource(R.string.action_save),
                   )
                }
             },

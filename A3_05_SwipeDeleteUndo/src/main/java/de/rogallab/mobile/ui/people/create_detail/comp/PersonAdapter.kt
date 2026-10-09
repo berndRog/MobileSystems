@@ -75,7 +75,7 @@ fun PersonAdapter(
                   viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_back))
+                     contentDescription = stringResource(R.string.action_save))
                }
             },
             title = {
@@ -143,8 +143,9 @@ fun PersonAdapter(
  *   SnackbarController weitergereicht. NavigateBack wird dagegen in eine
  *   Back-Stack-Operation übersetzt.
  *
- * - Der Back-Pfeil und der Cancel-Button erzeugen beide PersonIntent.Cancel.
- *   Erst das ViewModel entscheidet daraus NavigateBack(BackReason.Cancel).
+ * - Der Zurück-Pfeil löst PersonIntent.Save aus; nur nach erfolgreichem
+ *   Speichern folgt NavigateBack(BackReason.Save). Der Abbrechen-Button
+ *   löst PersonIntent.Cancel und NavigateBack(BackReason.Cancel) aus.
  *
  * Lernziele:
  *

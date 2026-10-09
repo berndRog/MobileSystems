@@ -153,12 +153,12 @@ fun PersonScreen(
 /*
  * Didaktik und Lernziele
  *
- * - Der Zurück-Pfeil befindet sich bewusst im PersonScreen in der TopAppBar.
- *   Der zustandslose Screen kennt jedoch keinen Navigation-3-Back-Stack.
+ * - Der Zurück-Pfeil liegt in der TopAppBar des PersonAdapter und löst
+ *   Speichern aus. Der Abbrechen-Button im PersonScreen bleibt eine eigene
+ *   Aktion. Der zustandslose Screen kennt keinen Navigation-3-Back-Stack.
  *
- * - onBack() wird wie die anderen Benutzeraktionen als Funktion übergeben.
- *   Der Adapter übersetzt den Klick in PersonIntent.Cancel. Erst der daraus
- *   entstehende NavigateBack-Effect verändert später den Back Stack.
+ * - Der Adapter übersetzt Benutzeraktionen in Save- oder Cancel-Intents.
+ *   Erst ein NavigateBack-Effect verändert später den Back Stack.
  *
  * - Damit bleibt die Richtung erhalten:
  *
@@ -166,6 +166,6 @@ fun PersonScreen(
  *
  * Lernziele:
  *
- * - TopAppBar-Navigation in einen zustandslosen Screen integrieren.
+ * - Benutzeraktionen über den Adapter in Navigation übersetzen.
  * - UI-Ereignisse nicht direkt mit Navigation koppeln.
  */
