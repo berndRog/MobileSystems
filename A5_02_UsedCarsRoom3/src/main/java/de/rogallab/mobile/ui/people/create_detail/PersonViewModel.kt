@@ -67,11 +67,11 @@ class PersonViewModel(
 
    // Loads an existing person from the repository
    private fun loadPerson(id: String) {
+      // Clear a previous failure before the asynchronous retry starts.
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isLoading = true, loadFailure = null)
+      }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
 
          // Simulate a longer loading operation.
          delay(Globals.delay)
@@ -81,10 +81,10 @@ class PersonViewModel(
                // A successful repository call may still return no matching person.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
+                  Alog.e(TAG, error)
 
                   _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+                     state.copy(isLoading = false, loadFailure = PersonLoadFailure.NotFound(error))
                   }
                   return@onSuccess
                }
@@ -95,15 +95,18 @@ class PersonViewModel(
 
                // Store the loaded person and finish the loading operation.
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+                  state.copy(person = person, loadFailure = null)
                }
             }
             .onFailure {
-               // Repository failures are converted into a localized UI effect.
+               // Repository loading failures remain visible in the screen state.
                val error = _stringProvider.getString(
                   R.string.error_person_load
                )
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               Alog.e(TAG, error)
+               _stateFlow.update { state: PersonUiState ->
+                  state.copy(loadFailure = PersonLoadFailure.Failed(error))
+               }
             }
 
          // loading operation is finished, regardless of success or failure.
@@ -133,6 +136,8 @@ class PersonViewModel(
          is PersonIntent.ImageFailed -> showError(intent.message)
 
          PersonIntent.CarsRequested -> loadCars()
+         PersonIntent.RetryLoad ->
+            if (_stateFlow.value.loadFailure is PersonLoadFailure.Failed) loadPerson(_personId!!)
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
       }
@@ -259,7 +264,7 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -483,9 +488,9 @@ class PersonViewModel(
  *   der UI nicht dargestellt. Technischer interner Zustand muss daher nicht
  *   automatisch Teil des beobachtbaren UI-States sein.
  *
- * - Fehlermeldungen werden ebenfalls nicht dauerhaft im PersonUiState
- *   gespeichert. Repository-, Validierungs- und Bildfehler werden als
- *   PersonEffect.ShowError ausgegeben und von der UI einmalig verarbeitet.
+ * - Ladefehler bleiben dauerhaft im PersonUiState sichtbar und bieten
+ *   Rücknavigation oder Retry. Validierungs-, Speicher- und Bildfehler
+ *   bleiben einmalige PersonEffect.ShowError-Aufträge.
  *
  * - Damit bleibt der bekannte Datenfluss erhalten:
  *

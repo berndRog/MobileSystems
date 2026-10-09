@@ -15,6 +15,7 @@ sealed interface PersonIntent {
    data class ImageFailed(val message: String) : PersonIntent
 
    data object CarsRequested : PersonIntent
+   data object RetryLoad : PersonIntent
    data object Save : PersonIntent
    data object Cancel : PersonIntent
 }

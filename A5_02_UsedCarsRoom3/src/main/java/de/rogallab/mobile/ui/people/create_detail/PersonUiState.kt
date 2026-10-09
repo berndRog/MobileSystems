@@ -8,5 +8,14 @@ data class PersonUiState(
    val cars: List<Car> = emptyList(),
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
+   val loadFailure: PersonLoadFailure? = null,
    val isCarsLoading: Boolean = false,
 )
+
+
+sealed interface PersonLoadFailure {
+   val message: String
+
+   data class NotFound(override val message: String) : PersonLoadFailure
+   data class Failed(override val message: String) : PersonLoadFailure
+}

@@ -30,12 +30,14 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
 import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
+import de.rogallab.mobile.ui.people.create_detail.PersonLoadFailure
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import org.koin.compose.koinInject
@@ -56,6 +58,7 @@ fun PersonAdapter(
    // Observe PersonUiState
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = personUiState.loadFailure
 
    // Person data
    val person = personUiState.person
@@ -80,10 +83,10 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  viewModel.onIntent(PersonIntent.Save)
+                  viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save))
+                     contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back))
                }
             },
             title = {
@@ -103,6 +106,21 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
+      } else if (loadFailure != null) {
+         LoadFailureContent(
+            message = loadFailure.message,
+            actionLabel = stringResource(
+               if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+               else R.string.action_retry
+            ),
+            onAction = {
+               viewModel.onIntent(
+                  if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                  else PersonIntent.RetryLoad
+               )
+            },
+            modifier = Modifier.padding(innerPadding),
+         )
       } else {
          // Show person data
          val person = personUiState.person

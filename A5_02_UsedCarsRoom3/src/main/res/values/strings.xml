@@ -80,6 +80,7 @@
   <string name="action_edit">Edit</string>
   <string name="action_delete">Delete</string>
   <string name="action_back">Back</string>
+  <string name="action_retry">Try again</string>
   <string name="action_confirm">Yes</string>
   <string name="action_select_photo">Select photo</string>
   <string name="action_take_photo">Camera</string>

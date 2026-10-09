@@ -42,6 +42,7 @@ class PeopleViewModel(
 
    // Observes the repository. The delegate combines this persistent source
    // list with the temporary items that are hidden during an Undo operation.
+   // A load failure remains in UI state until a retry or a new successful result.
    private fun observePeople() {
 
       // Cancel any existing observation job before starting a new one.
@@ -51,7 +52,7 @@ class PeopleViewModel(
 
          // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
+            state.copy(isLoading = true, loadError = null)
          }
 
          // Simulate a longer loading operation.
@@ -63,6 +64,9 @@ class PeopleViewModel(
                   // Pass the latest persistent source list to the delegate.
                   _visualRemoval.update(people)
                   publishVisiblePeople(isLoading = false)
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(loadError = null)
+                  }
 
                }
                .onFailure { throwable ->
@@ -71,7 +75,10 @@ class PeopleViewModel(
                   }
 
                   val error = _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+                  Alog.e(TAG, error)
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(isLoading = false, loadError = error)
+                  }
                }
          }
       }
@@ -84,6 +91,7 @@ class PeopleViewModel(
 
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
+         PeopleIntent.RetryLoad -> observePeople()
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> removeVisually(intent.person)
          is PeopleIntent.UndoRemove -> undoRemove(intent.personId)

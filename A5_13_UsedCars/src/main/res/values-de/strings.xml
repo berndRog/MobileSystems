@@ -81,6 +81,7 @@
   <string name="action_edit">Bearbeiten</string>
   <string name="action_delete">Löschen</string>
   <string name="action_back">Zurück</string>
+  <string name="action_retry">Erneut versuchen</string>
   <string name="action_confirm">Ja</string>
   <string name="action_select_photo">Foto wählen</string>
   <string name="action_take_photo">Kamera</string>

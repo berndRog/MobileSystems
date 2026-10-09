@@ -4,6 +4,7 @@ import de.rogallab.mobile.domain.entities.Person
 
 sealed interface PeopleIntent {
    data object Create : PeopleIntent
+   data object RetryLoad : PeopleIntent
    data class Detail(val personId: String) : PeopleIntent
 
    // Removes the person only from the visible list and starts the Undo window.

@@ -2,6 +2,7 @@ package de.rogallab.mobile.ui.people.list
 
 sealed interface PeopleIntent {
    data object Create : PeopleIntent
+   data object RetryLoad : PeopleIntent
    data class Detail(val personId: String) : PeopleIntent
 
    // Requests deletion of an existing person. The repository is not changed yet.

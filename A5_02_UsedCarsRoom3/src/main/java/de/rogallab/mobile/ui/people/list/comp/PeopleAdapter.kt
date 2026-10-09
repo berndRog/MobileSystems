@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleIntent
@@ -48,6 +49,7 @@ fun PeopleAdapter(
 
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = peopleUiState.loadError
 
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
@@ -69,15 +71,17 @@ fun PeopleAdapter(
          TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
       },
       floatingActionButton = {
-         ExtendedFloatingActionButton(
-            containerColor = colorScheme.secondary,
-            onClick = { viewModel.onIntent(PeopleIntent.Create) },
-            icon = {
-               Icon(imageVector = Icons.Default.Add,
-                  contentDescription = null)
-            },
-            text = { Text(text = stringResource(R.string.action_create)) },
-         )
+         if (loadError == null) {
+            ExtendedFloatingActionButton(
+               containerColor = colorScheme.secondary,
+               onClick = { viewModel.onIntent(PeopleIntent.Create) },
+               icon = {
+                  Icon(imageVector = Icons.Default.Add,
+                     contentDescription = null)
+               },
+               text = { Text(text = stringResource(R.string.action_create)) },
+            )
+         }
       },
    ) { innerPadding ->
       if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
@@ -89,8 +93,14 @@ fun PeopleAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { viewModel.onIntent(PeopleIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
+      } else {
          PeopleScreen(
             people = peopleUiState.people,
             onDetail = { personId ->

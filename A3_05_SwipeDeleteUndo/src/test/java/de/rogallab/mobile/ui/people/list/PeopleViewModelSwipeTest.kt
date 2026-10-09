@@ -37,6 +37,24 @@ class PeopleViewModelSwipeTest {
       )
 
    @Test
+   fun observationFailure_remainsVisibleUntilRepositoryRecovers() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository().apply {
+         peopleFlow.value = Result.failure(IllegalStateException("offline"))
+      }
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+
+      assertEquals(stringProvider.getString(R.string.error_people_observe), viewModel.stateFlow.value.loadError)
+      assertTrue(!viewModel.stateFlow.value.isLoading)
+
+      repository.peopleFlow.value = Result.success(listOf(ada))
+      advanceUntilIdle()
+
+      assertNull(viewModel.stateFlow.value.loadError)
+      assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+   }
+
+   @Test
    fun remove_hidesPersonButDoesNotTouchRepository() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository(listOf(ada, grace))
       val viewModel = createViewModel(repository)

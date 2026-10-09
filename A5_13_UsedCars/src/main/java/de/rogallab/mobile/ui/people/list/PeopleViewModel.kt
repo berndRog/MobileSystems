@@ -41,6 +41,7 @@ class PeopleViewModel(
    }
 
    // Observes the repository and publishes its current list as UI state.
+   // A load failure remains in UI state until a retry or a new successful result.
    private fun observePeople() {
       _observeJob?.cancel()
 
@@ -48,7 +49,7 @@ class PeopleViewModel(
 
          // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
+            state.copy(isLoading = true, loadError = null)
          }
 
          // Simulate a longer loading operation.
@@ -58,7 +59,7 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people, isLoading = false)
+                     state.copy(people = people, isLoading = false, loadError = null)
                   }
                }
                .onFailure { throwable ->
@@ -69,7 +70,10 @@ class PeopleViewModel(
                   val fallback =
                      _stringProvider.getString(R.string.error_people_observe)
                   val error = throwable.userMessageOr(fallback)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+                  Alog.e(TAG, error)
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(isLoading = false, loadError = error)
+                  }
                }
          }
       }
@@ -81,6 +85,7 @@ class PeopleViewModel(
 
       when (intent) {
          PeopleIntent.Create -> navigateToPerson(null)
+         PeopleIntent.RetryLoad -> observePeople()
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
          is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
