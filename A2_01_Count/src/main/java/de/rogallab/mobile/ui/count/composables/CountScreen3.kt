@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.count.composables
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.shared.domain.utilities.Alog
@@ -32,7 +35,7 @@ fun CountScreen3(
          text = "$count",      // getter
          textAlign = TextAlign.Center,
          modifier = Modifier
-            //.border(border = BorderStroke(3.dp, Color.Gray))
+            .border(border = BorderStroke(3.dp, Color.Gray))
             .padding(vertical = 8.dp)
             .fillMaxWidth()
       )
@@ -41,7 +44,7 @@ fun CountScreen3(
          onClick = { onIncrementCount() },  // setter
          modifier = Modifier
             .padding(vertical = 8.dp)
-            .fillMaxWidth()
+            //.fillMaxWidth()
       ) {
          Text(text = "Hochzählen")
       }

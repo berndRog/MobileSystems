@@ -19,7 +19,7 @@ fun ImagesScreen(
    Box(modifier = modifier.size(200.dp)) {
 
       AsyncImage(
-         model = R.drawable.toucan,
+         model = R.drawable.parrot4,
          contentDescription = "Toucan",
          modifier = Modifier.fillMaxSize(),
          contentScale = ContentScale.Crop

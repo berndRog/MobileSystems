@@ -25,17 +25,17 @@ fun ExampleRow(
    Column(modifier = modifier) {
       Text(
          modifier = Modifier
-            .fillMaxWidth(1f)
+            .fillMaxWidth()
             .padding(vertical = 16.dp),
          text = "Rows with 1 - 3 boxes",
          fontSize = 24.sp,
-         fontWeight = FontWeight.Bold,
+         fontWeight = FontWeight.Normal,
       )
 
       Row {
          // one box fills the remaining width
          Box(modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(fraction = 0.9f)
             .height(120.dp)
             .background(Color.Red)
          )
@@ -52,7 +52,7 @@ fun ExampleRow(
          )
          Box(modifier = Modifier
             .width(120.dp)
-            .fillMaxHeight(0.25f)
+            .fillMaxHeight(0.20f)
             .background(Color.Blue)
          )
       }

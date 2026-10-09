@@ -4,10 +4,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -19,6 +21,7 @@ import de.rogallab.mobile.shared.ui.BaseActivity
 import de.rogallab.mobile.ui.count.composables.CountAdapter
 import de.rogallab.mobile.ui.count.composables.CountScreen1
 import de.rogallab.mobile.ui.count.composables.CountScreen2
+import de.rogallab.mobile.ui.count.composables.Stateholder
 import de.rogallab.mobile.ui.theme.AppTheme
 
 class MainActivity : BaseActivity(TAG) {
@@ -26,6 +29,7 @@ class MainActivity : BaseActivity(TAG) {
    override fun onCreate(savedInstanceState: Bundle?) {
       super.onCreate(savedInstanceState)
 
+      // Log-Settings
       Alog.set(
          useAndroidLog = true,
          isVerbose = true,
@@ -34,37 +38,49 @@ class MainActivity : BaseActivity(TAG) {
          isComp = true
       )
 
+      // Enable edge-to-edge mode (status bar and navigation bar are transparent)
       enableEdgeToEdge()
 
+      // Set the content of the activity to a composable function
       setContent {
          Alog.d(TAG,"setContent() Composition")
 
+         // Apply the app's theme
          AppTheme {
+
+            // Scaffold provides a basic layout structure with slots for top bar, bottom bar,
+            // floating action button, etc.
             Scaffold(
-               modifier = Modifier
-                  .padding(all = 16.dp)
-                  .fillMaxSize(),
+               modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
+
                   Alog.d(TAG, "before CountScreen() Composition")
-                  CountScreen1(
-                     initCount = 0,
-                     modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxWidth()
-                  )
+//                  CountScreen1(
+//                     initCount = 0,
+//                     modifier = Modifier
+//                        .padding(innerPadding)
+//                        .consumeWindowInsets(innerPadding)
+//                        .padding(horizontal = 8.dp)
+//                        .fillMaxWidth()
+//                  )
+
 //                  CountScreen2(
 //                     initCount = 0,
 //                     modifier = Modifier
 //                        .padding(innerPadding)
+//                        .consumeWindowInsets(innerPadding)
+//                        .padding(horizontal = 8.dp)
 //                        .fillMaxWidth()
 //                  )
 
-//                  Stateholder(
-//                     initCount = 0,
-//                     modifier = Modifier
-//                        .padding(innerPadding)
-//                        .fillMaxWidth()
-//                  )
+                  Stateholder(
+                     initCount = 0,
+                     modifier = Modifier
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
+                        .padding(horizontal = 8.dp)
+                        .fillMaxWidth()
+                  )
 
 //                  CountAdapter(
 //                     modifier = Modifier
@@ -84,18 +100,16 @@ class MainActivity : BaseActivity(TAG) {
 @Preview(showBackground = true)
 @Composable
 fun CountScreen1Preview() {
-   AppTheme {
+   AppTheme(darkTheme = false, dynamicColor = true) {
       Scaffold(
-         contentColor = MaterialTheme.colorScheme.onBackground,
-         contentWindowInsets = WindowInsets.safeDrawing,
          modifier = Modifier.fillMaxSize()
       ) { innerPadding ->
          CountScreen1(
             initCount = 0,
             modifier = Modifier
                .padding(innerPadding)
-               .padding(top = 8.dp)
-               .padding(horizontal = 16.dp)
+               .consumeWindowInsets(innerPadding)
+               .padding(horizontal = 8.dp)
                .fillMaxWidth()
          )
       }
@@ -107,57 +121,14 @@ fun CountScreen1Preview() {
 fun CountScreen1DarkPreview() {
    AppTheme(darkTheme = true, dynamicColor = true) {
       Scaffold(
-         contentColor = MaterialTheme.colorScheme.onBackground,
-         contentWindowInsets = WindowInsets.safeDrawing,
          modifier = Modifier.fillMaxSize()
       ) { innerPadding ->
          CountScreen1(
             initCount = 0,
             modifier = Modifier
                .padding(innerPadding)
-               .padding(top = 8.dp)
-               .padding(horizontal = 16.dp)
-               .fillMaxWidth()
-         )
-      }
-   }
-}
-@Preview(showBackground = true)
-@Composable
-fun CountScreen2Preview() {
-   AppTheme {
-      Scaffold(
-         contentColor = MaterialTheme.colorScheme.onBackground,
-         contentWindowInsets = WindowInsets.safeDrawing,
-         modifier = Modifier.fillMaxSize()
-      ) { innerPadding ->
-         CountScreen2(
-            initCount = 0,
-            modifier = Modifier
-               .padding(innerPadding)
-               .padding(top = 8.dp)
-               .padding(horizontal = 16.dp)
-               .fillMaxWidth()
-         )
-      }
-   }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CountScreen2DarkPreview() {
-   AppTheme(darkTheme = true) {
-      Scaffold(
-         contentColor = MaterialTheme.colorScheme.onBackground,
-         contentWindowInsets = WindowInsets.safeDrawing,
-         modifier = Modifier.fillMaxSize()
-      ) { innerPadding ->
-         CountScreen2(
-            initCount = 0,
-            modifier = Modifier
-               .padding(innerPadding)
-               .padding(top = 8.dp)
-               .padding(horizontal = 16.dp)
+               .consumeWindowInsets(innerPadding)
+               .padding(horizontal = 8.dp)
                .fillMaxWidth()
          )
       }

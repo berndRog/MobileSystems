@@ -147,8 +147,9 @@ fun PersonAdapter(
                   imagePath = person.imagePath,
                   // Disable image actions while a camera file is being prepared
                   imageActionsEnabled = !cameraActions.isBusy,
-                  // Gallery/camera are delegated their Activity Result handlers.
+                  // Gallery is delegated to its Activity Result handler.
                   onSelectPhoto = galleryActions.selectFromGallery,
+                  // Camera is delegated to its Activity Result handler.
                   onTakePhoto = cameraActions.takePhoto,
                   // Removing an image: a physical file may be deleted.
                   onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
