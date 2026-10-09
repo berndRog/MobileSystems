@@ -6,6 +6,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -16,6 +17,9 @@ class SnackbarController(
    private val snackbarHostState: SnackbarHostState,
    private val coroutineScope: CoroutineScope,
 ) {
+   private companion object {
+      const val TAG = "<-SnackbarController"
+   }
 
    // Shows an informational message that disappears automatically.
    fun showMessage(message: String) {
@@ -27,13 +31,14 @@ class SnackbarController(
       }
    }
 
-   // Shows an error until it is dismissed by the user.
+   // Logs an error and shows it for a limited time; users can dismiss it sooner.
    fun showError(error: String) {
+      Alog.e(TAG, error)
       coroutineScope.launch {
          snackbarHostState.showSnackbar(
             message = error,
             withDismissAction = true,
-            duration = SnackbarDuration.Indefinite,
+            duration = SnackbarDuration.Long,
          )
       }
    }
@@ -86,7 +91,7 @@ fun rememberSnackbarController(
  * - Die drei öffentlichen Methoden beschreiben bereits die Art der Snackbar:
  *
  *      showMessage() -> kurze Informationsmeldung
- *      showError()   -> Fehlermeldung mit Dismiss-Schaltfläche
+ *      showError()   -> lange Fehlermeldung mit Dismiss-Schaltfläche
  *      showAction()  -> Meldung mit Aktion, z. B. Delete oder Undo
  *
  *   Ein zusätzliches Nachrichtenobjekt mit eigenem Typ ist deshalb nicht
@@ -97,7 +102,9 @@ fun rememberSnackbarController(
  *
  * - SnackbarHostState übernimmt die Verwaltung gleichzeitig angeforderter
  *   Snackbars. Eine eigene Message-Queue, IDs und MessageConsumed-Intents sind
- *   nicht erforderlich.
+ *   nicht erforderlich. Fehlermeldungen enden automatisch nach langer Dauer,
+ *   damit nachfolgende Meldungen nicht dauerhaft in der Queue warten.
+ *   Alog.e protokolliert den Fehler unabhängig von der Snackbar im Logcat.
  *
  * - Der Controller arbeitet ausschließlich mit fertigen Strings. Ressourcen
  *   werden bereits im ViewModel über IStringProvider aufgelöst.

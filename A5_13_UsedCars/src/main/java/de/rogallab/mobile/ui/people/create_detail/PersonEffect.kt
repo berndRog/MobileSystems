@@ -10,7 +10,7 @@ sealed interface PersonEffect {
    // Shows a short informational message in the UI.
    data class ShowMessage(val message: String) : PersonEffect
 
-   // Shows an error message that must be acknowledged by the user.
+   // Requests an error message that disappears automatically after a long duration.
    data class ShowError(val message: String) : PersonEffect
 
    // Opens the offered-cars bottom sheet after the cars were loaded.

@@ -5,7 +5,7 @@ sealed interface PeopleEffect {
    // Shows a short informational message in the UI.
    data class ShowMessage(val message: String) : PeopleEffect
 
-   // Shows an error message that must be acknowledged by the user.
+   // Requests an error message that disappears automatically after a long duration.
    data class ShowError(val message: String) : PeopleEffect
 
    // Navigates back to the previous screen

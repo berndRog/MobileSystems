@@ -1,6 +1,10 @@
 package de.rogallab.mobile.shared.ui.effects
 
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -47,18 +51,32 @@ class SnackbarControllerTest {
    }
 
    @Test
-   fun showError_usesDismissAction() = runTest {
+   fun showError_usesLongDurationAndDismissAction() = runTest {
       val hostState = SnackbarHostState()
       val controller = SnackbarController(hostState, this)
 
-      controller.showError("load failed")
-      runCurrent()
+      Alog.set(useAndroidLog = false)
+      try {
+         val output = ByteArrayOutputStream()
+         val originalOut = System.out
+         try {
+            System.setOut(PrintStream(output))
+            controller.showError("load failed")
+         } finally {
+            System.setOut(originalOut)
+         }
+         runCurrent()
 
-      assertEquals("load failed", hostState.currentSnackbarData?.visuals?.message)
-      assertTrue(hostState.currentSnackbarData?.visuals?.withDismissAction == true)
+         assertTrue(output.toString().contains("E/<-SnackbarController: load failed"))
+         assertEquals("load failed", hostState.currentSnackbarData?.visuals?.message)
+         assertEquals(SnackbarDuration.Long, hostState.currentSnackbarData?.visuals?.duration)
+         assertTrue(hostState.currentSnackbarData?.visuals?.withDismissAction == true)
 
-      hostState.currentSnackbarData?.dismiss()
-      runCurrent()
+         hostState.currentSnackbarData?.dismiss()
+         runCurrent()
+      } finally {
+         Alog.reset()
+      }
    }
 
    @Test
