@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveEffect
@@ -42,6 +43,7 @@ fun TDriveAdapter(
    validator: TDriveValidator = koinInject(),
 ) {
    val tDriveUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = tDriveUiState.loadError
 
    EffectHandler(viewModel.effects) { effect ->
       when (effect) {
@@ -61,9 +63,9 @@ fun TDriveAdapter(
                      else R.string.test_drive_edit_title))
             },
             navigationIcon = {
-               IconButton(onClick = { viewModel.onIntent(TDriveIntent.Save) }) {
+               IconButton(onClick = { viewModel.onIntent(if (loadError == null) TDriveIntent.Save else TDriveIntent.Cancel) }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save))
+                     contentDescription = stringResource(if (loadError == null) R.string.action_save else R.string.action_back))
                }
             },
          )
@@ -78,8 +80,14 @@ fun TDriveAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(if (tDriveUiState.notFound) R.string.action_back else R.string.action_retry),
+            onAction = { viewModel.onIntent(if (tDriveUiState.notFound) TDriveIntent.Cancel else TDriveIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
+      } else {
          TDriveScreen(
             tDriveUiState = tDriveUiState,
             validator = validator,

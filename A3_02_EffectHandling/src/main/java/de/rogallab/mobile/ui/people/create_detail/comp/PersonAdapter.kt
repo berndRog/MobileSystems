@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
@@ -53,6 +55,7 @@ fun PersonAdapter(
    // Collect the PersonUiState with lifecycle awareness.
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = personUiState.loadError
    // Person data
    val person = personUiState.person
 
@@ -71,10 +74,11 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(onClick = {
-                  viewModel.onIntent(PersonIntent.Save)
+                  viewModel.onIntent(if (loadError == null) PersonIntent.Save else PersonIntent.RetryLoad)
                }) {
-                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save))
+                  Icon(imageVector = if (loadError == null) Icons.AutoMirrored.Filled.ArrowBack
+                     else Icons.Default.Refresh,
+                     contentDescription = stringResource(if (loadError == null) R.string.action_save else R.string.action_retry))
                }
             },
             title = {
@@ -94,6 +98,13 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { viewModel.onIntent(PersonIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
       } else {
          // Show person data
          val person = personUiState.person

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.INewsRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,23 +47,22 @@ class NewsViewModel(
       }
 
       _stateFlow.update { state: NewsUiState ->
-         state.copy(isLoading = true)
+         state.copy(isLoading = true, loadError = null)
       }
       viewModelScope.launch {
          // This simple read operation delegates directly to one repository.
          _newsRepository.search(searchText)
             .onSuccess { articles ->
                _stateFlow.update { state: NewsUiState ->
-                  state.copy(articles = articles, isLoading = false)
+                  state.copy(articles = articles, isLoading = false, loadError = null)
                }
             }
-            .onFailure {
-               _stateFlow.update { state: NewsUiState -> state.copy(isLoading = false) }
-               _effectDelegate.emit(
-                  NewsEffect.ShowError(
-                     _stringProvider.getString(R.string.error_news_load)
-                  )
-               )
+            .onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_news_load)
+               Alog.e("<-NewsViewModel", error, throwable)
+               _stateFlow.update { state: NewsUiState ->
+                  state.copy(isLoading = false, loadError = error)
+               }
             }
       }
    }
@@ -84,7 +84,8 @@ class NewsViewModel(
  * Didaktik und Lernziele
  *
  * - NewsViewModel verarbeitet Suchtext, Ladezustand und Suchergebnisse als
- *   persistenten UI-State. Fehler und Navigation bleiben einmalige Effects.
+ *   persistenten UI-State. Ladefehler bleiben bis zum nächsten Suchversuch
+ *   sichtbar; Eingabe- und Aktionsfehler sowie Navigation sind Effects.
  *
  * - Für search(...) wird bewusst kein eigener Use Case eingeführt. Nach der
  *   einfachen Eingabeprüfung delegiert das ViewModel genau einen Lesezugriff

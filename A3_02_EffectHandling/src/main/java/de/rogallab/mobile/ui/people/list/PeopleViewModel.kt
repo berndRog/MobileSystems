@@ -49,7 +49,7 @@ class PeopleViewModel(
 
          // Show the loading indicator until the first result arrives.
          _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
+            state.copy(isLoading = true, loadError = null)
          }
 
          // Simulate a longer loading operation.
@@ -59,12 +59,15 @@ class PeopleViewModel(
             result
                .onSuccess { people ->
                   _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people)
+                     state.copy(people = people, loadError = null)
                   }
                }
                .onFailure { throwable ->
                   val error = _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+                  Alog.e(TAG, error, throwable)
+                  _stateFlow.update { state: PeopleUiState ->
+                     state.copy(loadError = error)
+                  }
                }
 
             // set isLoading = false after loading is complete
@@ -81,6 +84,7 @@ class PeopleViewModel(
 
       when (intent) {
          PeopleIntent.Create -> {}     //navigateToPerson(null)
+         PeopleIntent.RetryLoad -> observePeople()
          is PeopleIntent.Detail -> {}  //navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> remove(intent.person)
       }
@@ -114,7 +118,8 @@ class PeopleViewModel(
  * - PeopleUiState beschreibt den dauerhaften Zustand der Personenliste.
  *   Änderungen verwenden konsequent state: PeopleUiState als Lambda-Parameter.
  *
- * - Repository-Fehler werden als einmalige ShowError-Effects ausgegeben.
+ * - Ein Listen-Ladefehler bleibt im UI-State sichtbar. Fehler einzelner
+ *   Aktionen werden weiterhin als einmalige ShowError-Effects ausgegeben.
  *
  * - ShowUndo ist bereits vorbereitet und enthält Meldung, Action-Text sowie die id der
  *   gelöschten Person. Die eigentliche Wiederherstellung wird erst beim
@@ -129,6 +134,6 @@ class PeopleViewModel(
  * Lernziele:
  *
  * - Gemeinsame Effect-Infrastruktur in mehreren ViewModels einsetzen.
- * - Fehler aus Repository-Operationen als einmalige Effects behandeln.
+ * - Ladefehler als UI-State und Aktionsfehler als Effects unterscheiden.
  * - Navigation und Undo als spätere Erweiterungen vorbereiten.
  */

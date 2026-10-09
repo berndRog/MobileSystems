@@ -18,6 +18,7 @@ sealed interface CarIntent {
    data class ImageRemoved(val imagePath: String) : CarIntent
    data class ImageFailed(val message: String) : CarIntent
 
+   data object RetryLoad : CarIntent
    data object Save : CarIntent
    data object Cancel : CarIntent
 }

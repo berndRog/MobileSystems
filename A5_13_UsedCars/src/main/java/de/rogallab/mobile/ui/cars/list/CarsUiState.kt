@@ -7,4 +7,9 @@ data class CarsUiState(
    val cars: List<Car> = emptyList(),
    val people: List<Person> = emptyList(),
    val isLoading: Boolean = false,
-)
+   val carsLoadError: String? = null,
+   val peopleLoadError: String? = null,
+
+) {
+   val loadError: String? get() = carsLoadError ?: peopleLoadError
+}

@@ -77,26 +77,24 @@ class NewsViewModelTest {
       }
 
    @Test
-   fun search_failure_emitsLoadErrorAndFinishesLoading() =
+   fun search_failureRemainsVisibleUntilRetrySucceeds() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakeNewsRepository().apply {
             searchResult = Result.failure(IllegalStateException("network failed"))
          }
          val viewModel = createViewModel(repository)
 
-         viewModel.effects.test {
-            viewModel.onIntent(NewsIntent.SearchTextChanged("kotlin"))
-            viewModel.onIntent(NewsIntent.Search)
-            advanceUntilIdle()
+         viewModel.onIntent(NewsIntent.SearchTextChanged("kotlin"))
+         viewModel.onIntent(NewsIntent.Search)
+         advanceUntilIdle()
 
-            val effect = awaitItem() as NewsEffect.ShowError
-            assertEquals(
-               stringProvider.getString(R.string.error_news_load),
-               effect.message,
-            )
-            assertFalse(viewModel.stateFlow.value.isLoading)
-            cancelAndIgnoreRemainingEvents()
-         }
+         assertEquals(stringProvider.getString(R.string.error_news_load), viewModel.stateFlow.value.loadError)
+         assertFalse(viewModel.stateFlow.value.isLoading)
+         repository.searchResult = Result.success(listOf(article))
+         viewModel.onIntent(NewsIntent.Search)
+         advanceUntilIdle()
+         assertEquals(null, viewModel.stateFlow.value.loadError)
+         assertEquals(listOf(article), viewModel.stateFlow.value.articles)
       }
 
    @Test

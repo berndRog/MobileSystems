@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.R as SharedR
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
 import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerMultiple
@@ -49,6 +50,7 @@ fun CarAdapter(
    imageFileStorage: IImageFileStorage = koinInject(),
 ) {
    val carUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = carUiState.loadError
 
    EffectHandler(viewModel.effects) { effect ->
       when (effect) {
@@ -73,10 +75,10 @@ fun CarAdapter(
                      else R.string.car_edit_title))
             },
             navigationIcon = {
-               IconButton(onClick = { viewModel.onIntent(CarIntent.Save) }) {
+               IconButton(onClick = { viewModel.onIntent(if (loadError == null) CarIntent.Save else CarIntent.Cancel) }) {
                   Icon(
                      imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save),
+                     contentDescription = stringResource(if (loadError == null) R.string.action_save else R.string.action_back),
                   )
                }
             },
@@ -92,8 +94,14 @@ fun CarAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(if (carUiState.notFound) R.string.action_back else R.string.action_retry),
+            onAction = { viewModel.onIntent(if (carUiState.notFound) CarIntent.Cancel else CarIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
+      } else {
          GalleryPickerHandlerSingle(
             onImageSelected = { sourceUri ->
                viewModel.onIntent(CarIntent.GalleryImagesSelected(listOf(sourceUri)))

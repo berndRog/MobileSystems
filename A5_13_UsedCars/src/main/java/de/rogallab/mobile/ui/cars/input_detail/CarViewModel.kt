@@ -15,6 +15,7 @@ import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import de.rogallab.mobile.shared.ui.images.IImageEdit
 import de.rogallab.mobile.ui.people.create_detail.BackReason
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +50,7 @@ class CarViewModel(
       }
    )
    val stateFlow: StateFlow<CarUiState> = _stateFlow.asStateFlow()
+   private var _peopleJob: Job? = null
 
    init {
       observePeople()
@@ -88,61 +90,56 @@ class CarViewModel(
          is CarIntent.ImageFailed ->
             showError(intent.message)
 
+         CarIntent.RetryLoad -> if (!_isNew) { observePeople(); loadCar(_carId!!) }
          CarIntent.Save -> save()
          CarIntent.Cancel -> cancel()
       }
    }
 
    private fun observePeople() {
-      viewModelScope.launch {
+      _peopleJob?.cancel()
+      _stateFlow.update { state: CarUiState -> state.copy(peopleLoadError = null) }
+      _peopleJob = viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
-            result
-               .onSuccess { people ->
-                  _stateFlow.update { state: CarUiState ->
-                     state.copy(people = people)
-                  }
-               }
-               .onFailure { throwable ->
-                  val fallback =
-                     _stringProvider.getString(R.string.error_people_load)
-                  showErrorNow(throwable.userMessageOr(fallback))
-               }
+            result.onSuccess { items ->
+               _stateFlow.update { state: CarUiState -> state.copy(people = items, peopleLoadError = null) }
+            }.onFailure { throwable ->
+               val fallback = _stringProvider.getString(R.string.error_people_load)
+               val error = throwable.userMessageOr(fallback)
+               Alog.e("<-CarViewModel", error, throwable)
+               _stateFlow.update { state: CarUiState -> state.copy(peopleLoadError = error) }
+            }
          }
       }
    }
 
    private fun loadCar(id: String) {
+      _stateFlow.update { state: CarUiState ->
+         state.copy(isLoading = true, carLoadError = null, notFound = false)
+      }
       viewModelScope.launch {
          _carRepository.findById(id)
             .onSuccess { car ->
                if (car == null) {
+                  val error = _stringProvider.getString(R.string.error_car_not_found)
+                  Alog.e("<-CarViewModel", error)
                   _stateFlow.update { state: CarUiState ->
-                     state.copy(isLoading = false)
+                     state.copy(isLoading = false, carLoadError = error, notFound = true)
                   }
-                  showErrorNow(
-                     _stringProvider.getString(R.string.error_car_not_found)
-                  )
-               }
-               else {
-                  // The shared delegate remembers the persisted images as the
-                  // original selection of this edit session.
+               } else {
                   _imageEdit.start(car.imagePaths)
-
                   _stateFlow.update { state: CarUiState ->
-                     state.copy(
-                        car = car,
-                        priceInput = car.price?.toString().orEmpty(),
-                        isLoading = false,
-                     )
+                     state.copy(car = car, priceInput = car.price?.toString().orEmpty(),
+                        isLoading = false, carLoadError = null, notFound = false)
                   }
                }
-            }
-            .onFailure { throwable ->
-               _stateFlow.update { state: CarUiState ->
-                  state.copy(isLoading = false)
-               }
+            }.onFailure { throwable ->
                val fallback = _stringProvider.getString(R.string.error_car_load)
-               showErrorNow(throwable.userMessageOr(fallback))
+               val error = throwable.userMessageOr(fallback)
+               Alog.e("<-CarViewModel", error, throwable)
+               _stateFlow.update { state: CarUiState ->
+                  state.copy(isLoading = false, carLoadError = error, notFound = false)
+               }
             }
       }
    }
@@ -212,7 +209,7 @@ class CarViewModel(
    }
 
    private fun save() {
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadError != null) return
 
       val state = _stateFlow.value
       val car = state.car ?: return

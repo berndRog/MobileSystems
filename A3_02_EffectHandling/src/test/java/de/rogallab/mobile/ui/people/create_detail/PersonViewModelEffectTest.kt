@@ -90,18 +90,18 @@ class PersonViewModelEffectTest {
    }
 
    @Test
-   fun missingExistingPersonEmitsErrorAndStopsLoading() = runTest(mainDispatcherRule.testDispatcher) {
+   fun missingExistingPersonKeepsErrorVisibleAndCanRetry() = runTest(mainDispatcherRule.testDispatcher) {
       repository.findResult = Result.success(null)
 
       val viewModel = PersonViewModel("missing", repository, stringProvider, validator, EffectDelegate())
+      advanceUntilIdle()
 
-      viewModel.effects.test {
-         advanceUntilIdle()
+      assertEquals(stringProvider.getString(R.string.error_person_not_found), viewModel.stateFlow.value.loadError)
+      assertFalse(viewModel.stateFlow.value.isLoading)
 
-         val error = awaitItem() as PersonEffect.ShowError
-         assertEquals(stringProvider.getString(R.string.error_person_not_found), error.message)
-         assertFalse(viewModel.stateFlow.value.isLoading)
-         cancelAndIgnoreRemainingEvents()
-      }
+      repository.findResult = Result.failure(IllegalStateException("offline"))
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertEquals(stringProvider.getString(R.string.error_person_load), viewModel.stateFlow.value.loadError)
    }
 }

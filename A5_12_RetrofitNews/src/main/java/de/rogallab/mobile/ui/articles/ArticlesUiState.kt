@@ -7,4 +7,5 @@ import de.rogallab.mobile.domain.entities.Article
 data class ArticlesUiState(
    val articles: List<Article> = emptyList(),
    val isLoading: Boolean = true,
+   val loadError: String? = null,
 )

@@ -9,4 +9,10 @@ data class TDrivesUiState(
    val people: List<Person> = emptyList(),
    val cars: List<Car> = emptyList(),
    val isLoading: Boolean = false,
-)
+   val drivesLoadError: String? = null,
+   val peopleLoadError: String? = null,
+   val carsLoadError: String? = null,
+
+) {
+   val loadError: String? get() = drivesLoadError ?: peopleLoadError ?: carsLoadError
+}

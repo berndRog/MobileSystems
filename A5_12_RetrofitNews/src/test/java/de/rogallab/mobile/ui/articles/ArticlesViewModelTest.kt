@@ -46,24 +46,23 @@ class ArticlesViewModelTest {
       }
 
    @Test
-   fun observeArticles_failure_emitsLoadError() =
+   fun observeArticles_failureRemainsUntilRepositoryRecovers() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakeArticleRepository().apply {
             articlesFlow.value = Result.failure(IllegalStateException("load failed"))
          }
          val viewModel = createViewModel(repository)
 
-         viewModel.effects.test {
-            advanceUntilIdle()
+         advanceUntilIdle()
 
-            val effect = awaitItem() as ArticlesEffect.ShowError
-            assertEquals(
-               stringProvider.getString(R.string.error_articles_load),
-               effect.message,
-            )
-            assertFalse(viewModel.stateFlow.value.isLoading)
-            cancelAndIgnoreRemainingEvents()
-         }
+         assertEquals(stringProvider.getString(R.string.error_articles_load), viewModel.stateFlow.value.loadError)
+         assertFalse(viewModel.stateFlow.value.isLoading)
+         viewModel.onIntent(ArticlesIntent.RetryLoad)
+         assertEquals(null, viewModel.stateFlow.value.loadError)
+         repository.articlesFlow.value = Result.success(listOf(article))
+         advanceUntilIdle()
+         assertEquals(null, viewModel.stateFlow.value.loadError)
+         assertEquals(listOf(article), viewModel.stateFlow.value.articles)
       }
 
    @Test

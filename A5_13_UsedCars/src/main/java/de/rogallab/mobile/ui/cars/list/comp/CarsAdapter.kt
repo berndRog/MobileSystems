@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.cars.list.CarsEffect
 import de.rogallab.mobile.ui.cars.list.CarsIntent
@@ -38,6 +39,7 @@ fun CarsAdapter(
    onNavigateTo: (String?) -> Unit,
 ) {
    val carsUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = carsUiState.loadError
    val lazyListState = rememberLazyListState()
 
    EffectHandler(viewModel.effects) { effect ->
@@ -59,12 +61,15 @@ fun CarsAdapter(
          TopAppBar(title = { Text(stringResource(R.string.cars_title)) })
       },
       floatingActionButton = {
-         ExtendedFloatingActionButton(
-            containerColor = colorScheme.secondary,
-            onClick = { viewModel.onIntent(CarsIntent.Create) },
-            icon = { Icon(Icons.Default.Add, contentDescription = null) },
-            text = { Text(stringResource(R.string.action_create)) },
-         )
+         if (loadError == null) {
+            ExtendedFloatingActionButton(
+               containerColor = colorScheme.secondary,
+               onClick = { viewModel.onIntent(CarsIntent.Create) },
+               icon = { Icon(Icons.Default.Add, contentDescription = null) },
+               text = { Text(stringResource(R.string.action_create)) },
+            )
+
+         }
       },
    ) { innerPadding ->
       if (carsUiState.isLoading && carsUiState.cars.isEmpty()) {
@@ -76,8 +81,14 @@ fun CarsAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { viewModel.onIntent(CarsIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
+      } else {
          CarsScreen(
             carsUiState = carsUiState,
             lazyListState = lazyListState,

@@ -54,11 +54,10 @@ class PersonViewModel(
 
    // Load the existing person when the ViewModel is detail mode.
    private fun loadPerson(id: String) {
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isLoading = true, loadError = null)
+      }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
 
          // Simulate a longer loading operation.
          delay(1000)
@@ -69,10 +68,10 @@ class PersonViewModel(
                // A successful Result may still contain null if no person exists.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
+                  Alog.e(TAG, error)
 
                   _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+                     state.copy(isLoading = false, loadError = error)
                   }
                   return@onSuccess
                }
@@ -82,13 +81,16 @@ class PersonViewModel(
 
                // Store the loaded person
                _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+                  state.copy(person = person, loadError = null)
                }
             }
             .onFailure { throwable ->
-               // Repository failures are converted into a localized UI effect.
+               // A loading failure remains visible until the next attempt succeeds.
                val error = _stringProvider.getString(R.string.error_person_load)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               Alog.e(TAG, error, throwable)
+               _stateFlow.update { state: PersonUiState ->
+                  state.copy(loadError = error)
+               }
             }
 
          // set isLoading = false after loading is complete
@@ -108,6 +110,7 @@ class PersonViewModel(
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
          PersonIntent.Save -> save()
+         PersonIntent.RetryLoad -> if (!_isNew && !_stateFlow.value.isLoading) loadPerson(_personId!!)
          PersonIntent.Cancel -> cancel()
       }
    }
@@ -148,7 +151,7 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadError != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -246,8 +249,8 @@ class PersonViewModel(
  *   Dadurch ist bereits am Lambda-Bezeichner erkennbar, welcher State
  *   verändert wird.
  *
- * - Meldungen, Fehler und vorbereitete Navigation werden als PersonEffect
- *   ausgegeben und nicht im dauerhaften State gespeichert.
+ * - Ladefehler bleiben im PersonUiState sichtbar und können erneut geladen
+ *   werden. Meldungen und Fehler einzelner Aktionen bleiben PersonEffects.
  *
  * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
  *

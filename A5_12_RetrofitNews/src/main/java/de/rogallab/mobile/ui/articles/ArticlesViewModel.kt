@@ -6,6 +6,7 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IArticleRepository
 import de.rogallab.mobile.domain.entities.Article
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 class ArticlesViewModel(
    private val _articleRepository: IArticleRepository,
@@ -23,6 +25,7 @@ class ArticlesViewModel(
    // Holds the current snapshot of articles stored in Room.
    private val _stateFlow = MutableStateFlow(ArticlesUiState())
    val stateFlow: StateFlow<ArticlesUiState> = _stateFlow.asStateFlow()
+   private var _observeJob: Job? = null
 
    init {
       observeArticles()
@@ -30,6 +33,7 @@ class ArticlesViewModel(
 
    fun onIntent(intent: ArticlesIntent) {
       when (intent) {
+         ArticlesIntent.RetryLoad -> observeArticles()
          is ArticlesIntent.Detail -> {
             viewModelScope.launch {
                _effectDelegate.emit(ArticlesEffect.NavigateToArticle(intent.article))
@@ -41,7 +45,11 @@ class ArticlesViewModel(
    }
 
    private fun observeArticles() {
-      viewModelScope.launch {
+      _observeJob?.cancel()
+      _stateFlow.update { state: ArticlesUiState ->
+         state.copy(isLoading = true, loadError = null)
+      }
+      _observeJob = viewModelScope.launch {
          // Room emits a new list after every successful save or remove operation.
          _articleRepository.observeAll().collect { result ->
             result.onSuccess { articles ->
@@ -49,15 +57,15 @@ class ArticlesViewModel(
                   state.copy(
                      articles = articles,
                      isLoading = false,
+                     loadError = null,
                   )
                }
-            }.onFailure {
-               _stateFlow.update { state: ArticlesUiState -> state.copy(isLoading = false) }
-               _effectDelegate.emit(
-                  ArticlesEffect.ShowError(
-                     _stringProvider.getString(R.string.error_articles_load)
-                  )
-               )
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_articles_load)
+               Alog.e("<-ArticlesViewModel", error, throwable)
+               _stateFlow.update { state: ArticlesUiState ->
+                  state.copy(isLoading = false, loadError = error)
+               }
             }
          }
       }
@@ -104,7 +112,8 @@ class ArticlesViewModel(
  *   Änderungen liefert Room über das Repository automatisch einen neuen Zustand.
  *
  * - Die Löschbestätigung ist ein UI-Effect; erst ConfirmRemove führt den
- *   Repository-Zugriff aus. Erfolg und Fehler werden ebenfalls als Effects gemeldet.
+ *   Repository-Zugriff aus. Ein Ladefehler bleibt bis zur Erholung im State;
+ *   Erfolg und Fehler einzelner Aktionen werden als Effects gemeldet.
  *
  * - Ein ArticleUcRemove würde aktuell nur IArticleRepository.remove(...) ohne
  *   zusätzliche Regel weiterreichen. Deshalb bleibt der direkte Zugriff bewusst

@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.tdrives.list.TDrivesEffect
 import de.rogallab.mobile.ui.tdrives.list.TDrivesIntent
@@ -38,6 +39,7 @@ fun TDrivesAdapter(
    onNavigateTo: (String?) -> Unit,
 ) {
    val tDrivesUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadError = tDrivesUiState.loadError
    val lazyListState = rememberLazyListState()
 
    EffectHandler(viewModel.effects) { effect ->
@@ -59,12 +61,15 @@ fun TDrivesAdapter(
          TopAppBar(title = { Text(stringResource(R.string.test_drives_title)) })
       },
       floatingActionButton = {
-         ExtendedFloatingActionButton(
-            containerColor = colorScheme.secondary,
-            onClick = { viewModel.onIntent(TDrivesIntent.Create) },
-            icon = { Icon(Icons.Default.Add, contentDescription = null) },
-            text = { Text(stringResource(R.string.action_create)) },
-         )
+         if (loadError == null) {
+            ExtendedFloatingActionButton(
+               containerColor = colorScheme.secondary,
+               onClick = { viewModel.onIntent(TDrivesIntent.Create) },
+               icon = { Icon(Icons.Default.Add, contentDescription = null) },
+               text = { Text(stringResource(R.string.action_create)) },
+            )
+
+         }
       },
    ) { innerPadding ->
       if (tDrivesUiState.isLoading && tDrivesUiState.tDrives.isEmpty()) {
@@ -76,8 +81,14 @@ fun TDrivesAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else {
+      } else if (loadError != null) {
+         LoadFailureContent(
+            message = loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { viewModel.onIntent(TDrivesIntent.RetryLoad) },
+            modifier = Modifier.padding(innerPadding),
+         )
+      } else {
          TDrivesScreen(
             tDrivesUiState = tDrivesUiState,
             lazyListState = lazyListState,

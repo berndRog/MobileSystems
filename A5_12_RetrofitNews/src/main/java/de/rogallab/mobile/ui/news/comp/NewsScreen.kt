@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.ui.common.ArticleCard
 import de.rogallab.mobile.ui.news.NewsIntent
 import de.rogallab.mobile.ui.news.NewsUiState
@@ -80,6 +81,13 @@ fun NewsScreen(
          ) {
             CircularProgressIndicator()
          }
+      }
+      else if (state.loadError != null) {
+         LoadFailureContent(
+            message = state.loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { onIntent(NewsIntent.Search) },
+         )
       }
       else {
          LazyColumn(

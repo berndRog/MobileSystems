@@ -6,5 +6,6 @@ sealed interface PersonIntent {
    data class  EmailChange(val email: String) : PersonIntent
    data class  PhoneChange(val phone: String) : PersonIntent
    data object Save : PersonIntent
+   data object RetryLoad : PersonIntent
    data object Cancel : PersonIntent
 }

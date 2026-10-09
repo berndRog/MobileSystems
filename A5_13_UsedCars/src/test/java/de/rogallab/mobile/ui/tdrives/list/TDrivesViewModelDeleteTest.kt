@@ -1,6 +1,7 @@
 package de.rogallab.mobile.ui.tdrives.list
 
 import app.cash.turbine.test
+import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.data.network.ServerUnreachableException
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -35,6 +36,33 @@ class TDrivesViewModelDeleteTest {
       _stringProvider = FakeStringProvider(),
       _effectDelegate = EffectDelegate(),
    )
+
+   @Test
+   fun peopleLoadFailure_survivesSuccessfulDriveUpdatesUntilPeopleRecover() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val peopleRepository = FakePersonRepository().apply {
+            peopleFlow.value = Result.failure(IllegalStateException("offline"))
+         }
+         val driveRepository = FakeTDriveRepository()
+         val strings = FakeStringProvider()
+         val viewModel = TDrivesViewModel(
+            _tDriveRepository = driveRepository,
+            _personRepository = peopleRepository,
+            _carRepository = FakeCarRepository(),
+            _stringProvider = strings,
+            _effectDelegate = EffectDelegate(),
+         )
+         advanceUntilIdle()
+
+         assertEquals(strings.getString(R.string.error_people_load), viewModel.stateFlow.value.peopleLoadError)
+         driveRepository.tDrivesFlow.value = Result.success(listOf(drive))
+         advanceUntilIdle()
+         assertEquals(strings.getString(R.string.error_people_load), viewModel.stateFlow.value.loadError)
+
+         peopleRepository.peopleFlow.value = Result.success(emptyList())
+         advanceUntilIdle()
+         assertEquals(null, viewModel.stateFlow.value.loadError)
+      }
 
    @Test
    fun requestRemove_emitsConfirmationWithoutDeleting() = runTest(mainDispatcherRule.testDispatcher) {

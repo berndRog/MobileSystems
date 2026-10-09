@@ -8,4 +8,5 @@ data class NewsUiState(
    val searchText: String = "",
    val articles: List<Article> = emptyList(),
    val isLoading: Boolean = false,
+   val loadError: String? = null,
 )

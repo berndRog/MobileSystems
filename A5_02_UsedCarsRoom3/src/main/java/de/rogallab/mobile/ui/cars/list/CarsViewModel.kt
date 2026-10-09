@@ -30,6 +30,7 @@ class CarsViewModel(
    private val _stateFlow = MutableStateFlow(CarsUiState())
    val stateFlow: StateFlow<CarsUiState> = _stateFlow.asStateFlow()
    private var _observeJob: Job? = null
+   private var _peopleJob: Job? = null
 
    init {
       observeCars()
@@ -39,6 +40,7 @@ class CarsViewModel(
    fun onIntent(intent: CarsIntent) {
       Alog.d(TAG, "intent: $intent")
       when (intent) {
+         CarsIntent.RetryLoad -> { observeCars(); observePeople() }
          CarsIntent.Create -> navigateToCar(null)
          is CarsIntent.Detail -> navigateToCar(intent.carId)
          is CarsIntent.RequestRemove -> requestRemove(intent.carId)
@@ -81,33 +83,37 @@ class CarsViewModel(
 
    private fun observeCars() {
       _observeJob?.cancel()
+      _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true, carsLoadError = null) }
       _observeJob = viewModelScope.launch {
-
          delay(Globals.delay)
-
-         _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
          _repository.observeAll().collect { result: Result<List<Car>> ->
             result.onSuccess { cars ->
                _stateFlow.update { state: CarsUiState ->
-                  state.copy(cars = cars, isLoading = false)
+                  state.copy(cars = cars, isLoading = false, carsLoadError = null)
                }
-            }.onFailure {
-               _stateFlow.update { state: CarsUiState -> state.copy(isLoading = false) }
-               emitErrorNow(R.string.error_cars_load)
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_cars_load)
+               Alog.e("<-CarsViewModel", error, throwable)
+               _stateFlow.update { state: CarsUiState ->
+                  state.copy(isLoading = false, carsLoadError = error)
+               }
             }
          }
       }
    }
 
    private fun observePeople() {
-      viewModelScope.launch {
+      _peopleJob?.cancel()
+      _stateFlow.update { state: CarsUiState -> state.copy(peopleLoadError = null) }
+      _peopleJob = viewModelScope.launch {
          delay(Globals.delay)
-
          _personRepository.observeAll().collect { result ->
-            result.onSuccess { people ->
-               _stateFlow.update { state: CarsUiState -> state.copy(people = people) }
-            }.onFailure {
-               emitErrorNow(R.string.error_people_load)
+            result.onSuccess { items ->
+               _stateFlow.update { state: CarsUiState -> state.copy(people = items, peopleLoadError = null) }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_people_load)
+               Alog.e("<-CarsViewModel", error, throwable)
+               _stateFlow.update { state: CarsUiState -> state.copy(peopleLoadError = error) }
             }
          }
       }

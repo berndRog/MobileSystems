@@ -11,4 +11,11 @@ data class TDriveUiState(
    val cars: List<Car> = emptyList(),
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
-)
+   val driveLoadError: String? = null,
+   val peopleLoadError: String? = null,
+   val carsLoadError: String? = null,
+   val notFound: Boolean = false,
+
+) {
+   val loadError: String? get() = driveLoadError ?: peopleLoadError ?: carsLoadError
+}

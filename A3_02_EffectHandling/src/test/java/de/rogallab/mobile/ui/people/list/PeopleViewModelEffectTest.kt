@@ -21,20 +21,19 @@ class PeopleViewModelEffectTest {
    val mainDispatcherRule = MainDispatcherRule()
 
    @Test
-   fun observeFailure_emitsErrorStringAndStopsLoading() = runTest(mainDispatcherRule.testDispatcher) {
+   fun observeFailure_remainsVisibleUntilSuccess() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakePersonRepository().apply {
          peopleFlow.value = Result.failure(IllegalStateException("read failed"))
       }
       val stringProvider = FakeStringProvider()
       val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
 
-      viewModel.effects.test {
-         advanceUntilIdle()
+      advanceUntilIdle()
+      assertEquals(stringProvider.getString(R.string.error_people_observe), viewModel.stateFlow.value.loadError)
+      assertFalse(viewModel.stateFlow.value.isLoading)
 
-         val error = awaitItem() as PeopleEffect.ShowError
-         assertEquals(stringProvider.getString(R.string.error_people_observe), error.message)
-         assertFalse(viewModel.stateFlow.value.isLoading)
-         cancelAndIgnoreRemainingEvents()
-      }
+      repository.peopleFlow.value = Result.success(emptyList())
+      advanceUntilIdle()
+      assertEquals(null, viewModel.stateFlow.value.loadError)
    }
 }

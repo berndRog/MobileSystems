@@ -8,6 +8,7 @@
   <string name="search_hint">Wonach möchtest du suchen?</string>
   <string name="action_search">Suchen</string>
   <string name="action_back">Zurück</string>
+  <string name="action_retry">Erneut versuchen</string>
   <string name="action_save_article">Artikel speichern</string>
   <string name="action_confirm">Ja</string>
 

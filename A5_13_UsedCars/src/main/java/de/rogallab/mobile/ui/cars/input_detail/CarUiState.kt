@@ -10,4 +10,10 @@ data class CarUiState(
    val people: List<Person> = emptyList(),
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
-)
+   val carLoadError: String? = null,
+   val peopleLoadError: String? = null,
+   val notFound: Boolean = false,
+
+) {
+   val loadError: String? get() = carLoadError ?: peopleLoadError
+}

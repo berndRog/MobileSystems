@@ -8,8 +8,10 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,9 @@ class TDrivesViewModel(
 
    private val _stateFlow = MutableStateFlow(TDrivesUiState())
    val stateFlow: StateFlow<TDrivesUiState> = _stateFlow.asStateFlow()
+   private var _drivesJob: Job? = null
+   private var _peopleJob: Job? = null
+   private var _carsJob: Job? = null
 
    init {
       observeTDrives(); observePeople(); observeCars()
@@ -33,6 +38,7 @@ class TDrivesViewModel(
 
    fun onIntent(intent: TDrivesIntent) {
       when (intent) {
+         TDrivesIntent.RetryLoad -> { observeTDrives(); observePeople(); observeCars() }
          TDrivesIntent.Create -> navigateTo(null)
          is TDrivesIntent.Detail -> navigateTo(intent.tDriveId)
          is TDrivesIntent.RequestRemove -> requestRemove(intent.tDriveId)
@@ -69,35 +75,53 @@ class TDrivesViewModel(
    }
 
    private fun observeTDrives() {
-      viewModelScope.launch {
-         _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = true) }
+      _drivesJob?.cancel()
+      _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = true, drivesLoadError = null) }
+      _drivesJob = viewModelScope.launch {
          _tDriveRepository.observeAll().collect { result: Result<List<TDrive>> ->
             result.onSuccess { drives ->
-               _stateFlow.update { state: TDrivesUiState -> state.copy(tDrives = drives, isLoading = false) }
-            }.onFailure {
-               _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = false) }
-               emitErrorNow(R.string.error_test_drives_load)
+               _stateFlow.update { state: TDrivesUiState ->
+                  state.copy(tDrives = drives, isLoading = false, drivesLoadError = null)
+               }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_test_drives_load)
+               Alog.e("<-TDrivesViewModel", error, throwable)
+               _stateFlow.update { state: TDrivesUiState ->
+                  state.copy(isLoading = false, drivesLoadError = error)
+               }
             }
          }
       }
    }
 
    private fun observePeople() {
-      viewModelScope.launch {
+      _peopleJob?.cancel()
+      _stateFlow.update { state: TDrivesUiState -> state.copy(peopleLoadError = null) }
+      _peopleJob = viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
-            result.onSuccess { people ->
-               _stateFlow.update { state: TDrivesUiState -> state.copy(people = people) }
-            }.onFailure { emitErrorNow(R.string.error_people_load) }
+            result.onSuccess { items ->
+               _stateFlow.update { state: TDrivesUiState -> state.copy(people = items, peopleLoadError = null) }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_people_load)
+               Alog.e("<-TDrivesViewModel", error, throwable)
+               _stateFlow.update { state: TDrivesUiState -> state.copy(peopleLoadError = error) }
+            }
          }
       }
    }
 
    private fun observeCars() {
-      viewModelScope.launch {
+      _carsJob?.cancel()
+      _stateFlow.update { state: TDrivesUiState -> state.copy(carsLoadError = null) }
+      _carsJob = viewModelScope.launch {
          _carRepository.observeAll().collect { result ->
-            result.onSuccess { cars ->
-               _stateFlow.update { state: TDrivesUiState -> state.copy(cars = cars) }
-            }.onFailure { emitErrorNow(R.string.error_cars_load) }
+            result.onSuccess { items ->
+               _stateFlow.update { state: TDrivesUiState -> state.copy(cars = items, carsLoadError = null) }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_cars_load)
+               Alog.e("<-TDrivesViewModel", error, throwable)
+               _stateFlow.update { state: TDrivesUiState -> state.copy(carsLoadError = error) }
+            }
          }
       }
    }

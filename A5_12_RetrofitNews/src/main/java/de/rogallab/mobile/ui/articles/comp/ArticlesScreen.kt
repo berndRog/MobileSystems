@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.ui.components.SwipeCard
+import de.rogallab.mobile.shared.ui.components.LoadFailureContent
 import de.rogallab.mobile.ui.articles.ArticlesIntent
 import de.rogallab.mobile.ui.articles.ArticlesUiState
 import de.rogallab.mobile.ui.common.ArticleCard
@@ -51,6 +52,13 @@ fun ArticlesScreen(
          ) {
             CircularProgressIndicator()
          }
+      }
+      else if (state.loadError != null) {
+         LoadFailureContent(
+            message = state.loadError,
+            actionLabel = stringResource(R.string.action_retry),
+            onAction = { onIntent(ArticlesIntent.RetryLoad) },
+         )
       }
       else {
          LazyColumn(

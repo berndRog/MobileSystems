@@ -29,6 +29,21 @@ class CarsViewModelDeleteTest {
    )
 
    @Test
+   fun loadFailure_remainsVisibleUntilCarsRecover() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakeCarRepository().apply {
+         carsFlow.value = Result.failure(IllegalStateException("offline"))
+      }
+      val viewModel = create(repository)
+      advanceUntilIdle()
+
+      assertEquals(strings.getString(R.string.error_cars_load), viewModel.stateFlow.value.carsLoadError)
+      repository.carsFlow.value = Result.success(listOf(golf))
+      advanceUntilIdle()
+      assertEquals(null, viewModel.stateFlow.value.loadError)
+      assertEquals(listOf(golf), viewModel.stateFlow.value.cars)
+   }
+
+   @Test
    fun requestRemove_emitsConfirmationWithoutDeleting() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakeCarRepository(listOf(golf))
       val viewModel = create(repository)

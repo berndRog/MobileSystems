@@ -8,12 +8,14 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.newUuid
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlin.time.Clock
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,6 +64,8 @@ class TDriveViewModel(
       } else TDriveUiState(isNew = false, isLoading = true)
    )
    val stateFlow: StateFlow<TDriveUiState> = _stateFlow.asStateFlow()
+   private var _peopleJob: Job? = null
+   private var _carsJob: Job? = null
 
    init {
       observePeople(); observeCars(); if (!_isNew) loadTDrive(_tDriveId!!)
@@ -73,53 +77,78 @@ class TDriveViewModel(
          is TDriveIntent.CarChanged -> update { it.copy(carId = intent.carId) }
          is TDriveIntent.StartChanged -> _stateFlow.update { state: TDriveUiState -> state.copy(startInput = intent.value) }
          is TDriveIntent.CompletedChanged -> update { it.copy(isCompleted = intent.value) }
+         TDriveIntent.RetryLoad -> if (!_isNew) { observePeople(); observeCars(); loadTDrive(_tDriveId!!) }
          TDriveIntent.Save -> save()
          TDriveIntent.Cancel -> navigateBack(BackReason.Cancel)
       }
    }
 
    private fun observePeople() {
-      viewModelScope.launch {
+      _peopleJob?.cancel()
+      _stateFlow.update { state: TDriveUiState -> state.copy(peopleLoadError = null) }
+      _peopleJob = viewModelScope.launch {
          _personRepository.observeAll().collect { result ->
-            result.onSuccess { people -> _stateFlow.update { state: TDriveUiState -> state.copy(people = people) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_people_load)) }
+            result.onSuccess { items ->
+               _stateFlow.update { state: TDriveUiState -> state.copy(people = items, peopleLoadError = null) }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_people_load)
+               Alog.e("<-TDriveViewModel", error, throwable)
+               _stateFlow.update { state: TDriveUiState -> state.copy(peopleLoadError = error) }
+            }
          }
       }
    }
    private fun observeCars() {
-      viewModelScope.launch {
+      _carsJob?.cancel()
+      _stateFlow.update { state: TDriveUiState -> state.copy(carsLoadError = null) }
+      _carsJob = viewModelScope.launch {
          _carRepository.observeAll().collect { result ->
-            result.onSuccess { cars -> _stateFlow.update { state: TDriveUiState -> state.copy(cars = cars) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_cars_load)) }
+            result.onSuccess { items ->
+               _stateFlow.update { state: TDriveUiState -> state.copy(cars = items, carsLoadError = null) }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_cars_load)
+               Alog.e("<-TDriveViewModel", error, throwable)
+               _stateFlow.update { state: TDriveUiState -> state.copy(carsLoadError = error) }
+            }
          }
       }
    }
    private fun loadTDrive(id: String) {
+      _stateFlow.update { state: TDriveUiState ->
+         state.copy(isLoading = true, driveLoadError = null, notFound = false)
+      }
       viewModelScope.launch {
-         _tDriveRepository.findById(id).onSuccess { tDrive ->
-            if (tDrive == null) {
-               _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
-               showErrorNow(_stringProvider.getString(R.string.error_test_drive_not_found))
-            } else {
+         _tDriveRepository.findById(id)
+            .onSuccess { tDrive ->
+               if (tDrive == null) {
+                  val error = _stringProvider.getString(R.string.error_test_drive_not_found)
+                  Alog.e("<-TDriveViewModel", error)
+                  _stateFlow.update { state: TDriveUiState ->
+                     state.copy(isLoading = false, driveLoadError = error, notFound = true)
+                  }
+               } else {
+                  _stateFlow.update { state: TDriveUiState ->
+                     state.copy(
+                        tDrive = tDrive,
+                        startInput = DateTimeText.format(tDrive.start.toLocalDateTime(_localTimeZone)),
+                        isLoading = false, driveLoadError = null, notFound = false,
+                     )
+                  }
+               }
+            }.onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_test_drive_load)
+               Alog.e("<-TDriveViewModel", error, throwable)
                _stateFlow.update { state: TDriveUiState ->
-                  state.copy(
-                     tDrive = tDrive,
-                     startInput = DateTimeText.format(tDrive.start.toLocalDateTime(_localTimeZone)),
-                     isLoading = false,
-                  )
+                  state.copy(isLoading = false, driveLoadError = error, notFound = false)
                }
             }
-         }.onFailure {
-            _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
-            showErrorNow(_stringProvider.getString(R.string.error_test_drive_load))
-         }
       }
    }
    private fun update(transform: (TDrive) -> TDrive) {
       _stateFlow.update { state: TDriveUiState -> state.tDrive?.let { state.copy(tDrive = transform(it)) } ?: state }
    }
    private fun save() {
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadError != null) return
       val state = _stateFlow.value
       val tDrive = state.tDrive ?: return
       val start = _validator.parseStart(state.startInput)
