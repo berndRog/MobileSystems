@@ -1,10 +1,9 @@
 package de.rogallab.mobile.ui.navigation.comp
 
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -49,7 +48,7 @@ fun AppNavigation() {
    // Creates the standard saveable Navigation 3 back stack.
    val backStack = rememberNavBackStack(PeopleKey)
 
-   // One SnackbarHostState is shared by all destinations.
+   // One SnackbarHostState and one visible host are shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
    // The controller and its CoroutineScope live above NavDisplay. Therefore a
    // Snackbar started by one destination can remain active after navigation.
@@ -65,81 +64,92 @@ fun AppNavigation() {
       logNavigationOperation("initial", backStack.lastOrNull(), backStack)
    }
 
-   NavDisplay(
-      backStack = backStack,
-
-      // Handles system back navigation as a cancel operation.
-      onBack = {
-         currentPopReason = PopReason.Cancel
-         remove(backStack)
+   Scaffold(
+      contentWindowInsets = WindowInsets(0, 0, 0, 0),
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+               .imePadding()
+               .padding(bottom = if (backStack.lastOrNull() == PeopleKey) 80.dp else 0.dp),
+         )
       },
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         backStack = backStack,
 
-      // Preserves saveable Compose state and ViewModels per NavEntry.
-      entryDecorators = listOf(
-         rememberSaveableStateHolderNavEntryDecorator(
-            rememberSaveableStateHolder()
+         // Handles system back navigation as a cancel operation.
+         onBack = {
+            currentPopReason = PopReason.Cancel
+            remove(backStack)
+         },
+
+         // Preserves saveable Compose state and ViewModels per NavEntry.
+         entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(
+               rememberSaveableStateHolder()
+            ),
+            rememberViewModelStoreNavEntryDecorator(),
          ),
-         rememberViewModelStoreNavEntryDecorator(),
-      ),
 
-      // Keeps the visible navigation animations from the previous project.
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
-      popTransitionSpec =
-         NavigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec =
-         NavigationAnimations.predictivePopTransitionSpec,
+         // Keeps the visible navigation animations from the previous project.
+         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         popTransitionSpec =
+            NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec =
+            NavigationAnimations.predictivePopTransitionSpec,
 
-      entryProvider = entryProvider {
+         entryProvider = entryProvider {
 
-         // Root destination: list of people.
-         entry<PeopleKey> {
-            val peopleViewModel = koinViewModel<PeopleViewModel>()
+            // Root destination: list of people.
+            entry<PeopleKey> {
+               val peopleViewModel = koinViewModel<PeopleViewModel>()
 
-            PeopleAdapter(
-               viewModel = peopleViewModel,
-               snackbarHostState = snackbarHostState,
+               PeopleAdapter(
+                  viewModel = peopleViewModel,
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
 
-               onNavigateBack = {
-                  currentPopReason = PopReason.Cancel
-                  remove(backStack)
-               },
-               // null -> create, id -> detail/edit.
-               onNavigateTo = { personId ->
-                  add(
-                     destination = PersonKey(personId),
-                     backStack = backStack,
-                  )
-               },
-            )
-         }
-
-         // Shared destination for create and edit.
-         entry<PersonKey> { personKey ->
-            val personViewModel = koinViewModel<PersonViewModel> {
-               parametersOf(personKey.personId)
+                  onNavigateBack = {
+                     currentPopReason = PopReason.Cancel
+                     remove(backStack)
+                  },
+                  // null -> create, id -> detail/edit.
+                  onNavigateTo = { personId ->
+                     add(
+                        destination = PersonKey(personId),
+                        backStack = backStack,
+                     )
+                  },
+               )
             }
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
+            // Shared destination for create and edit.
+            entry<PersonKey> { personKey ->
+               val personViewModel = koinViewModel<PersonViewModel> {
+                  parametersOf(personKey.personId)
+               }
 
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError,
+               PersonAdapter(
+                  viewModel = personViewModel,
 
-               onNavigateBack = { reason ->
-                  currentPopReason = when (reason) {
-                     BackReason.Save -> PopReason.SAVE
-                     BackReason.Cancel -> PopReason.Cancel
-                  }
-                  remove(backStack)
-               },
-            )
-         }
-      },
-   )
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
+
+                  onNavigateBack = { reason ->
+                     currentPopReason = when (reason) {
+                        BackReason.Save -> PopReason.SAVE
+                        BackReason.Cancel -> PopReason.Cancel
+                     }
+                     remove(backStack)
+                  },
+               )
+            }
+         },
+      )
+   }
 }
 
 // Adds a destination to the standard Navigation 3 back stack.
@@ -198,8 +208,8 @@ private fun logNavigationOperation(
  *      NavigateTo / NavigateBack -> Navigation-3-Back-Stack
  *      ShowMessage / ShowError   -> SnackbarController
  *
- * - Der SnackbarController wird oberhalb des NavDisplay erzeugt. Sein
- *   CoroutineScope bleibt deshalb bei einem Destination-Wechsel bestehen.
+ * - SnackbarController und der einzige sichtbare SnackbarHost liegen oberhalb
+ *   des NavDisplay. Der CoroutineScope bleibt bei einem Destination-Wechsel bestehen.
  *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
  *   People-Liste weiter angezeigt werden.
  *
