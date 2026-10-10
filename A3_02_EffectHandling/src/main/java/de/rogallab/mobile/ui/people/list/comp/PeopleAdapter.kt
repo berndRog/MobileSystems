@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.list.comp
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
@@ -51,6 +54,7 @@ fun PeopleAdapter(
    // Collect the persistent UI state from the ViewModel.
    val peopleUiState: PeopleUiState by
    viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = peopleUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
@@ -84,8 +88,8 @@ fun PeopleAdapter(
       },
    ) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PeopleScreen.
-      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+      // Show loading, a persistent error, or the stateless PeopleScreen.
+      if (peopleUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -93,6 +97,17 @@ fun PeopleAdapter(
             contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      } else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure)
+            Button(onClick = { viewModel.onIntent(PeopleIntent.RetryLoad) }) {
+               Text(text = stringResource(R.string.action_retry))
+            }
          }
       } else {
 
@@ -124,25 +139,21 @@ fun PeopleAdapter(
  * - Dauerhafter State wird mit collectAsStateWithLifecycle() beobachtet.
  *   Einmalige Effects werden getrennt mit dem generischen EffectHandler
  *   gesammelt.
+ * - Laden, dauerhafter Fehler mit Retry und Liste sind getrennte UI-Zustände.
  *
  * - Der Adapter übersetzt feature-spezifische Effects in einfache Callbacks:
  *
  *      ShowMessage  -> onMessage()
  *      ShowError    -> onError()
- *      ShowUndo     -> onUndo()
- *      NavigateBack -> onBack()
- *      NavigateTo   -> onNavigateTo()
  *
- * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
- *   nicht die spätere Navigationsimplementierung.
+ * - Der lokale SnackbarHost zeigt Meldungen des ausgewählten Screens.
  *
- * - Undo und Navigation sind bereits in der Schnittstelle vorbereitet. Die
- *   eigentliche Funktion wird erst in späteren Lernschritten ergänzt.
+ * - Create und Detail bleiben ohne Navigation; A3_03 führt den Backstack ein.
  *
  * Lernziele:
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
  * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
- * - Spätere Erweiterungen wie Undo und Navigation vorbereiten.
+ * - State und Effects auch ohne Navigation getrennt halten.
  */

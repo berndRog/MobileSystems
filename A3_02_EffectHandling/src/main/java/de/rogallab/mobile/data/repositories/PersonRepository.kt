@@ -29,8 +29,6 @@ class PersonRepository(
 
    override suspend fun findById(id: String): Result<Person?> =
       try {
-         // Uncomment the next line in A3_02 to demonstrate a repository error.
-         // throw IllegalArgumentException("Simulated repository error")
          Result.success(_personDao.findById(id)?.toPerson())
       }
       // don't handle CancellationException, let it propagate to the caller
@@ -77,3 +75,10 @@ class PersonRepository(
       }
 
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Die Repository-Schnittstelle liefert dieselben Result-Werte wie in A3_03.
+ * - CancellationException beendet Coroutines und wird nicht zum Ladefehler.
+ */

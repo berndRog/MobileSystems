@@ -36,6 +36,10 @@ import org.koin.compose.koinInject
 
 @Composable  // MVI pattern
 fun PersonScreen(
+   isNew: Boolean,
+   isLoading: Boolean,
+   isSaving: Boolean,
+
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
 
@@ -68,7 +72,7 @@ fun PersonScreen(
    ) {
       InputValueString(
          value = firstName,
-         onValueChange = { onFirstNameChange(it) },
+         onValueChange = onFirstNameChange,
          label = stringResource(R.string.firstname),
          leadingIcon = Icons.Default.AccountCircle,
          validate = validator::validateFirstName,
@@ -77,7 +81,7 @@ fun PersonScreen(
       )
       InputValueString(
          value = lastName,
-         onValueChange = { onLastNameChange(it) },
+         onValueChange = onLastNameChange,
          label = stringResource(R.string.lastname),
          leadingIcon = Icons.Default.Person,
          validate = validator::validateLastName,
@@ -87,7 +91,7 @@ fun PersonScreen(
 
       InputValueString(
          value = email.orEmpty(),
-         onValueChange = { onEmailChange(it) },
+         onValueChange = onEmailChange,
          label = stringResource(R.string.email),
          leadingIcon = Icons.Default.Email,
          validate = validator::validateEmail,
@@ -97,7 +101,7 @@ fun PersonScreen(
 
       InputValueString(
          value = phone.orEmpty(),
-         onValueChange = { onPhoneChange(it) },
+         onValueChange = onPhoneChange,
          label = stringResource(R.string.phone),
          leadingIcon = Icons.Default.Phone,
          validate = validator::validatePhone,
@@ -121,17 +125,24 @@ fun PersonScreen(
             40.dp, Alignment.CenterHorizontally),
       ) {
          OutlinedButton(
-            onClick = { onCancel() }, //onIntent(PersonIntent.Cancel)
+            onClick = onCancel,
+            enabled = !isSaving,
          ) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
          Button(
-            onClick = { onSave() }, //onIntent(PersonIntent.Save)
-            enabled = enableSave,
+            onClick = onSave,
+            enabled = enableSave && !isSaving,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
       }
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Der zustandslose Screen sperrt Save und Cancel während eines Speichervorgangs.
+ */

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class PersonViewModel(
    val personId: String?,
@@ -30,10 +31,6 @@ class PersonViewModel(
    // A null or blank id means that a new person is created.
    private val _personId = personId?.takeUnless(String::isBlank)
    private val _isNew = _personId == null
-
-   // Prevent duplicate repository writes while a Save operation is running.
-   // This is internal processing state and therefore not part of PersonUiState.
-   private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
@@ -54,46 +51,55 @@ class PersonViewModel(
 
    // Load the existing person when the ViewModel is detail mode.
    private fun loadPerson(id: String) {
+      Alog.d(TAG, "loadPerson: $id")
+
+      // Mark the attempt before launching so repeated retries cannot overlap it.
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isLoading = true, loadFailure = null)
+      }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
+         try {
+            // Keep the existing delay used to demonstrate loading.
+            delay(1000)
 
-         // Simulate a longer loading operation.
-         delay(1000)
-
-         // Find the person by id.
-         _repository.findById(id)
-            .onSuccess { person ->
-               // A successful Result may still contain null if no person exists.
-               if (person == null) {
-                  val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
-
-                  _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+            _repository.findById(id)
+               .onSuccess { person ->
+                  if (person != null) {
+                     Alog.d(TAG, "_repository.findById.onSuccess: $person")
+                     _stateFlow.update { state: PersonUiState ->
+                        state.copy(person = person, loadFailure = null)
+                     }
+                  } else {
+                     val error = _stringProvider.getString(R.string.error_person_not_found)
+                     Alog.d(TAG, "_repository.findById.onSuccess (error): $error")
+                     _stateFlow.update { state: PersonUiState ->
+                        state.copy(loadFailure = PersonLoadFailure.NotFound(error))
+                     }
                   }
-                  return@onSuccess
                }
-
-               val message = "Test: ${person.firstName} ${person.lastName} geladen"
-               _effectDelegate.emit(PersonEffect.ShowMessage(message))
-
-               // Store the loaded person
-               _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+               .onFailure { throwable ->
+                  if (throwable is CancellationException) throw throwable
+                  val error = _stringProvider.getString(R.string.error_person_load)
+                  Alog.e(TAG, error, throwable)
+                  _stateFlow.update { state: PersonUiState ->
+                     state.copy(loadFailure = PersonLoadFailure.Failed(error))
+                  }
                }
+         }
+         catch (e: CancellationException) {
+            throw e
+         }
+         catch (e: Exception) {
+            val error = _stringProvider.getString(R.string.error_person_load)
+            Alog.e(TAG, "Unexpected load failure", e)
+            _stateFlow.update { state: PersonUiState ->
+               state.copy(loadFailure = PersonLoadFailure.Failed(error))
             }
-            .onFailure { throwable ->
-               // Repository failures are converted into a localized UI effect.
-               val error = _stringProvider.getString(R.string.error_person_load)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+         }
+         finally {
+            _stateFlow.update { state: PersonUiState ->
+               state.copy(isLoading = false)
             }
-
-         // set isLoading = false after loading is complete
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = false)
          }
       }
    }
@@ -109,6 +115,11 @@ class PersonViewModel(
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
+         PersonIntent.RetryLoad ->
+            // A3_02 has no Back action, so NotFound can also be retried.
+            if (!_isNew && !_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               loadPerson(_personId!!)
+            }
       }
    }
 
@@ -148,7 +159,8 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_stateFlow.value.isSaving || _stateFlow.value.isLoading ||
+         _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -184,39 +196,48 @@ class PersonViewModel(
          return
       }
 
-      // Publish the normalized and validated person before saving it.
-      _stateFlow.update { state: PersonUiState ->
-         state.copy(person = person)
-      }
-
-      // Update: save operation is in progress.
-      _isSaving = true
+      // Expose the active save to both the UI and the duplicate-save guard.
+      _stateFlow.update { state: PersonUiState -> state.copy(isSaving = true) }
 
       viewModelScope.launch {
+         try {
+            // New entities are inserted, existing entities are updated.
+            val result =
+               if (_isNew) _repository.create(person)
+               else _repository.update(person)
 
-         // New entities are inserted, existing entities are updated.
-         val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
-
-         result
-            .onSuccess {
-               // First show the success message...
-               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
-               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+            result
+               .onSuccess {
+                  val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
+                  _effectDelegate.emit(PersonEffect.ShowMessage(message))
+               }
+               .onFailure { throwable ->
+                  Alog.e(TAG, "Save failed", throwable)
+                  val error = _stringProvider.getString(R.string.error_person_save)
+                  _effectDelegate.emit(PersonEffect.ShowError(error))
+               }
+         }
+         catch (e: CancellationException) {
+            throw e
+         }
+         catch (e: Exception) {
+            Alog.e(TAG, "Unexpected save failure", e)
+            _effectDelegate.emit(PersonEffect.ShowError(
+               _stringProvider.getString(R.string.error_person_save)
+            ))
+         }
+         finally {
+            _stateFlow.update { state: PersonUiState ->
+               state.copy(isSaving = false)
             }
-            .onFailure { throwable ->
-               val error = _stringProvider.getString(R.string.error_person_save)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
-            }
-
-         // Update: save operation is finished
-         _isSaving = false
+         }
       }
    }
 
    // Cancels editing
    private fun cancel() {
+      if (_stateFlow.value.isSaving) return
+
       _stateFlow.update { state: PersonUiState ->
          state.copy(
             person = state.person.copy(firstName = "",lastName = "")
@@ -246,8 +267,10 @@ class PersonViewModel(
  *   Dadurch ist bereits am Lambda-Bezeichner erkennbar, welcher State
  *   verändert wird.
  *
- * - Meldungen, Fehler und vorbereitete Navigation werden als PersonEffect
- *   ausgegeben und nicht im dauerhaften State gespeichert.
+ * - Ladefehler bleiben im UI-State sichtbar. Save-Erfolg, Save-Fehler und
+ *   Validierungsfehler werden als einmalige PersonEffects ausgegeben.
+ *   NotFound bietet in A3_02 ebenfalls Retry, weil ein Backstack fehlt.
+ *   isSaving sperrt weitere Save- und Cancel-Aktionen bis zum Ergebnis.
  *
  * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
  *
@@ -265,10 +288,8 @@ class PersonViewModel(
  *   Channel und Flow müssen deshalb nicht in jedem ViewModel erneut
  *   implementiert werden.
  *
- * - NavigateBack ist bereits vollständig im Effect-Typ vorbereitet. In diesem
- *   Lernschritt wird der Callback noch nicht mit einem Back Stack verbunden.
- *   Save und Cancel liefern unterschiedliche BackReason-Werte, damit der
- *   nächste Navigationsschritt unterschiedliche Animationen zeigen kann.
+ * - A3_02 besitzt noch keinen Backstack. Speichern zeigt eine Meldung,
+ *   Cancel setzt das Formular zurück.
  *
  * Lernziele:
  *
@@ -276,5 +297,5 @@ class PersonViewModel(
  * - IStringProvider für String-Ressourcen und bereits vorhandene Strings unterscheiden.
  * - Implementierungsdelegation mit "by" verstehen.
  * - Fehlerbehandlung von konkreter UI-Darstellung entkoppeln.
- * - Navigation vorbereiten, ohne sie bereits funktional einzuführen.
+ * - Ladefehler als State und Fehler einzelner Aktionen als Effects behandeln.
  */

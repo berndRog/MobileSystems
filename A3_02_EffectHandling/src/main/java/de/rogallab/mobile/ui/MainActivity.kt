@@ -84,8 +84,8 @@ class MainActivity : BaseActivity(TAG) {
  * - Effects transportieren bereits aufgelöste Strings. String-Ressourcen
  *   werden im jeweiligen ViewModel über IStringProvider aufgelöst.
  *
- * - Navigation und Undo sind bereits in Effects und Callbacks vorbereitet,
- *   ihre Funktionen bleiben in diesem Schritt bewusst leer.
+ * - Create und Detail sind noch nicht mit einem Backstack verbunden.
+ *   Navigation und Undo folgen in späteren Modulen.
  *
  * Lernziele:
  *
