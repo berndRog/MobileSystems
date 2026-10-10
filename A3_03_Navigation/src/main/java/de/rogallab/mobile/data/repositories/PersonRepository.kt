@@ -31,8 +31,6 @@ class PersonRepository(
    override suspend fun findById(id: String): Result<Person?> =
       try {
          Result.success(_personDao.findById(id)?.toPerson())
-         throw RuntimeException("Test exception in findById()") // Test exception handling in Flow
-
       }
       // don't handle CancellationException, let it propagate to the caller
       // viewModelScope will catch it and cancel the coroutine
