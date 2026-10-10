@@ -47,6 +47,7 @@ import org.koin.compose.koinInject
 fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
+   isSaving: Boolean,
 
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
@@ -138,13 +139,14 @@ fun PersonScreen(
       ) {
          OutlinedButton(
             onClick = onCancel,
+            enabled = !isSaving,
          ) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
          Button(
             onClick = onSave,
-            enabled = enableSave,
+            enabled = enableSave && !isSaving,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
@@ -154,12 +156,11 @@ fun PersonScreen(
 /*
  * Didaktik und Lernziele
  *
- * - Der Zurück-Pfeil befindet sich bewusst im PersonScreen in der TopAppBar.
- *   Der zustandslose Screen kennt jedoch keinen Navigation-3-Back-Stack.
+ * - Der Toolbar-Pfeil liegt im PersonAdapter und löst Save aus.
+ *   Der zustandslose Screen kennt keinen Navigation-3-Back-Stack.
  *
- * - onBack() wird wie die anderen Benutzeraktionen als Funktion übergeben.
- *   Der Adapter übersetzt den Klick in PersonIntent.Cancel. Erst der daraus
- *   entstehende NavigateBack-Effect verändert später den Back Stack.
+ * - Save und Cancel bleiben während eines laufenden Speichervorgangs gesperrt.
+ *   Erst ein NavigateBack-Effect verändert später den Back Stack.
  *
  * - Damit bleibt die Richtung erhalten:
  *
@@ -167,6 +168,6 @@ fun PersonScreen(
  *
  * Lernziele:
  *
- * - TopAppBar-Navigation in einen zustandslosen Screen integrieren.
+ * - Benutzeraktionen und laufende Operationen im zustandslosen Screen abbilden.
  * - UI-Ereignisse nicht direkt mit Navigation koppeln.
  */

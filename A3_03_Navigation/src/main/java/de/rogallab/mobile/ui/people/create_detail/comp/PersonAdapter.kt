@@ -69,7 +69,7 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(onClick = {
+               IconButton(enabled = !personUiState.isSaving, onClick = {
                   viewModel.onIntent(PersonIntent.Save)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -98,6 +98,7 @@ fun PersonAdapter(
          PersonScreen(
             isNew = personUiState.isNew,
             isLoading = personUiState.isLoading,
+            isSaving = personUiState.isSaving,
 
             firstName = person.firstName,
             onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
@@ -137,8 +138,9 @@ fun PersonAdapter(
  *   SnackbarController weitergereicht. NavigateBack wird dagegen in eine
  *   Back-Stack-Operation übersetzt.
  *
- * - Der Back-Pfeil und der Cancel-Button erzeugen beide PersonIntent.Cancel.
- *   Erst das ViewModel entscheidet daraus NavigateBack(BackReason.Cancel).
+ * - Der Toolbar-Pfeil und der Save-Button erzeugen PersonIntent.Save.
+ *   Der Cancel-Button erzeugt PersonIntent.Cancel. Während Save läuft,
+ *   bleiben diese Aktionen gesperrt.
  *
  * Lernziele:
  *

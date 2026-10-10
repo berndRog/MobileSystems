@@ -58,6 +58,8 @@ fun AppNavigation() {
 
    // Selects the visible remove animation for Save or Cancel.
    var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
+   // Keep the current entry's ViewModel for a direct state read on system back.
+   var activePerson by remember { mutableStateOf<Pair<PersonKey, PersonViewModel>?>(null) }
 
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
@@ -81,8 +83,12 @@ fun AppNavigation() {
 
          // Handles system back navigation as a cancel operation.
          onBack = {
-            currentPopReason = PopReason.Cancel
-            remove(backStack)
+            val top = backStack.lastOrNull()
+            if (top !is PersonKey ||
+               (activePerson?.first === top && activePerson?.second?.stateFlow?.value?.isSaving == false)) {
+               currentPopReason = PopReason.Cancel
+               remove(backStack)
+            }
          },
 
          // Preserves saveable Compose state and ViewModels per NavEntry.
@@ -130,6 +136,11 @@ fun AppNavigation() {
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
+               }
+               SideEffect {
+                  if (backStack.lastOrNull() === personKey) {
+                     activePerson = personKey to personViewModel
+                  }
                }
 
                PersonAdapter(
@@ -221,6 +232,8 @@ private fun logNavigationOperation(
  *
  * - Save und Cancel setzen unterschiedliche PopReason-Werte. Die vorhandenen
  *   Animationen machen damit die Art der Rücknavigation sichtbar.
+ *   System-Back liest isSaving direkt aus dem ViewModel des aktuellen PersonKey
+ *   und wartet während eines Speichervorgangs auf dessen Ergebnis.
  *
  * - ShowUndo ist bereits als Action-Snackbar vorbereitet. In diesem Schritt
  *   bleiben onAction und onDismiss bewusst leer.

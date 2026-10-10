@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class PersonViewModel(
    val personId: String?,
@@ -30,10 +31,6 @@ class PersonViewModel(
    // A null or blank id means that a new person is being created.
    private val _personId = personId?.takeUnless(String::isBlank)
    private val _isNew = _personId == null
-
-   // Prevent duplicate repository writes while a Save operation is running.
-   // This is internal processing state and therefore not part of PersonUiState.
-   private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
@@ -146,7 +143,7 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_stateFlow.value.isSaving) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -183,35 +180,51 @@ class PersonViewModel(
       }
 
       // Update: save operation is in progress.
-      _isSaving = true
+      _stateFlow.update { state: PersonUiState -> state.copy(isSaving = true) }
 
       viewModelScope.launch {
+         try {
+            // New entities are inserted, existing entities are updated.
+            val result =
+               if (_isNew) _repository.create(person)
+               else _repository.update(person)
 
-         // New entities are inserted, existing entities are updated.
-         val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            result
+               .onSuccess {
+                  val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
+                  _effectDelegate.emit(PersonEffect.ShowMessage(message))
 
-         result
-            .onSuccess {
-               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
-               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+                  // The adapter translates this effect into a Navigation 3 operation.
+                  _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+               }
+               .onFailure { throwable ->
+                  Alog.e(TAG, "Save failed", throwable)
 
-               // The adapter translates this effect into a Navigation 3 operation.
-               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+                  val error = _stringProvider.getString(R.string.error_person_save)
+                  _effectDelegate.emit(PersonEffect.ShowError(error))
+               }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            Alog.e(TAG, "Unexpected save failure", e)
+            _effectDelegate.emit(
+               PersonEffect.ShowError(
+                  _stringProvider.getString(R.string.error_person_save)
+               )
+            )
+         } finally {
+            // Reset the saving state when the operation finishes.
+            _stateFlow.update { state: PersonUiState ->
+               state.copy(isSaving = false)
             }
-            .onFailure { throwable ->
-               val error = _stringProvider.getString(R.string.error_person_save)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
-            }
-
-         // Update: save operation is finished
-         _isSaving = false
+         }
       }
    }
 
    // Cancels editing and emits the prepared back-navigation effect.
    private fun cancel() {
+      if (_stateFlow.value.isSaving) return
+
       _stateFlow.update { state: PersonUiState ->
          state.copy(
             person = state.person.copy(firstName = "", lastName = "")
@@ -248,6 +261,7 @@ class PersonViewModel(
  *
  * - Meldungen, Fehler und vorbereitete Navigation werden als PersonEffect
  *   ausgegeben und nicht im dauerhaften State gespeichert.
+ *   isSaving sperrt einen zweiten Save und Cancel bis zum Repository-Ergebnis.
  *
  * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
  *
