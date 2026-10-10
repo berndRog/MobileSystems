@@ -15,8 +15,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
@@ -41,35 +43,52 @@ class PeopleViewModel(
 
    // Observes the repository and updates the list state.
    private fun observePeople() {
-
       // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
+      // Mark the attempt before launching so repeated RetryLoad intents cannot overlap it.
+      _stateFlow.update { state: PeopleUiState ->
+         state.copy(isLoading = true, loadFailure = null)
+      }
+
       _observeJob = viewModelScope.launch {
+         try {
+            // Simulate a longer loading operation.
+            delay(1000)
 
-         // Show the loading indicator until the first result arrives.
-         _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
-         }
-
-         // Simulate a longer loading operation.
-         delay(1000)
-
-         _repository.observeAll().collect { result: Result<List<Person>> ->
-            result
-               .onSuccess { people ->
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(people = people)
+            // Keep observing successful Room updates; stop after a failed result.
+            _repository.observeAll().takeWhile { result: Result<List<Person>> ->
+               result
+                  .onSuccess { people ->
+                     _stateFlow.update { state: PeopleUiState ->
+                        state.copy(people = people, isLoading = false, loadFailure = null)
+                     }
                   }
-               }
-               .onFailure { throwable ->
-                  val error = _stringProvider.getString(R.string.error_people_observe)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
-               }
-
-            // set isLoading = false after loading is complete
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) throw throwable
+                     val error = _stringProvider.getString(R.string.error_people_observe)
+                     Alog.e(TAG, error, throwable)
+                     _stateFlow.update { state: PeopleUiState ->
+                        state.copy(isLoading = false, loadFailure = error)
+                     }
+                  }
+               result.isSuccess
+            }.collect { }
+         }
+         catch (e: CancellationException) {
+            throw e
+         }
+         catch (e: Exception) {
+            val error = _stringProvider.getString(R.string.error_people_observe)
+            Alog.e(TAG, "Unexpected load failure", e)
             _stateFlow.update { state: PeopleUiState ->
-               state.copy(isLoading = false)
+               state.copy(isLoading = false, loadFailure = error)
+            }
+         }
+         finally {
+            // A Room collector can outlive the first result; also clear loading on cancellation.
+            _stateFlow.update { state: PeopleUiState ->
+               if (state.isLoading) state.copy(isLoading = false) else state
             }
          }
       }
@@ -84,6 +103,10 @@ class PeopleViewModel(
          PeopleIntent.Create -> navigateToPerson(null)
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> remove(intent.person)
+         PeopleIntent.RetryLoad ->
+            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               observePeople()
+            }
       }
    }
 
@@ -122,7 +145,9 @@ class PeopleViewModel(
  * - PeopleUiState beschreibt den dauerhaften Zustand der Personenliste.
  *   Änderungen verwenden konsequent state: PeopleUiState als Lambda-Parameter.
  *
- * - Repository-Fehler werden als einmalige ShowError-Effects ausgegeben.
+ * - Ein Listen-Ladefehler bleibt im State sichtbar. Erst RetryLoad startet eine
+ *   neue Beobachtung; erfolgreiche Room-Emissionen aktualisieren weiterhin die Liste.
+ * - Fehler einzelner Benutzeraktionen bleiben einmalige ShowError-Effects.
  *
  * - ShowUndo ist bereits vorbereitet und enthält Meldung, Action-Text sowie die id der
  *   gelöschten Person. Die eigentliche Wiederherstellung wird erst beim
@@ -137,6 +162,6 @@ class PeopleViewModel(
  * Lernziele:
  *
  * - Gemeinsame Effect-Infrastruktur in mehreren ViewModels einsetzen.
- * - Fehler aus Repository-Operationen als einmalige Effects behandeln.
+ * - Dauerhafte Ladefehler von einmaligen Aktionsfehlern unterscheiden.
  * - Navigation und Undo als spätere Erweiterungen vorbereiten.
  */

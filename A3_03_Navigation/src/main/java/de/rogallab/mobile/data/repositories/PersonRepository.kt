@@ -6,6 +6,7 @@ import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -16,10 +17,15 @@ class PersonRepository(
    private val _personDao: IPersonDao  // ctor injection
 ) : IPersonRepository {
 
-   override fun observeAll(): Flow<Result<List<Person>>> =
-      _personDao.observeAll()
+   // private var _counter = 0
+
+   override fun observeAll(): Flow<Result<List<Person>>> {
+      //_counter++
+      // Alog.d("<-PersonRepository","observeAll(), counter=$_counter")
+      return _personDao.observeAll()
          .map { dtos ->
-            //throw RuntimeException("Test exception in observeAll()") // Test exception handling in Flow
+            // if (_counter == 1)
+            //   throw RuntimeException("Test exception in observeAll()") // Test exception handling in Flow
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -27,6 +33,7 @@ class PersonRepository(
          .catch { throwable ->
             emit(Result.failure(throwable))
          }
+   }
 
    override suspend fun findById(id: String): Result<Person?> =
       try {
