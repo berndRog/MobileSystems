@@ -25,7 +25,7 @@ class PersonRepository(
       return _personDao.observeAll()
          .map { dtos ->
             // if (_counter == 1)
-            //   throw RuntimeException("Test exception in observeAll()") // Test exception handling in Flow
+            //   throw RuntimeException("Test exception in observeAll()")
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -37,6 +37,7 @@ class PersonRepository(
 
    override suspend fun findById(id: String): Result<Person?> =
       try {
+         // throw RuntimeException("Test exception in findById()")
          Result.success(_personDao.findById(id)?.toPerson())
       }
       // don't handle CancellationException, let it propagate to the caller
