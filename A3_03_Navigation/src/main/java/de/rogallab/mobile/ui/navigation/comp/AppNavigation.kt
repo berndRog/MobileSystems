@@ -109,7 +109,7 @@ fun AppNavigation() {
          entryProvider = entryProvider {
 
             // Root destination: list of people.
-            entry<PeopleKey> {
+            entry<PeopleKey> { peopleKey ->
                val peopleViewModel = koinViewModel<PeopleViewModel>()
 
                PeopleAdapter(
@@ -124,10 +124,12 @@ fun AppNavigation() {
                   },
                   // null -> create, id -> detail/edit.
                   onNavigateTo = { personId ->
-                     add(
-                        destination = PersonKey(personId),
-                        backStack = backStack,
-                     )
+                     if (backStack.lastOrNull() === peopleKey) {
+                        add(
+                           destination = PersonKey(personId),
+                           backStack = backStack,
+                        )
+                     }
                   },
                )
             }
@@ -150,11 +152,13 @@ fun AppNavigation() {
                   onError = snackbarController::showError,
 
                   onNavigateBack = { reason ->
-                     currentPopReason = when (reason) {
-                        BackReason.Save -> PopReason.SAVE
-                        BackReason.Cancel -> PopReason.Cancel
+                     if (backStack.lastOrNull() === personKey) {
+                        currentPopReason = when (reason) {
+                           BackReason.Save -> PopReason.SAVE
+                           BackReason.Cancel -> PopReason.Cancel
+                        }
+                        remove(backStack)
                      }
-                     remove(backStack)
                   },
                )
             }
@@ -224,8 +228,8 @@ private fun logNavigationOperation(
  *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
  *   People-Liste weiter angezeigt werden.
  *
- * - Ein Ladefehler im PersonScreen erzeugt dagegen nur ShowError. Es findet
- *   keine Navigation statt und die Fehlermeldung erscheint im selben Screen.
+ * - Ladefehler bleiben im jeweiligen Screen-State sichtbar; Retry startet
+ *   einen neuen Ladeversuch. Fehler einzelner Aktionen nutzen ShowError.
  *
  * - Eine eigene Coordinator-Queue ist nicht erforderlich. SnackbarHostState
  *   serialisiert gleichzeitig angeforderte Snackbars bereits selbst.
@@ -234,6 +238,7 @@ private fun logNavigationOperation(
  *   Animationen machen damit die Art der Rücknavigation sichtbar.
  *   System-Back liest isSaving direkt aus dem ViewModel des aktuellen PersonKey
  *   und wartet während eines Speichervorgangs auf dessen Ergebnis.
+ *   Verspätete Navigationseffekte ändern nur ihren aktuellen Backstack-Eintrag.
  *
  * - ShowUndo ist bereits als Action-Snackbar vorbereitet. In diesem Schritt
  *   bleiben onAction und onDismiss bewusst leer.

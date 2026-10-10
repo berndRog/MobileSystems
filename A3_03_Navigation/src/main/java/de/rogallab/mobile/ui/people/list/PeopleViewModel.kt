@@ -56,7 +56,8 @@ class PeopleViewModel(
             // Simulate a longer loading operation.
             delay(1000)
 
-            // Keep observing successful Room updates; stop after a failed result.
+            // Successful Room emissions keep the list current. Result.failure ends
+            // this collector; only RetryLoad starts a new observation.
             _repository.observeAll().takeWhile { result: Result<List<Person>> ->
                result
                   .onSuccess { people ->
