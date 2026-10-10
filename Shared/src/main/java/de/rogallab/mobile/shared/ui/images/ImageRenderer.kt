@@ -46,7 +46,7 @@ fun ImageRenderer(
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),
             alignment = Alignment.TopCenter,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
          )
       }
    }

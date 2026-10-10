@@ -19,8 +19,7 @@ class PersonRepository(
    override fun observeAll(): Flow<Result<List<Person>>> =
       _personDao.observeAll()
          .map { dtos ->
-
-            throw RuntimeException("Test exception in observeAll()") // Test exception handling in Flow
+            //throw RuntimeException("Test exception in observeAll()") // Test exception handling in Flow
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -32,6 +31,8 @@ class PersonRepository(
    override suspend fun findById(id: String): Result<Person?> =
       try {
          Result.success(_personDao.findById(id)?.toPerson())
+         throw RuntimeException("Test exception in findById()") // Test exception handling in Flow
+
       }
       // don't handle CancellationException, let it propagate to the caller
       // viewModelScope will catch it and cancel the coroutine

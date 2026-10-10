@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +35,7 @@ import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
+import de.rogallab.mobile.ui.people.create_detail.PersonLoadFailure
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 
@@ -54,6 +58,7 @@ fun PersonAdapter(
 
    // Person data
    val person = personUiState.person
+   val loadFailure = personUiState.loadFailure
 
    // Collect one-time effects and translate them into UI callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -69,11 +74,14 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(enabled = !personUiState.isSaving, onClick = {
-                  viewModel.onIntent(PersonIntent.Save)
+               IconButton(enabled = !personUiState.isSaving && !personUiState.isLoading, onClick = {
+                  viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                       contentDescription = stringResource(R.string.action_back))
+                       contentDescription = stringResource(
+                          if (loadFailure == null) R.string.action_save
+                          else R.string.action_back
+                       ))
                }
             },
             title = {
@@ -92,6 +100,27 @@ fun PersonAdapter(
             contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      } else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure.message)
+            Button(
+               onClick = {
+                  viewModel.onIntent(
+                     if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                     else PersonIntent.RetryLoad
+                  )
+               },
+            ) {
+               Text(text = stringResource(
+                  if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+                  else R.string.action_retry
+               ))
+            }
          }
       } else {
 
@@ -138,9 +167,10 @@ fun PersonAdapter(
  *   SnackbarController weitergereicht. NavigateBack wird dagegen in eine
  *   Back-Stack-Operation übersetzt.
  *
- * - Der Toolbar-Pfeil und der Save-Button erzeugen PersonIntent.Save.
- *   Der Cancel-Button erzeugt PersonIntent.Cancel. Während Save läuft,
- *   bleiben diese Aktionen gesperrt.
+ * - Im Formular erzeugen Toolbar-Pfeil und Save-Button PersonIntent.Save;
+ *   der Cancel-Button erzeugt PersonIntent.Cancel. Bei einem Ladefehler führt
+ *   der Toolbar-Pfeil zurück. Der Fehlerzustand bietet je nach Ursache einen
+ *   Rückweg oder Retry. Während Save läuft, bleiben die Aktionen gesperrt.
  *
  * Lernziele:
  *

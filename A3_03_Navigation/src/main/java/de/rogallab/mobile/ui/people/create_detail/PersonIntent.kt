@@ -7,4 +7,11 @@ sealed interface PersonIntent {
    data class  PhoneChange(val phone: String) : PersonIntent
    data object Save : PersonIntent
    data object Cancel : PersonIntent
+   data object RetryLoad : PersonIntent
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - RetryLoad startet nach einem Repository-Ladefehler einen neuen Versuch.
+ */
