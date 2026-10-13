@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -10,9 +12,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -26,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
@@ -45,6 +50,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 fun PersonAdapter(
    viewModel: PersonViewModel,
    snackbarHostState: SnackbarHostState,
+   modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit
 ) {
@@ -58,6 +64,7 @@ fun PersonAdapter(
       by viewModel.stateFlow.collectAsStateWithLifecycle()
    // Person data
    val person = personUiState.person
+   val loadFailure = personUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -73,11 +80,14 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(onClick = {
-                  viewModel.onIntent(PersonIntent.Save)
-               }) {
+               IconButton(
+                  enabled = !personUiState.isLoading && !personUiState.isSaving && loadFailure == null,
+                  onClick = {
+                     viewModel.onIntent(PersonIntent.Save)
+                  }
+               ) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_back))
+                     contentDescription = stringResource(R.string.action_save))
                }
             },
             title = {
@@ -91,7 +101,7 @@ fun PersonAdapter(
                       modifier = Modifier.imePadding())
       },
    ) { innerPadding ->
-      // Show a loading indicator if the person data is still being loaded.
+      // Show a loading indicator
       if (personUiState.isLoading) {
          Box(
             modifier = Modifier
@@ -101,13 +111,50 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else {
-         // Show person data
-         val person = personUiState.person
+      }
 
+      // Show a load failure message and a retry button
+      else if (loadFailure != null) {
+         Column(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(
+               text = loadFailure.message,
+               style = MaterialTheme.typography.bodyLarge,
+               fontWeight = FontWeight.Bold,
+               modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Button(onClick = { viewModel.onIntent(PersonIntent.RetryLoad) }) {
+               Text(text = stringResource(R.string.action_retry))
+            }
+         }
+      }
+
+      // Show a saving indicator
+      else if (personUiState.isSaving) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      }
+
+      // Show PersonScreen with the person data if loading succeeded
+      else {
          // Map ViewModel state to simple screen parameters and
          // map screen callbacks back to MVI intents.
          PersonScreen(
+            isNew = personUiState.isNew,
+            isLoading = personUiState.isLoading,
+            isSaving = personUiState.isSaving,
             firstName = person.firstName,
             onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
 
@@ -125,7 +172,7 @@ fun PersonAdapter(
             onSave = { viewModel.onIntent(PersonIntent.Save) },
             onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-            modifier = Modifier
+            modifier = modifier
                .fillMaxSize()
                .padding(innerPadding)
                .padding(horizontal = 16.dp)
@@ -149,17 +196,18 @@ fun PersonAdapter(
  *
  *      ShowMessage  -> onMessage()
  *      ShowError    -> onError()
- *      NavigateBack -> onBack()
  *
- * - Der Adapter kennt weder SnackbarHostState noch SnackbarDuration. Wie eine
- *   Meldung dargestellt wird, entscheidet die aufrufende UI.
+ * - Ein lokaler SnackbarHost zeigt Meldungen des ausgewählten Screens.
+ *   MainActivity übergibt dafür einen SnackbarHostState und Callbacks.
  *
- * - Navigation bleibt bereits in der Schnittstelle vorbereitet. Die in
- *   MainActivity übergebenen Funktionen haben in A3_02 aber noch keine
- *   Navigationsfunktion.
+ * - A3_02 besitzt noch keine Navigation. Der Toolbar-Pfeil demonstriert
+ *   hier ausschließlich den Save-Intent.
  *
  * - Der PersonScreen bleibt zustandslos. State fließt vom ViewModel zum Screen,
  *   Benutzeraktionen fließen als Intents zurück zum ViewModel.
+ * - Ladefehler stehen dauerhaft im State; ShowMessage und ShowError bleiben
+ *   einmalige Effects. NotFound und Failed bieten ohne Backstack Retry.
+ *   Während Save sind weitere Aktionen gesperrt.
  *
  * Lernziele:
  *

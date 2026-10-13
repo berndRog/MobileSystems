@@ -1,21 +1,21 @@
 package de.rogallab.mobile.ui.people.list.comp
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,7 +40,6 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: () -> Unit,
@@ -53,6 +52,7 @@ fun PeopleAdapter(
    // Collect the persistent UI state from the ViewModel.
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = peopleUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
@@ -82,14 +82,10 @@ fun PeopleAdapter(
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-            modifier = Modifier.imePadding())
-      },
    ) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PeopleScreen.
-      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+      // Show loading before presenting a result or a persistent failure.
+      if (peopleUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -101,7 +97,19 @@ fun PeopleAdapter(
             )
          }
 
-      // Show the stateless PeopleScreen with the current list of people.
+      } else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure)
+            Button(onClick = { viewModel.onIntent(PeopleIntent.RetryLoad) }) {
+               Text(text = stringResource(R.string.action_retry))
+            }
+         }
+
+      // Show the stateless PeopleScreen, including a successfully loaded empty list.
       } else {
          val people = peopleUiState.people
 
@@ -158,6 +166,8 @@ private fun PeopleCreateButton(
  * - Dauerhafter State wird mit collectAsStateWithLifecycle() beobachtet.
  *   Einmalige Effects werden getrennt mit dem generischen EffectHandler
  *   gesammelt.
+ * - Ladeanzeige, dauerhafter Ladefehler mit Retry und Liste sind drei
+ *   getrennte Darstellungen desselben State.
  *
  * - Der Adapter übersetzt feature-spezifische Effects in einfache Callbacks:
  *

@@ -27,13 +27,13 @@ class SnackbarController(
       }
    }
 
-   // Shows an error until it is dismissed by the user.
+   // Shows an error for a limited time; the user can dismiss it sooner.
    fun showError(error: String) {
       coroutineScope.launch {
          snackbarHostState.showSnackbar(
             message = error,
             withDismissAction = true,
-            duration = SnackbarDuration.Indefinite,
+            duration = SnackbarDuration.Long,
          )
       }
    }
@@ -86,7 +86,7 @@ fun rememberSnackbarController(
  * - Die drei öffentlichen Methoden beschreiben bereits die Art der Snackbar:
  *
  *      showMessage() -> kurze Informationsmeldung
- *      showError()   -> Fehlermeldung mit Dismiss-Schaltfläche
+ *      showError()   -> lange Fehlermeldung mit Dismiss-Schaltfläche
  *      showAction()  -> Meldung mit Aktion, z. B. Delete oder Undo
  *
  *   Ein zusätzliches Nachrichtenobjekt mit eigenem Typ ist deshalb nicht

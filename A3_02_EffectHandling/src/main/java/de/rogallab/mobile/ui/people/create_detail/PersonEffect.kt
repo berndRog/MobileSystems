@@ -1,10 +1,5 @@
 package de.rogallab.mobile.ui.people.create_detail
 
-enum class BackReason {
-   Save,
-   Cancel,
-}
-
 sealed interface PersonEffect {
 
    // Shows a short informational message in the UI.
@@ -14,3 +9,9 @@ sealed interface PersonEffect {
    data class ShowError(val message: String) : PersonEffect
 
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Einmalige Meldungen sind Effects; A3_02 verwendet noch keinen Backstack.
+ */

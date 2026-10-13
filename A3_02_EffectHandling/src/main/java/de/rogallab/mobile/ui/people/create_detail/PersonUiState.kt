@@ -5,5 +5,16 @@ import de.rogallab.mobile.domain.entities.Person
 data class PersonUiState(
    val person: Person = Person(),
    val isNew: Boolean = true,
-   val isLoading: Boolean = false
+   val isLoading: Boolean = false,
+   val isSaving: Boolean = false,
+   val loadFailure: PersonLoadFailure? = null,
 )
+
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - isSaving zeigt einen laufenden Speichervorgang an.
+ * - loadFailure unterscheidet eine fehlende Person von einem Repository-Fehler.
+ *   Beide bleiben sichtbar, bis ein sinnvoller weiterer Schritt möglich ist.
+ */
