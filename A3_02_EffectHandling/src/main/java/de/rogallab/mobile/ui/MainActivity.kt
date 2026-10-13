@@ -34,6 +34,7 @@ class MainActivity : BaseActivity(TAG) {
 
       setContent {
 
+         // One SnackbarHostState and one visible host are shared by all screens.
          val snackbarHostState = remember { SnackbarHostState() }
          val snackbarController = rememberSnackbarController(
             snackbarHostState = snackbarHostState,

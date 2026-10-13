@@ -10,13 +10,6 @@ data class PersonUiState(
    val loadFailure: PersonLoadFailure? = null,
 )
 
-sealed interface PersonLoadFailure {
-   val message: String
-
-   data class NotFound(override val message: String) : PersonLoadFailure
-   data class Failed(override val message: String) : PersonLoadFailure
-}
-
 /*
  * Didaktik und Lernziele
  *

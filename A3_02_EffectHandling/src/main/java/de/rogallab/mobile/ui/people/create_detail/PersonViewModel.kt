@@ -63,13 +63,17 @@ class PersonViewModel(
             delay(1000)
 
             _repository.findById(id)
+
                .onSuccess { person ->
+                  // Store the loaded person.
                   if (person != null) {
                      Alog.d(TAG, "_repository.findById.onSuccess: $person")
                      _stateFlow.update { state: PersonUiState ->
                         state.copy(person = person, loadFailure = null)
                      }
-                  } else {
+                  }
+                  // A successful Result may still contain null if no person exists.
+                  else {
                      val error = _stringProvider.getString(R.string.error_person_not_found)
                      Alog.d(TAG, "_repository.findById.onSuccess (error): $error")
                      _stateFlow.update { state: PersonUiState ->
@@ -77,6 +81,8 @@ class PersonViewModel(
                      }
                   }
                }
+
+               // Handle repository errors.
                .onFailure { throwable ->
                   if (throwable is CancellationException) throw throwable
                   val error = _stringProvider.getString(R.string.error_person_load)
@@ -86,9 +92,13 @@ class PersonViewModel(
                   }
                }
          }
+
+         // Handle unexpected exceptions in coroutines.
          catch (e: CancellationException) {
             throw e
          }
+
+         // Handle unexpected exceptions
          catch (e: Exception) {
             val error = _stringProvider.getString(R.string.error_person_load)
             Alog.e(TAG, "Unexpected load failure", e)
@@ -96,6 +106,8 @@ class PersonViewModel(
                state.copy(loadFailure = PersonLoadFailure.Failed(error))
             }
          }
+
+         // Reset the loading flag regardless of success or failure.
          finally {
             _stateFlow.update { state: PersonUiState ->
                state.copy(isLoading = false)
@@ -187,7 +199,7 @@ class PersonViewModel(
          }
       }
 
-      // Validate the complete entity before accessing the repository.
+      // Validate the complete person before accessing the repository.
       val error = _validator.validatePerson(person)
       if (error != null) {
          viewModelScope.launch {
@@ -197,35 +209,45 @@ class PersonViewModel(
       }
 
       // Expose the active save to both the UI and the duplicate-save guard.
-      _stateFlow.update { state: PersonUiState -> state.copy(isSaving = true) }
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isSaving = true)
+      }
 
       viewModelScope.launch {
          try {
-            // New entities are inserted, existing entities are updated.
+            // Create a new person or update the existing person
             val result =
                if (_isNew) _repository.create(person)
                else _repository.update(person)
 
             result
+               // Handle the repository result and emit a one-time effect for success
                .onSuccess {
                   val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
                   _effectDelegate.emit(PersonEffect.ShowMessage(message))
                }
+               // Handle repository errors and emit a one-time effect for failure.
                .onFailure { throwable ->
                   Alog.e(TAG, "Save failed", throwable)
                   val error = _stringProvider.getString(R.string.error_person_save)
                   _effectDelegate.emit(PersonEffect.ShowError(error))
                }
          }
+
+         // Handle unexpected exceptions in coroutines.
          catch (e: CancellationException) {
             throw e
          }
+
+         // Handle unexpected exceptions and emit a one-time effect for failure.
          catch (e: Exception) {
             Alog.e(TAG, "Unexpected save failure", e)
             _effectDelegate.emit(PersonEffect.ShowError(
                _stringProvider.getString(R.string.error_person_save)
             ))
          }
+
+         // Reset the saving flag regardless of success or failure.
          finally {
             _stateFlow.update { state: PersonUiState ->
                state.copy(isSaving = false)

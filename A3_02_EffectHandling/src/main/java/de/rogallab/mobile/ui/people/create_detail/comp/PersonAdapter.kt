@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
@@ -78,10 +80,12 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(enabled = !personUiState.isLoading && !personUiState.isSaving &&
-                  loadFailure == null, onClick = {
-                  viewModel.onIntent(PersonIntent.Save)
-               }) {
+               IconButton(
+                  enabled = !personUiState.isLoading && !personUiState.isSaving && loadFailure == null,
+                  onClick = {
+                     viewModel.onIntent(PersonIntent.Save)
+                  }
+               ) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                      contentDescription = stringResource(R.string.action_save))
                }
@@ -97,7 +101,7 @@ fun PersonAdapter(
                       modifier = Modifier.imePadding())
       },
    ) { innerPadding ->
-      // Show a loading indicator if the person data is still being loaded.
+      // Show a loading indicator
       if (personUiState.isLoading) {
          Box(
             modifier = Modifier
@@ -107,21 +111,44 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else if (loadFailure != null) {
+      }
+
+      // Show a load failure message and a retry button
+      else if (loadFailure != null) {
          Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
          ) {
-            Text(text = loadFailure.message)
+            Text(
+               text = loadFailure.message,
+               style = MaterialTheme.typography.bodyLarge,
+               fontWeight = FontWeight.Bold,
+               modifier = Modifier.padding(bottom = 16.dp)
+            )
             Button(onClick = { viewModel.onIntent(PersonIntent.RetryLoad) }) {
                Text(text = stringResource(R.string.action_retry))
             }
          }
-      } else {
-         // Show person data
-         val person = personUiState.person
+      }
 
+      // Show a saving indicator
+      else if (personUiState.isSaving) {
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+         ) {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      }
+
+      // Show PersonScreen with the person data if loading succeeded
+      else {
          // Map ViewModel state to simple screen parameters and
          // map screen callbacks back to MVI intents.
          PersonScreen(

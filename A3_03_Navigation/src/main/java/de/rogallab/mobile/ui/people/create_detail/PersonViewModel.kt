@@ -66,8 +66,8 @@ class PersonViewModel(
 
             // Find the person by id.
             _repository.findById(id)
-               .onSuccess { person ->
 
+               .onSuccess { person ->
                   // Store the loaded person.
                   if (person != null) {
                      Alog.d(TAG, "_repository.findById.onSuccess: $person")
@@ -84,6 +84,8 @@ class PersonViewModel(
                      }
                   }
                }
+
+               // Handle repository errors.
                .onFailure { throwable ->
                   if (throwable is CancellationException) throw throwable
                   val error = _stringProvider.getString(R.string.error_person_load)
