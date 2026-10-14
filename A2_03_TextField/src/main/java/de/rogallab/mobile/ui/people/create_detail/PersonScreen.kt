@@ -47,7 +47,6 @@ fun PersonScreen(
       InputName(
          name = firstName,
          onNameChange = { it ->
-            Alog.d(tag, "onLastNameChange: $it")
             onFirstNameChange(it)
           },
          label = "Vorname"
@@ -55,7 +54,6 @@ fun PersonScreen(
       InputName(
          name = lastName,
          onNameChange = { it ->
-            Alog.d(tag, "onLastNameChange: $it")
             onLastNameChange(it)
          },
          label = "Nachname"

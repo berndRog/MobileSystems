@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.BaseActivity
+import de.rogallab.mobile.ui.people.create_detail.PersonAdapterSth
 import de.rogallab.mobile.ui.people.create_detail.mvvm.comp.PersonAdapterMvvm
 import de.rogallab.mobile.ui.theme.AppTheme
 
@@ -34,19 +35,19 @@ class MainActivity : BaseActivity(TAG) {
 
          AppTheme {
             Scaffold(
-               modifier = Modifier
-                  .padding(all = 16.dp).fillMaxSize()
+               modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
 
-//               PersonAdapterStateHolder(
+               PersonAdapterSth(
+                  modifier = Modifier
+                     .padding(innerPadding)
+                     .fillMaxWidth().padding(horizontal = 8.dp)
+               )
+
+//               PersonAdapterMvvm(
 //                  modifier = Modifier
 //                     .padding(innerPadding).fillMaxWidth()
 //               )
-
-               PersonAdapterMvvm(
-                  modifier = Modifier
-                     .padding(innerPadding).fillMaxWidth()
-               )
 
 //               PersonAdapterMvi(
 //                  modifier = Modifier

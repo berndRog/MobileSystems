@@ -1,5 +1,6 @@
 package de.rogallab.mobile.domain.entities
 
+import android.os.Parcelable
 import androidx.compose.runtime.Immutable
 import java.util.UUID
 
