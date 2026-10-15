@@ -50,19 +50,19 @@ class MainActivity : BaseActivity(TAG) {
 
          AppTheme {
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError
-            )
-
-//            PeopleAdapter(
-//               viewModel = peopleViewModel,
+//            PersonAdapter(
+//               viewModel = personViewModel,
 //               snackbarHostState = snackbarHostState,
 //               onMessage = snackbarController::showMessage,
-//               onError = snackbarController::showError,
+//               onError = snackbarController::showError
 //            )
+
+            PeopleAdapter(
+               viewModel = peopleViewModel,
+               snackbarHostState = snackbarHostState,
+               onMessage = snackbarController::showMessage,
+               onError = snackbarController::showError,
+            )
 
          }
       }

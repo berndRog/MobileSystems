@@ -102,7 +102,7 @@ fun PersonAdapter(
       },
    ) { innerPadding ->
       // Show a loading indicator
-      if (personUiState.isLoading) {
+      if (personUiState.isLoading || personUiState.isSaving) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -135,22 +135,8 @@ fun PersonAdapter(
          }
       }
 
-      // Show a saving indicator
-      else if (personUiState.isSaving) {
-         Box(
-            modifier = Modifier
-               .fillMaxSize()
-               .padding(innerPadding),
-            contentAlignment = Alignment.TopCenter,
-         ) {
-            CircularProgressIndicator(modifier = Modifier.size(64.dp))
-         }
-      }
-
       // Show PersonScreen with the person data if loading succeeded
       else {
-         // Map ViewModel state to simple screen parameters and
-         // map screen callbacks back to MVI intents.
          PersonScreen(
             isNew = personUiState.isNew,
             isLoading = personUiState.isLoading,

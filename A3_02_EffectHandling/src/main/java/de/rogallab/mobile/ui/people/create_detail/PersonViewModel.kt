@@ -34,8 +34,10 @@ class PersonViewModel(
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
-      else PersonUiState(isNew = false, isLoading = true)
+      if (_isNew)
+         PersonUiState(isNew = true, isLoading = false)
+      else
+         PersonUiState(isNew = false, isLoading = true)
 
    // Mutable PersonUiState is kept private inside the ViewModel.
    private val _stateFlow: MutableStateFlow<PersonUiState> =
@@ -44,14 +46,13 @@ class PersonViewModel(
    val stateFlow: StateFlow<PersonUiState> =
       _stateFlow.asStateFlow()
 
-   // Load the existing person when the ViewModel is created in edit mode.
+   // For a detail screen load the existing person.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if(!_isNew) loadPerson(_personId!!)
    }
 
-   // Load the existing person when the ViewModel is detail mode.
+   // Load existing person in detail mode.
    private fun loadPerson(id: String) {
-      Alog.d(TAG, "loadPerson: $id")
 
       // Mark the attempt before launching so repeated retries cannot overlap it.
       _stateFlow.update { state: PersonUiState ->
@@ -62,7 +63,8 @@ class PersonViewModel(
             // Keep the existing delay used to demonstrate loading.
             delay(1000)
 
-            _repository.findById(id)
+            // load person by id from repository
+            _repository.findById(id) // Result<Person?> is returned
 
                .onSuccess { person ->
                   // Store the loaded person.
@@ -84,6 +86,7 @@ class PersonViewModel(
 
                // Handle repository errors.
                .onFailure { throwable ->
+                  // Rethrow CancellationException to propagate coroutine cancellation.
                   if (throwable is CancellationException) throw throwable
                   val error = _stringProvider.getString(R.string.error_person_load)
                   Alog.e(TAG, error, throwable)
@@ -116,7 +119,7 @@ class PersonViewModel(
       }
    }
 
-   // Dispatcher: Single public entry point for all events coming from the UI layer.
+   // Dispatcher: transform intent into an action
    fun onIntent(intent: PersonIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -135,29 +138,24 @@ class PersonViewModel(
       }
    }
 
-   // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
-   // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
-   // Updates the optional email address in the current UI state.
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty()) emailNullable = email.trim()
-
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
 
-   // Updates the optional phone number in the current UI state.
    private fun changePhone(phone: String) {
       var phoneNullable: String? = null
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
@@ -214,7 +212,9 @@ class PersonViewModel(
       }
 
       viewModelScope.launch {
+
          try {
+
             // Create a new person or update the existing person
             val result =
                if (_isNew) _repository.create(person)

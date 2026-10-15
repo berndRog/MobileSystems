@@ -25,7 +25,7 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the observable PeopleUIState
+   // Mutable PeopleUiState is kept private inside the ViewModel.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
       MutableStateFlow(PeopleUiState())
    // Exposes the PeopleUiState as a read-only StateFlow to the UI.
@@ -35,6 +35,7 @@ class PeopleViewModel(
    // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
 
+   // Start the reactive observation pipeline
    init {
       Alog.i(TAG, "init: observePeople()")
       observePeople()
@@ -55,25 +56,26 @@ class PeopleViewModel(
             // Keep the existing delay used to demonstrate loading.
             delay(1000)
 
-            // Successful Room emissions keep updating the list.
-            // A failure stops collection until RetryLoad starts a new observation.
-            _repository.observeAll().takeWhile { result: Result<List<Person>> ->
+            _repository.observeAll().collect { result ->
                result
                   .onSuccess { people ->
-                     _stateFlow.update { state: PeopleUiState ->
+                     _stateFlow.update { state ->
                         state.copy(people = people, isLoading = false, loadFailure = null)
                      }
                   }
                   .onFailure { throwable ->
                      if (throwable is CancellationException) throw throwable
-                     val error = _stringProvider.getString(R.string.error_people_observe)
+
+                     val error = _stringProvider.getString(
+                        R.string.error_people_observe
+                     )
                      Alog.e(TAG, error, throwable)
-                     _stateFlow.update { state: PeopleUiState ->
+
+                     _stateFlow.update { state ->
                         state.copy(isLoading = false, loadFailure = error)
                      }
                   }
-               result.isSuccess
-            }.collect { }
+            }
          }
          catch (e: CancellationException) {
             throw e
@@ -88,7 +90,8 @@ class PeopleViewModel(
          finally {
             // A Room collector can outlive its first result.
             _stateFlow.update { state: PeopleUiState ->
-               if (state.isLoading) state.copy(isLoading = false) else state
+               if (state.isLoading) state.copy(isLoading = false)
+               else state
             }
          }
       }
@@ -108,7 +111,6 @@ class PeopleViewModel(
             }
       }
    }
-
 
    // Removes a person from the repository.
    private fun remove(person: Person) {

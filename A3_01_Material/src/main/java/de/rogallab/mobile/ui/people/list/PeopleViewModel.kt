@@ -2,8 +2,10 @@ package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import kotlinx.coroutines.Job
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 // New version of PersonViewModel using updateState inline function
 class PeopleViewModel(
+   private val _stringProvider: IStringProvider,
    private val _repository: IPersonRepository
 ): ViewModel() {
 
@@ -87,6 +90,8 @@ class PeopleViewModel(
       viewModelScope.launch {
          _repository.remove(person)
             .onSuccess {
+               val message = _stringProvider.getString(
+                  R.string.message_person_removed, person.fullName)
                Alog.d(TAG, "remove success")
             }
             .onFailure {
