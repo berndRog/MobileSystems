@@ -49,9 +49,12 @@ class PeopleViewModel(
       }
 
       _observeJob = viewModelScope.launch {
-         // Keep the existing delay used to demonstrate loading.
+
          delay(1000)
 
+         // Successful Room emissions keep the list current.
+         // Result.failure ends this collector
+         // Only RetryLoad starts a new observation.
          _repository.observeAll().collect { result ->
             result
                // Update the UI state with the list of people when the repository operation succeeded.

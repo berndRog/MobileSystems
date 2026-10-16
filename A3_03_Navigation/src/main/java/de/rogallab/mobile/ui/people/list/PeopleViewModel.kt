@@ -26,20 +26,18 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Holds the observable PeopleUIState
-   private val _stateFlow: MutableStateFlow<PeopleUiState> =
-      MutableStateFlow(PeopleUiState())
-   // Exposes the PeopleUiState as a read-only StateFlow to the UI.
-   val stateFlow: StateFlow<PeopleUiState> =
-      _stateFlow.asStateFlow()
+   // StateFlow PeopleUIState
+   private val _stateFlow = MutableStateFlow(PeopleUiState())
+   val stateFlow = _stateFlow.asStateFlow()
 
-   // Job used to observe changes from the repository.
-   private var _observeJob: Job? = null
-
+   // Start the reactive observation pipeline
    init {
       Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
+
+   // Job used to observe changes from the repository.
+   private var _observeJob: Job? = null
 
    // Observes the repository and updates the list state.
    private fun observePeople() {
@@ -47,50 +45,36 @@ class PeopleViewModel(
       _observeJob?.cancel()
 
       // Mark the attempt before launching so repeated RetryLoad intents cannot overlap it.
-      _stateFlow.update { state: PeopleUiState ->
+      _stateFlow.update { state  ->
          state.copy(isLoading = true, loadFailure = null)
       }
 
       _observeJob = viewModelScope.launch {
-         try {
-            // Simulate a longer loading operation.
-            delay(1000)
 
-            // Successful Room emissions keep the list current. Result.failure ends
-            // this collector; only RetryLoad starts a new observation.
-            _repository.observeAll().takeWhile { result: Result<List<Person>> ->
-               result
-                  .onSuccess { people ->
-                     _stateFlow.update { state: PeopleUiState ->
-                        state.copy(people = people, isLoading = false, loadFailure = null)
-                     }
+         delay(1000)
+
+         // Successful Room emissions keep the list current.
+         // Result.failure ends this collector
+         // Only RetryLoad starts a new observation.
+         _repository.observeAll().collect { result ->
+            result
+               // Update the UI state with the list of people when the repository operation succeeded.
+               .onSuccess { people ->
+                  _stateFlow.update { state ->
+                     state.copy(people = people, isLoading = false, loadFailure = null)
                   }
-                  .onFailure { throwable ->
-                     if (throwable is CancellationException) throw throwable
-                     val error = _stringProvider.getString(R.string.error_people_observe)
-                     Alog.e(TAG, error, throwable)
-                     _stateFlow.update { state: PeopleUiState ->
-                        state.copy(isLoading = false, loadFailure = error)
-                     }
+               }
+
+               // Update the UI state with an error message when the repository operation failed.
+               .onFailure { throwable ->
+                  val error = _stringProvider.getString(
+                     R.string.error_people_observe
+                  )
+                  Alog.e(TAG, error, throwable)
+                  _stateFlow.update { state ->
+                     state.copy(isLoading = false, loadFailure = error)
                   }
-               result.isSuccess
-            }.collect { }
-         }
-         catch (e: CancellationException) {
-            throw e
-         }
-         catch (e: Exception) {
-            val error = _stringProvider.getString(R.string.error_people_observe)
-            Alog.e(TAG, "Unexpected load failure", e)
-            _stateFlow.update { state: PeopleUiState ->
-               state.copy(isLoading = false, loadFailure = error)
-            }
-         }
-         finally {
-            // A Room collector can outlive the first result; also clear loading on cancellation.
-            _stateFlow.update { state: PeopleUiState ->
-               if (state.isLoading) state.copy(isLoading = false) else state
-            }
+               }
          }
       }
    }
