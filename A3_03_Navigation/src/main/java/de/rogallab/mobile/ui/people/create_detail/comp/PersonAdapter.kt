@@ -57,8 +57,6 @@ fun PersonAdapter(
    // Collect the current ViewModel state with lifecycle awareness.
    val personUiState: PersonUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
-
-   // Person data
    val person = personUiState.person
    val loadFailure = personUiState.loadFailure
 

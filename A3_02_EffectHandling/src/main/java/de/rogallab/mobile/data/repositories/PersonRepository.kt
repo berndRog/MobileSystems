@@ -37,15 +37,15 @@ class PersonRepository(
    }
 
    override suspend fun findById(id: String): Result<Person?> {
-//      _counterFindById++
-//      Alog.d(TAG,"findById(), counter=$_counterFindById")
+      _counterFindById++
+      Alog.d(TAG,"findById(), counter=$_counterFindById")
 
       return try {
-//         if(_counterFindById == 1)
-//              Result.success(null)
-//         else if(_counterFindById == 2)
-//            throw RuntimeException("Test exception in findById()")
-//         else
+         if(_counterFindById == 1)
+            throw RuntimeException("Test exception in findById()")
+         else if(_counterFindById == 2)
+            Result.success(null)
+         else
          Result.success(_personDao.findById(id)?.toPerson())
       }
       // don't handle CancellationException, let it propagate to the caller

@@ -17,15 +17,16 @@ class PersonRepository(
    private val _personDao: IPersonDao  // ctor injection
 ) : IPersonRepository {
 
-   // private var _counter = 0
+   private var _counterObserveAll = 0
+   private var _counterFindById = 0
 
    override fun observeAll(): Flow<Result<List<Person>>> {
-      //_counter++
-      // Alog.d("<-PersonRepository","observeAll(), counter=$_counter")
+      //_counterObserveAll++
+      //Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
       return _personDao.observeAll()
          .map { dtos ->
-            // if (_counter == 1)
-            //   throw RuntimeException("Test exception in observeAll()")
+            if (_counterObserveAll == 1)
+               throw RuntimeException("Test exception in observeAll()")
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -35,10 +36,17 @@ class PersonRepository(
          }
    }
 
-   override suspend fun findById(id: String): Result<Person?> =
-      try {
-         // throw RuntimeException("Test exception in findById()")
-         Result.success(_personDao.findById(id)?.toPerson())
+   override suspend fun findById(id: String): Result<Person?> {
+      //_counterFindById++
+      Alog.d(TAG,"findById(), counter=$_counterFindById")
+
+      return try {
+//         if(_counterFindById == 1)
+//            throw RuntimeException("Test exception in findById()")
+//         else if(_counterFindById == 2)
+//            Result.success(null)
+//         else
+            Result.success(_personDao.findById(id)?.toPerson())
       }
       // don't handle CancellationException, let it propagate to the caller
       // viewModelScope will catch it and cancel the coroutine
@@ -49,6 +57,7 @@ class PersonRepository(
       catch (e: Throwable) {
          Result.failure(e)
       }
+   }
 
    override suspend fun create(person: Person): Result<Unit> =
       try {
@@ -63,6 +72,7 @@ class PersonRepository(
 
    override suspend fun update(person: Person): Result<Unit> =
       try {
+         //throw RuntimeException("Test exception in update()")
          Result.success(_personDao.update(person.toPersonDto()))
       }
       catch (e: CancellationException) {
@@ -74,6 +84,7 @@ class PersonRepository(
 
    override suspend fun remove(person: Person): Result<Unit> =
       try {
+         throw RuntimeException("Test exception in remove()")
          Result.success(_personDao.delete(person.toPersonDto()))
       }
       catch (e: CancellationException) {
@@ -83,4 +94,15 @@ class PersonRepository(
          Result.failure(e)
       }
 
+   companion object {
+      private const val TAG = "<-PersonRepository"
+   }
+
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - Die Repository-Schnittstelle liefert dieselben Result-Werte wie in A3_03.
+ * - CancellationException beendet Coroutines und wird nicht zum Ladefehler.
+ */

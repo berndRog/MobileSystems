@@ -238,7 +238,7 @@ class PersonViewModel(
  * - PersonUiState enthält den dauerhaft sichtbaren Zustand des Screens.
  *   Änderungen erfolgen konsequent in der Form:
  *
- *      _stateFlow.update { state: PersonUiState ->
+ *      _stateFlow.update { state ->
  *         state.copy(...)
  *      }
  *
