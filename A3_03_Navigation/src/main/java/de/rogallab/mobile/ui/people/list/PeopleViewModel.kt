@@ -9,16 +9,12 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.effects.IEffectSource
-import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.coroutines.cancellation.CancellationException
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
@@ -26,7 +22,7 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // StateFlow PeopleUIState
+   // StateFlow PeopleUiState
    private val _stateFlow = MutableStateFlow(PeopleUiState())
    val stateFlow = _stateFlow.asStateFlow()
 
@@ -44,8 +40,8 @@ class PeopleViewModel(
       // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
-      // Mark the attempt before launching so repeated RetryLoad intents cannot overlap it.
-      _stateFlow.update { state  ->
+      // Mark the attempt before launching so repeated retries cannot overlap it.
+      _stateFlow.update { state ->
          state.copy(isLoading = true, loadFailure = null)
       }
 
@@ -79,7 +75,6 @@ class PeopleViewModel(
       }
    }
 
-
    // Dispatches incoming UI intents to the corresponding action.
    fun onIntent(intent: PeopleIntent) {
       Alog.d(TAG, "intent: $intent")
@@ -95,13 +90,12 @@ class PeopleViewModel(
       }
    }
 
-   // Emits the prepared navigation effect.
+   // Emits navigation as a one-time effect; AppNavigation updates the back stack.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
          _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
       }
    }
-
 
    // Removes a person from the repository.
    private fun remove(person: Person) {
@@ -130,16 +124,11 @@ class PeopleViewModel(
  * - PeopleUiState beschreibt den dauerhaften Zustand der Personenliste.
  *   Änderungen verwenden konsequent state: PeopleUiState als Lambda-Parameter.
  *
- * - Ein Listen-Ladefehler bleibt im State sichtbar. Erst RetryLoad startet eine
- *   neue Beobachtung; erfolgreiche Room-Emissionen aktualisieren weiterhin die Liste.
+ * - Ein Listen-Ladefehler bleibt im State sichtbar. Erst RetryLoad startet
+ *   einen neuen Collector; erfolgreiche Room-Emissionen aktualisieren die Liste.
  * - Fehler einzelner Benutzeraktionen bleiben einmalige ShowError-Effects.
  *
- * - ShowUndo ist bereits vorbereitet und enthält Meldung, Action-Text sowie die id der
- *   gelöschten Person. Die eigentliche Wiederherstellung wird erst beim
- *   späteren Gestures-/Undo-Schritt implementiert.
- *
- * - Create und Detail erzeugen bereits NavigateTo. Der Adapter übersetzt diesen
- *   Effect jetzt in das Hinzufügen eines PersonKey zum Navigation-3-Back-Stack.
+ * - Create und Detail erzeugen NavigateTo für den Navigation-3-Backstack.
  *
  * - String-Ressourcen werden im ViewModel über IStringProvider aufgelöst.
  *   Die Effects transportieren anschließend nur noch fertige Strings.
@@ -148,5 +137,5 @@ class PeopleViewModel(
  *
  * - Gemeinsame Effect-Infrastruktur in mehreren ViewModels einsetzen.
  * - Dauerhafte Ladefehler von einmaligen Aktionsfehlern unterscheiden.
- * - Navigation und Undo als spätere Erweiterungen vorbereiten.
+ * - Navigation als einmaligen Effect an den Backstack weitergeben.
  */

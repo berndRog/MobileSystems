@@ -14,11 +14,9 @@ import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.coroutines.cancellation.CancellationException
 
 class PersonViewModel(
    val personId: String?,
@@ -28,92 +26,72 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
-   // A null or blank id means that a new person is being created.
+   // A null or blank id means that a new person is created.
    private val _personId = personId?.takeUnless(String::isBlank)
    private val _isNew = _personId == null
 
-   // The initial state depends on whether a person is created or edited.
    private val _initialState =
       if (_isNew) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
-   // Mutable PersonUiState is kept private inside the ViewModel.
-   private val _stateFlow: MutableStateFlow<PersonUiState> =
-      MutableStateFlow(_initialState)
-   // Exposes the PersonUiState as a read-only StateFlow to the UI.
-   val stateFlow: StateFlow<PersonUiState> =
-      _stateFlow.asStateFlow()
+   // StateFloe PersonUiState
+   private val _stateFlow = MutableStateFlow(_initialState)
+   val stateFlow = _stateFlow.asStateFlow()
 
-   // Load the existing person when the ViewModel is detail mode.
+   // For a detail screen load the existing person.
    init {
       if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person from the repository.
+   // Load existing person in detail mode.
    private fun loadPerson(id: String) {
-      Alog.d(TAG, "loadPerson: $id")
 
-      // Mark the attempt before launching so a second RetryLoad cannot overlap it.
-      _stateFlow.update { state: PersonUiState ->
+      // Mark the attempt before launching so repeated retries cannot overlap it.
+      _stateFlow.update { state ->
          state.copy(isLoading = true, loadFailure = null)
       }
       viewModelScope.launch {
-         try {
-            // Simulate a longer loading operation.
-            delay(1000)
 
-            // val id2 = "00000000-0000-0000-0000-000000000001" // Test: force a not-found error
+         // Keep the existing delay used to demonstrate loading.
+         delay(1000)
 
-            // Find the person by id.
-            _repository.findById(id)
+         // load person by id from repository
+         _repository.findById(id) // Result<Person?> is returned
 
-               .onSuccess { person ->
-                  // Store the loaded person.
-                  if (person != null) {
-                     Alog.d(TAG, "_repository.findById.onSuccess: $person")
-                     _stateFlow.update { state: PersonUiState ->
-                        state.copy(person = person, loadFailure = null)
-                     }
-                  }
-                  // A successful Result may still contain null if no person exists.
-                  else {
-                     val error = _stringProvider.getString(R.string.error_person_not_found)
-                     Alog.d(TAG, "_repository.findById.onSuccess (error): $error")
-                     _stateFlow.update { state: PersonUiState ->
-                        state.copy(loadFailure = PersonLoadFailure.NotFound(error))
-                     }
+            // Handle successful repository result
+            .onSuccess { person ->
+               // Store the loaded person.
+               if (person != null) {
+                  Alog.d(TAG, "_repository.findById.onSuccess: $person")
+                  _stateFlow.update { state ->
+                     state.copy(person = person, loadFailure = null)
                   }
                }
-
-               // Handle repository errors.
-               .onFailure { throwable ->
-                  if (throwable is CancellationException) throw throwable
-                  val error = _stringProvider.getString(R.string.error_person_load)
-                  Alog.e(TAG, error, throwable)
-                  _stateFlow.update { state: PersonUiState ->
-                     state.copy(loadFailure = PersonLoadFailure.Failed(error))
+               // A successful Result may still contain null if no person exists.
+               else {
+                  val error = _stringProvider.getString(R.string.error_person_not_found)
+                  Alog.d(TAG, "_repository.findById.onSuccess (error): $error")
+                  _stateFlow.update { state ->
+                     state.copy(loadFailure = PersonLoadFailure.NotFound(error))
                   }
                }
-         }
-         catch (e: CancellationException) {
-            throw e
-         }
-         catch (e: Exception) {
-            val error = _stringProvider.getString(R.string.error_person_load)
-            Alog.e(TAG, "Unexpected load failure", e)
-            _stateFlow.update { state: PersonUiState ->
-               state.copy(loadFailure = PersonLoadFailure.Failed(error))
             }
-         }
-         finally {
-            _stateFlow.update { state: PersonUiState ->
-               state.copy(isLoading = false)
+
+            // Handle repository failure returned as Result.failure
+            .onFailure { throwable ->
+               val error = _stringProvider.getString(R.string.error_person_load)
+               Alog.e(TAG, error, throwable)
+               _stateFlow.update { state ->
+                  state.copy(loadFailure = PersonLoadFailure.Failed(error))
+               }
             }
-         }
+
+         // Reset the loading flag regardless of success or failure.
+         _stateFlow.update { state -> state.copy(isLoading = false) }
       }
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
+   // Dispatcher: transform intent into an action
    fun onIntent(intent: PersonIntent) {
       Alog.d(TAG, "intent: $intent")
 
@@ -132,34 +110,29 @@ class PersonViewModel(
       }
    }
 
-   // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
-   // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
-   // Updates the optional email address while keeping the current UI state.
    private fun changeEmail(email: String) {
       var emailNullable: String? = null
       if (email.trim().isNotEmpty()) emailNullable = email.trim()
-
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
 
-   // Updates the optional phone number while keeping the current UI state.
    private fun changePhone(phone: String) {
       var phoneNullable: String? = null
       if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
 
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(phone = phoneNullable))
       }
    }
@@ -178,7 +151,7 @@ class PersonViewModel(
       if (person.email != null) {
          val email = sanitizeEmailInput(person.email)
          if (email != person.email) {
-            _stateFlow.update { state: PersonUiState ->
+            _stateFlow.update { state ->
                state.copy(person = state.person.copy(email = email))
             }
             person = _stateFlow.value.person.normalized()
@@ -189,14 +162,14 @@ class PersonViewModel(
       if (person.phone != null) {
          val phone = sanitizePhoneInput(person.phone)
          if (phone != person.phone) {
-            _stateFlow.update { state: PersonUiState ->
+            _stateFlow.update { state ->
                state.copy(person = state.person.copy(phone = phone))
             }
             person = _stateFlow.value.person.normalized()
          }
       }
 
-      // Perform final validation before writing to the repository.
+      // Validate the complete person before accessing the repository.
       val error = _validator.validatePerson(person)
       if (error != null) {
          viewModelScope.launch {
@@ -205,64 +178,48 @@ class PersonViewModel(
          return
       }
 
-      // Update: save operation is in progress.
-      _stateFlow.update { state: PersonUiState -> state.copy(isSaving = true) }
+      // Expose the active save to both the UI and the duplicate-save guard.
+      _stateFlow.update { state -> state.copy(isSaving = true) }
 
       viewModelScope.launch {
-         try {
-            // New entities are inserted, existing entities are updated.
-            val result =
-               if (_isNew) _repository.create(person)
-               else _repository.update(person)
 
-            result
-               .onSuccess {
-                  val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
-                  _effectDelegate.emit(PersonEffect.ShowMessage(message))
+         // Create a new person or update the existing person
+         val result =
+            if (_isNew) _repository.create(person)
+            else _repository.update(person)
 
-                  // The adapter translates this effect into a Navigation 3 operation.
-                  _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
-               }
-               .onFailure { throwable ->
-                  Alog.e(TAG, "Save failed", throwable)
-
-                  val error = _stringProvider.getString(R.string.error_person_save)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
-               }
-         }
-         catch (e: CancellationException) {
-            throw e
-         }
-         catch (e: Exception) {
-            Alog.e(TAG, "Unexpected save failure", e)
-            _effectDelegate.emit(
-               PersonEffect.ShowError(
-                  _stringProvider.getString(R.string.error_person_save)
-               )
-            )
-         }
-         finally {
-            // Reset the saving state when the operation finishes.
-            _stateFlow.update { state: PersonUiState ->
-               state.copy(isSaving = false)
+         result
+            // Handle the repository result and emit a one-time effect for success
+            .onSuccess {
+               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
+               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
+            // Handle repository errors and emit a one-time effect for failure.
+            .onFailure { throwable ->
+               Alog.e(TAG, "Save failed", throwable)
+               val error = _stringProvider.getString(R.string.error_person_save)
+               _effectDelegate.emit(PersonEffect.ShowError(error))
+            }
+
+         // Reset the saving flag regardless of success or failure.
+         _stateFlow.update { state: PersonUiState ->
+            state.copy(isSaving = false)
          }
+
       }
    }
 
-   // Cancels editing and emits the prepared back-navigation effect.
+   // Cancels editing
    private fun cancel() {
       if (_stateFlow.value.isSaving) return
 
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(
             person = state.person.copy(firstName = "", lastName = "")
          )
       }
-
-      // Navigation is emitted
       viewModelScope.launch {
-         // The adapter translates this effect into a Navigation 3 operation.
          _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
       }
    }
@@ -288,11 +245,10 @@ class PersonViewModel(
  *   Dadurch ist bereits am Lambda-Bezeichner erkennbar, welcher State
  *   verändert wird.
  *
- * - Meldungen, Fehler und vorbereitete Navigation werden als PersonEffect
- *   ausgegeben und nicht im dauerhaften State gespeichert.
- *   isSaving sperrt einen zweiten Save und Cancel bis zum Repository-Ergebnis.
- *   Ein Ladefehler bleibt dagegen als loadFailure im State sichtbar und kann
- *   je nach Ursache durch Rücknavigation oder Retry behandelt werden.
+ * - Ladefehler bleiben im UI-State sichtbar. Save-Erfolg, Save-Fehler und
+ *   Validierungsfehler werden als einmalige PersonEffects ausgegeben.
+ *   NotFound führt in A3_03 zurück; Repository-Fehler bieten Retry.
+ *   isSaving sperrt weitere Save- und Cancel-Aktionen bis zum Ergebnis.
  *
  * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
  *
@@ -310,10 +266,8 @@ class PersonViewModel(
  *   Channel und Flow müssen deshalb nicht in jedem ViewModel erneut
  *   implementiert werden.
  *
- * - NavigateBack ist bereits vollständig im Effect-Typ vorbereitet. In diesem
- *   Lernschritt wird der Effect im Adapter an den Navigation-3-Back-Stack
- *   weitergegeben. Save und Cancel liefern unterschiedliche BackReason-Werte,
- *   damit unterschiedliche Rückwärtsanimationen sichtbar werden.
+ * - Save und Cancel erzeugen unterschiedliche NavigateBack-Effects für den
+ *   Navigation-3-Backstack und dessen Übergangsanimationen.
  *
  * Lernziele:
  *
@@ -321,5 +275,5 @@ class PersonViewModel(
  * - IStringProvider für String-Ressourcen und bereits vorhandene Strings unterscheiden.
  * - Implementierungsdelegation mit "by" verstehen.
  * - Fehlerbehandlung von konkreter UI-Darstellung entkoppeln.
- * - Navigationseffects in konkrete Navigation-3-Operationen überführen.
+ * - Ladefehler als State und Fehler einzelner Aktionen als Effects behandeln.
  */

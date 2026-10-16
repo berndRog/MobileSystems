@@ -9,7 +9,6 @@ import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,7 +17,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PeopleLoadFailureTest {
@@ -64,7 +62,7 @@ class PeopleLoadFailureTest {
       val repository = object : IPersonRepository by source {
          override fun observeAll(): Flow<Result<List<Person>>> {
             observations++
-            return source.peopleFlow
+            return source.observeAll()
          }
       }
       val viewModel = PeopleViewModel(repository, strings, EffectDelegate())
@@ -93,12 +91,9 @@ class PeopleLoadFailureTest {
    }
 
    @Test
-   fun thrownRepositoryException_becomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> = flow {
-            throw IllegalStateException("unexpected load failure")
-         }
+   fun repositoryFailure_becomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository().apply {
+         peopleFlow.value = Result.failure(IllegalStateException("load failure"))
       }
       val viewModel = PeopleViewModel(repository, strings, EffectDelegate())
       advanceUntilIdle()
@@ -128,20 +123,6 @@ class PeopleLoadFailureTest {
       assertFalse(viewModel.stateFlow.value.isLoading)
    }
 
-   @Test
-   fun cancellationResult_isNotShownAsLoadFailure() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> = flow {
-            emit(Result.failure(CancellationException("cancelled")))
-         }
-      }
-      val viewModel = PeopleViewModel(repository, strings, EffectDelegate())
-      advanceUntilIdle()
-
-      assertNull(viewModel.stateFlow.value.loadFailure)
-      assertFalse(viewModel.stateFlow.value.isLoading)
-   }
 }
 
 /*
@@ -149,5 +130,5 @@ class PeopleLoadFailureTest {
  *
  * - Tests unterscheiden einen gültigen leeren Datenbestand von einem Ladefehler.
  * - Ein fehlgeschlagener Flow bleibt beendet, bis RetryLoad ihn neu beobachtet.
- * - Laufende Versuche und CancellationException erzeugen keinen zweiten Ladefehler.
+ * - Retry während eines laufenden Versuchs startet keine zweite Beobachtung.
  */

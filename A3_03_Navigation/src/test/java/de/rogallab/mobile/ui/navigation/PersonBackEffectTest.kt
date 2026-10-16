@@ -129,12 +129,10 @@ class PersonBackEffectTest {
       }
 
    @Test
-   fun thrownSaveException_emitsErrorAndResetsSavingWithoutNavigation() =
+   fun failedSaveResult_emitsErrorAndResetsSavingWithoutNavigation() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = object : IPersonRepository by FakePersonRepository() {
-            override suspend fun create(person: Person): Result<Unit> {
-               throw IllegalStateException("unexpected repository failure")
-            }
+         val repository = FakePersonRepository().apply {
+            createResult = Result.failure(IllegalStateException("repository failure"))
          }
          val viewModel = PersonViewModel(null, repository, stringProvider, validator, EffectDelegate())
          viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))

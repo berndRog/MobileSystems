@@ -90,12 +90,10 @@ class PersonLoadFailureTest {
    }
 
    @Test
-   fun thrownRepositoryException_becomesPersistentFailure() =
+   fun resultFailure_becomesPersistentFailure() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = object : IPersonRepository by FakePersonRepository() {
-            override suspend fun findById(id: String): Result<Person?> {
-               throw IllegalStateException("unexpected load failure")
-            }
+         val repository = FakePersonRepository().apply {
+            findResult = Result.failure(IllegalStateException("load failure"))
          }
          val viewModel = PersonViewModel("person-1", repository, strings, validator, EffectDelegate())
          advanceUntilIdle()
