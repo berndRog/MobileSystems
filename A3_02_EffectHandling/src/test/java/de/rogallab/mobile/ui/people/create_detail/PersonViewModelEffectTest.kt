@@ -165,14 +165,11 @@ class PersonViewModelEffectTest {
    }
 
    @Test
-   fun thrownLoadExceptionBecomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val throwingRepository = object : IPersonRepository by source {
-         override suspend fun findById(id: String): Result<Person?> {
-            throw IllegalStateException("unexpected")
-         }
+   fun resultLoadFailureBecomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository().apply {
+         findResult = Result.failure(IllegalStateException("load failed"))
       }
-      val viewModel = PersonViewModel("person-1", throwingRepository,
+      val viewModel = PersonViewModel("person-1", repository,
          stringProvider, validator, EffectDelegate())
       advanceUntilIdle()
 
@@ -216,14 +213,11 @@ class PersonViewModelEffectTest {
    }
 
    @Test
-   fun thrownSaveExceptionEmitsErrorAndResetsSaving() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val throwingRepository = object : IPersonRepository by source {
-         override suspend fun create(person: Person): Result<Unit> {
-            throw IllegalStateException("unexpected write failure")
-         }
+   fun resultSaveFailureEmitsErrorAndResetsSaving() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository().apply {
+         createResult = Result.failure(IllegalStateException("write failed"))
       }
-      val viewModel = PersonViewModel(null, throwingRepository,
+      val viewModel = PersonViewModel(null, repository,
          stringProvider, validator, EffectDelegate())
       viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
       viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))

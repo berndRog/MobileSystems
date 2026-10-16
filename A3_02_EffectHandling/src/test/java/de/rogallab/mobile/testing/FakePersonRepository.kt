@@ -4,6 +4,7 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.transformWhile
 
 class FakePersonRepository(
    people: List<Person> = emptyList(),
@@ -20,7 +21,10 @@ class FakePersonRepository(
    val updated = mutableListOf<Person>()
    val removed = mutableListOf<Person>()
 
-   override fun observeAll(): Flow<Result<List<Person>>> = peopleFlow
+   override fun observeAll(): Flow<Result<List<Person>>> = peopleFlow.transformWhile { result ->
+      emit(result)
+      result.isSuccess
+   }
 
    override suspend fun findById(id: String): Result<Person?> = findResult
 

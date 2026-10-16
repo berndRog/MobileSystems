@@ -9,7 +9,6 @@ import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -62,7 +61,7 @@ class PeopleViewModelEffectTest {
       val repository = object : IPersonRepository by source {
          override fun observeAll(): Flow<Result<List<Person>>> {
             observations++
-            return source.peopleFlow
+            return source.observeAll()
          }
       }
       val stringProvider = FakeStringProvider()
@@ -93,12 +92,9 @@ class PeopleViewModelEffectTest {
    }
 
    @Test
-   fun thrownObservationExceptionBecomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> = flow {
-            throw IllegalStateException("unexpected")
-         }
+   fun resultFailureBecomesPersistentFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository().apply {
+         peopleFlow.value = Result.failure(IllegalStateException("read failed"))
       }
       val stringProvider = FakeStringProvider()
       val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
