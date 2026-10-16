@@ -25,15 +25,9 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
-   // Mutable PeopleUiState is kept private inside the ViewModel.
-   private val _stateFlow: MutableStateFlow<PeopleUiState> =
-      MutableStateFlow(PeopleUiState())
-   // Exposes the PeopleUiState as a read-only StateFlow to the UI.
-   val stateFlow: StateFlow<PeopleUiState> =
-      _stateFlow.asStateFlow()
-
-   // Job used to observe changes from the repository.
-   private var _observeJob: Job? = null
+   // StateFlow PeopleUiState
+   private val _stateFlow = MutableStateFlow(PeopleUiState())
+   val stateFlow = _stateFlow.asStateFlow()
 
    // Start the reactive observation pipeline
    init {
@@ -41,58 +35,42 @@ class PeopleViewModel(
       observePeople()
    }
 
+   // Job used to observe changes from the repository.
+   private var _observeJob: Job? = null
+
    // Observes the repository and updates the list state.
    private fun observePeople() {
       // Cancel any existing observation job before starting a new one.
       _observeJob?.cancel()
 
       // Mark the attempt before launching so repeated retries cannot overlap it.
-      _stateFlow.update { state: PeopleUiState ->
+      _stateFlow.update { state ->
          state.copy(isLoading = true, loadFailure = null)
       }
 
       _observeJob = viewModelScope.launch {
-         try {
-            // Keep the existing delay used to demonstrate loading.
-            delay(1000)
+         // Keep the existing delay used to demonstrate loading.
+         delay(1000)
 
-            _repository.observeAll().collect { result ->
-               result
-                  .onSuccess { people ->
-                     _stateFlow.update { state ->
-                        state.copy(people = people, isLoading = false, loadFailure = null)
-                     }
+         _repository.observeAll().collect { result ->
+            result
+               // Update the UI state with the list of people when the repository operation succeeded.
+               .onSuccess { people ->
+                  _stateFlow.update { state ->
+                     state.copy(people = people, isLoading = false, loadFailure = null)
                   }
-                  .onFailure { throwable ->
-                     if (throwable is CancellationException) throw throwable
+               }
 
-                     val error = _stringProvider.getString(
-                        R.string.error_people_observe
-                     )
-                     Alog.e(TAG, error, throwable)
-
-                     _stateFlow.update { state ->
-                        state.copy(isLoading = false, loadFailure = error)
-                     }
+               // Update the UI state with an error message when the repository operation failed.
+               .onFailure { throwable ->
+                  val error = _stringProvider.getString(
+                     R.string.error_people_observe
+                  )
+                  Alog.e(TAG, error, throwable)
+                  _stateFlow.update { state ->
+                     state.copy(isLoading = false, loadFailure = error)
                   }
-            }
-         }
-         catch (e: CancellationException) {
-            throw e
-         }
-         catch (e: Exception) {
-            val error = _stringProvider.getString(R.string.error_people_observe)
-            Alog.e(TAG, "Unexpected load failure", e)
-            _stateFlow.update { state: PeopleUiState ->
-               state.copy(isLoading = false, loadFailure = error)
-            }
-         }
-         finally {
-            // A Room collector can outlive its first result.
-            _stateFlow.update { state: PeopleUiState ->
-               if (state.isLoading) state.copy(isLoading = false)
-               else state
-            }
+               }
          }
       }
    }

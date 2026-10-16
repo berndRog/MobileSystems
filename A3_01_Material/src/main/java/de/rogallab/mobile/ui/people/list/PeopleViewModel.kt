@@ -22,17 +22,18 @@ class PeopleViewModel(
    private val _repository: IPersonRepository
 ): ViewModel() {
 
-   // StateFlow PeopleScreen
-   private val _stateFlow: MutableStateFlow<PeopleUiState> = MutableStateFlow(PeopleUiState())
-   val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
+   // StateFlow PeopleUiState
+   private val _stateFlow = MutableStateFlow(PeopleUiState())
+   val stateFlow = _stateFlow.asStateFlow()
 
-   // Job to observe the repository for changes to the list of people.
-   private var _observeJob: Job? = null
-
+   // Start the reactive observation pipeline
    init {
       Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
+
+   // Job to observe the repository for changes to the list of people.
+   private var _observeJob: Job? = null
 
    // Observe the repository for changes to the list of people and update the UI state accordingly.
    private fun observePeople() {
@@ -58,16 +59,13 @@ class PeopleViewModel(
                   Alog.d(TAG, "observePeople: people=${_stateFlow.value.people.size}")
                }
 
-               // Update the UI state to indicate that loading has finished and
-               // show an error message when the repository operation failed.
-               .onFailure {
-                  _stateFlow.update { state: PeopleUiState ->
-                     state.copy(isLoading = false)
-                  }
-                  Alog.e(TAG, "observePeople failed")
+               // Show an error message when the repository operation failed.
+               .onFailure { throwable ->
+                  val error = _stringProvider.getString(R.string.error_people_observe)
+                  Alog.e(TAG, error, throwable)
                }
 
-            // set isLoading = false after loading is complete
+            // Reset the loading flag regardless of success or failure.
             _stateFlow.update { state: PeopleUiState ->
                state.copy(isLoading = false)
             }
