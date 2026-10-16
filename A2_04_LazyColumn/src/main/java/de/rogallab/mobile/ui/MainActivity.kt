@@ -44,33 +44,31 @@ class MainActivity : BaseActivity(TAG) {
       enableEdgeToEdge()
 
       setContent {
+         // Create-/DetailScreen
+         val personViewModel = koinViewModel<PersonViewModel> {
+            parametersOf(null) // New Person
+            parametersOf("01000000-0000-0000-0000-000000000000")
+         }
+
+         // ListScreen
+         val peopleViewModel = koinViewModel<PeopleViewModel>()
 
          AppTheme {
             Scaffold(
                modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
-//               TestLazyColumn(
-//                  modifier = Modifier
-//                     .padding(innerPadding)
-//                     .padding(top = 8.dp)
-//                     .fillMaxSize()
-//               )
 
-//               // InputScreen, i.e. create a new person
-//               val personViewModel = koinViewModel<PersonViewModel> {
-//                  parametersOf(null)
-//               }
 //               PersonAdapter(
 //                  viewModel = personViewModel,
 //                  modifier = Modifier
 //                     .padding(innerPadding)
 //               )
 
-               val peopleViewModel = koinViewModel<PeopleViewModel>()
                PeopleAdapter(
                   viewModel = peopleViewModel,
                   modifier = Modifier
-                     .padding(innerPadding).padding(horizontal = 16.dp)
+                     .padding(innerPadding)
+                     .padding(horizontal = 16.dp)
                      .fillMaxSize()
                )
             }
@@ -82,7 +80,6 @@ class MainActivity : BaseActivity(TAG) {
       private const val TAG = "<-MainActivity"
    }
 }
-
 
 @Composable
 fun TestLazyColumn(
@@ -107,7 +104,9 @@ fun TestLazyColumn(
          HorizontalDivider()
          Text(
             text = "Single Item",
-            modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
+            modifier = Modifier
+               .padding(vertical = 8.dp)
+               .fillMaxWidth()
          )
          HorizontalDivider()
       }
@@ -148,8 +147,6 @@ fun TestLazyColumn(
       }
    }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable

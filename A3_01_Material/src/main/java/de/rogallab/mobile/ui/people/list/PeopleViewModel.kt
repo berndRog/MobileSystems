@@ -22,7 +22,7 @@ class PeopleViewModel(
    private val _repository: IPersonRepository
 ): ViewModel() {
 
-   // StateFlow PersonScreen
+   // StateFlow PeopleScreen
    private val _stateFlow: MutableStateFlow<PeopleUiState> = MutableStateFlow(PeopleUiState())
    val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
 

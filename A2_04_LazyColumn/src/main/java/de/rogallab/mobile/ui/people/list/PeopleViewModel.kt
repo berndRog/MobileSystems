@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// New version of PersonViewModel using updateState inline function
+// MVI ViewModel for the PeopleScreen.
 class PeopleViewModel(
    private val _repository: IPersonRepository
 ): ViewModel() {

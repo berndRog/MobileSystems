@@ -18,18 +18,14 @@ class PersonViewModel(
 ): ViewModel() {
 
    // personId determines whether this instance creates or edits a person.
-   private val _personId = personId
-      ?.takeUnless(String::isBlank)
-
+   private val _personId = personId?.takeUnless(String::isBlank)
    // isNew is true indicates a new person creation.
    private val _isNew = _personId == null
 
    // Initial state depends on whether this instance creates or edits a person.
    private val _initialState =
-      if (_isNew)
-         PersonUiState(person = Person(), isNew = true)  // New person creation
-      else
-         PersonUiState(isNew = false, isLoading = true)  // Edit existing person, load state
+      if (_isNew) PersonUiState(person = Person(), isNew = true)
+      else PersonUiState(isNew = false, isLoading = true)
 
    // StateFlow PersonScreen
    private val _stateFlow: MutableStateFlow<PersonUiState> = MutableStateFlow(_initialState)

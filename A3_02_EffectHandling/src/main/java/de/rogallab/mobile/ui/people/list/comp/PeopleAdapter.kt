@@ -53,7 +53,8 @@ fun PeopleAdapter(
 
    // Collect the persistent UI state from the ViewModel.
    val peopleUiState: PeopleUiState by
-   viewModel.stateFlow.collectAsStateWithLifecycle()
+      viewModel.stateFlow.collectAsStateWithLifecycle()
+   val people = peopleUiState.people
    val loadFailure = peopleUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
@@ -110,9 +111,6 @@ fun PeopleAdapter(
             }
          }
       } else {
-
-         val people = peopleUiState.people
-
          PeopleScreen(
             people = people,
             onDetail = { personId ->

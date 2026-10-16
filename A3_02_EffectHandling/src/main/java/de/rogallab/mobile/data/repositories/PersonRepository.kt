@@ -21,12 +21,12 @@ class PersonRepository(
    private var _counterFindById = 0
 
    override fun observeAll(): Flow<Result<List<Person>>> {
-      _counterObserveAll++
-      Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
+      //_counterObserveAll++
+      //Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
       return _personDao.observeAll()
          .map { dtos ->
-            if (_counterObserveAll == 1)
-               throw RuntimeException("Test exception in observeAll()")
+         //   if (_counterObserveAll == 1)
+         //      throw RuntimeException("Test exception in observeAll()")
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -84,6 +84,7 @@ class PersonRepository(
 
    override suspend fun remove(person: Person): Result<Unit> =
       try {
+         throw RuntimeException("Test exception in remove()")
          Result.success(_personDao.delete(person.toPersonDto()))
       }
       catch (e: CancellationException) {

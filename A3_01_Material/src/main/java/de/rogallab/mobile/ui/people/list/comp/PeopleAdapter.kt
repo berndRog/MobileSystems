@@ -64,7 +64,7 @@ fun PeopleAdapter(
          )
       }) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PersonScreen.
+      // Show loading indicator
       if (peopleUiState.isLoading) {
          Box(
             modifier = Modifier
@@ -74,7 +74,9 @@ fun PeopleAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else {
+      }
+      // Show PersonScreen
+      else {
          val people = peopleUiState.people
          PeopleScreen(
             people = people,

@@ -31,8 +31,7 @@ class PersonRepository(
       try {
          Result.success(_personDao.findById(id)?.toPerson())
       }
-      // don't handle CancellationException, let it propagate to the caller
-      // viewModelScope will catch it and cancel the coroutine
+      // don't handle CancellationException, let it propagate
       catch (e: CancellationException) {
          throw e
       }

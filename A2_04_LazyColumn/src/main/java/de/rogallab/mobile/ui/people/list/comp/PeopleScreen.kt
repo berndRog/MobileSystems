@@ -34,7 +34,7 @@ fun PeopleScreen(
          key = { it: Person -> it.id }
       ) { person ->
 
-         Alog.d(tag, "Person: ${person.fullName}")
+         SideEffect { Alog.d(tag, "Person: ${person.fullName}") }
 
          PersonCard(
             firstName = person.firstName,
