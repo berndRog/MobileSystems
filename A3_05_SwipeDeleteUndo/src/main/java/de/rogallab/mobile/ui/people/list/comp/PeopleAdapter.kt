@@ -1,21 +1,24 @@
 package de.rogallab.mobile.ui.people.list.comp
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,7 +43,6 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onUndo: (String, String, String) -> Unit,
@@ -51,30 +53,41 @@ fun PeopleAdapter(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Collect the PeopleUiState from the ViewModel.
+   // Collect the persistent UI state from the ViewModel.
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = peopleUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
-      Alog.d(tag, "Effect: $peopleEffect")
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
          is PeopleEffect.ShowUndo -> onUndo(
-            peopleEffect.message,
-            peopleEffect.actionLabel,
-            peopleEffect.personId,
+            peopleEffect.message, peopleEffect.actionLabel, peopleEffect.personId
          )
          PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
 
+   val activity = LocalActivity.current
+
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
-         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  Alog.d(tag, "Exit Application")
+                  activity?.finish()
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                     contentDescription = "Exit")
+               }
+            },
+            title = { Text(text = stringResource(R.string.people_list)) }
+         )
       },
       floatingActionButtonPosition = FabPosition.End,
       floatingActionButton = {
@@ -84,21 +97,15 @@ fun PeopleAdapter(
                Alog.d(tag, "Create new person")
                viewModel.onIntent(PeopleIntent.Create)
             },
-            icon = {
-               Icon(imageVector = Icons.Default.Add,
-                  contentDescription = null)
-            },
+            icon = { Icon(imageVector = Icons.Default.Add,
+               contentDescription = null) },
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-            modifier = Modifier.imePadding())
-      },
    ) { innerPadding ->
 
-      // Show either a loading indicator or the stateless PeopleScreen.
-      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+      // Show loading before presenting a result or a persistent failure.
+      if (peopleUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -110,7 +117,19 @@ fun PeopleAdapter(
             )
          }
 
-         // Show the stateless PeopleScreen with the current list of people.
+      } else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure)
+            Button(onClick = { viewModel.onIntent(PeopleIntent.RetryLoad) }) {
+               Text(text = stringResource(R.string.action_retry))
+            }
+         }
+
+      // Show the stateless PeopleScreen, including a successfully loaded empty list.
       } else {
          val people = peopleUiState.people
 
@@ -120,21 +139,44 @@ fun PeopleAdapter(
                viewModel.onIntent(PeopleIntent.Detail(personId))
             },
             onDelete = { personId ->
-               Alog.d(tag, "Delete: $personId")
                val person = people.find { it.id == personId }
                if (person != null)
                   viewModel.onIntent(PeopleIntent.Remove(person))
             },
             restoredPersonId = peopleUiState.restoredPersonId,
-            onRestoreHandled = {
-               viewModel.onIntent(PeopleIntent.RestoreHandled)
-            },
+            onRestoreHandled = { viewModel.onIntent(PeopleIntent.RestoreHandled) },
             modifier = Modifier
                .fillMaxSize()
                .padding(innerPadding)
-               .padding(horizontal = 16.dp),
+               .padding(horizontal = 16.dp)
          )
       }
+   }
+}
+
+@Composable
+private fun PeopleCreateButton(
+   onCreate: () -> Unit,
+) {
+   Box(
+      modifier = Modifier
+         .fillMaxSize()
+         .padding(16.dp),
+      contentAlignment = Alignment.BottomEnd,
+   ) {
+      ExtendedFloatingActionButton(
+         containerColor = colorScheme.secondary,
+         onClick = onCreate,
+         icon = {
+            Icon(
+               imageVector = Icons.Default.Add,
+               contentDescription = null,
+            )
+         },
+         text = {
+            Text(text = stringResource(R.string.action_create))
+         },
+      )
    }
 }
 
@@ -146,6 +188,8 @@ fun PeopleAdapter(
  * - Dauerhafter State wird mit collectAsStateWithLifecycle() beobachtet.
  *   Einmalige Effects werden getrennt mit dem generischen EffectHandler
  *   gesammelt.
+ * - Ladeanzeige, dauerhafter Ladefehler mit Retry und Liste sind drei
+ *   getrennte Darstellungen desselben State.
  *
  * - Der Adapter übersetzt feature-spezifische Effects in einfache Callbacks:
  *
@@ -155,21 +199,16 @@ fun PeopleAdapter(
  *      NavigateBack -> onBack()
  *      NavigateTo   -> onNavigateTo()
  *
- * - Ein Tap auf eine Person und Swipe StartToEnd werden beide als Detail-
- *   Navigation behandelt. Create bleibt eine separate FAB-Aktion.
+ * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
+ *   nicht die spätere Navigationsimplementierung.
  *
- * - restoredPersonId wird als State an PeopleScreen weitergegeben. Nachdem der
- *   Screen geprüft hat, ob das wiederhergestellte Element sichtbar ist, sendet
- *   der Adapter RestoreHandled zurück an das ViewModel.
- *
- * - ShowUndo wird als Action-Snackbar weitergereicht. Die eigentliche
- *   Entscheidung Undo oder Commit erfolgt oberhalb des Adapters, nachdem die
- *   Snackbar beendet wurde.
+ * - Undo und Navigation sind bereits in der Schnittstelle vorbereitet. Die
+ *   eigentliche Funktion wird erst in späteren Lernschritten ergänzt.
  *
  * Lernziele:
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
- * - Einmalige UI-Aufträge über State plus Intent bestätigen.
- * - Detail, Delete, Undo und Navigation über klar benannte Callbacks verbinden.
+ * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
+ * - Spätere Erweiterungen wie Undo und Navigation vorbereiten.
  */

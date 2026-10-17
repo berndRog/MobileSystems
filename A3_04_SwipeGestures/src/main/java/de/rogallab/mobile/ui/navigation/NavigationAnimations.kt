@@ -12,6 +12,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import de.rogallab.mobile.Globals.animationDuration
+import de.rogallab.mobile.shared.domain.utilities.Alog
 
 object NavigationAnimations {
 
@@ -19,6 +20,7 @@ object NavigationAnimations {
    // - The new screen enters from the right.
    // - The current screen exits to the left.
    val enterTransitionSpec: AnimatedContentTransitionScope<*>.() -> ContentTransform = {
+      Alog.d("<-enterTransitionSpec","slideHorizontally")
       slideInHorizontally(
          initialOffsetX = { fullWidth -> fullWidth },
          animationSpec = tween(animationDuration),
@@ -34,6 +36,7 @@ object NavigationAnimations {
    ): AnimatedContentTransitionScope<*>.() -> ContentTransform = {
       when (popReason) {
          PopReason.SAVE -> {
+            Alog.d("<-popTransitionSpec","slideHorizontally popReason=$popReason")
             slideInHorizontally(
                initialOffsetX = { fullWidth -> -fullWidth },
                animationSpec = tween(animationDuration),
@@ -43,7 +46,8 @@ object NavigationAnimations {
             )
          }
 
-         PopReason.CANCEL -> {
+         PopReason.Cancel -> {
+            Alog.d("<-popTransitionSpec","fadeIn+slideOutVertically popReason=$popReason")
             fadeIn(
                animationSpec = tween(animationDuration)
             ) togetherWith (
@@ -60,16 +64,17 @@ object NavigationAnimations {
 
    // Predictive back uses scale and fade to make the gesture visible.
    val predictivePopTransitionSpec: AnimatedContentTransitionScope<*>.(Int) -> ContentTransform = { _ ->
+      Alog.d("<-predictivePopTransitionSpec","scale+fade")
       (
          scaleIn(
-            initialScale = 0.9f,
+            initialScale = 0.5f,
             animationSpec = tween(animationDuration),
          ) + fadeIn(
             animationSpec = tween(animationDuration),
          )
       ) togetherWith (
          scaleOut(
-            targetScale = 0.85f,
+            targetScale = 0.5f,
             animationSpec = tween(animationDuration),
          ) + fadeOut(
             animationSpec = tween(animationDuration),

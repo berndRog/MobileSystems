@@ -17,4 +17,5 @@ sealed interface PeopleIntent {
 
    // Persists the deletion only after the Undo action was not selected.
    data class CommitRemove(val personId: String) : PeopleIntent
+   data object RetryLoad : PeopleIntent
 }
