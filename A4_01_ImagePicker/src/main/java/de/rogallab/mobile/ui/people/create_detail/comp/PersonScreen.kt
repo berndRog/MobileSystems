@@ -34,6 +34,8 @@ import org.koin.compose.koinInject
 @Composable
 fun PersonScreen(
    isNew: Boolean,
+   isLoading: Boolean,
+   isSaving: Boolean,
 
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
@@ -133,14 +135,15 @@ fun PersonScreen(
          ),
       ) {
          OutlinedButton(
-            onClick = onCancel
+            onClick = onCancel,
+            enabled = !isSaving,
          ) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
          Button(
             onClick = onSave,
-            enabled = enableSave,
+            enabled = enableSave && !isLoading && !isSaving,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
@@ -155,7 +158,7 @@ fun PersonScreen(
  *   Callback-Funktionen und kennt weder ViewModel noch Repository,
  *   Navigation oder SnackbarController.
  *
- * - A3_04 ergänzt die bisherige Personenbearbeitung um die Anzeige und
+ * - A4_01 ergänzt die bisherige Personenbearbeitung um die Anzeige und
  *   Bearbeitung eines Personenbildes. ImageSelection übernimmt dabei nur noch
  *   die Darstellung des aktuellen Bildes sowie die Schaltflächen für
  *   Galerie, Kamera und Entfernen.

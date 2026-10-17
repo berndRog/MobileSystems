@@ -39,4 +39,6 @@
   <string name="error_lastname_too_long">Last name is too long.</string>
   <string name="error_email">Email address is invalid.</string>
   <string name="error_phone">Phone number is invalid.</string>
+  <string name="action_retry">Try again</string>
+  <string name="message_person_removed">%1$s was deleted.</string>
 </resources>

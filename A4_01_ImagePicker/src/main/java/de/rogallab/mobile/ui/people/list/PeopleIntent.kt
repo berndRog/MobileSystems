@@ -9,4 +9,5 @@ sealed interface PeopleIntent {
 
    // Confirms a previously requested deletion and starts the repository operation.
    data class ConfirmRemove(val personId: String) : PeopleIntent
+   data object RetryLoad : PeopleIntent
 }

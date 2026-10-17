@@ -7,13 +7,14 @@ import de.rogallab.mobile.domain.entities.Person
 data class PeopleUiState(
    val isLoading: Boolean = false,
    val people: List<Person> = emptyList(),
+   val loadFailure: String? = null,
 )
 
 /*
  * Didaktik und Lernziele
  *
- * - PeopleUiState enthält weiterhin ausschließlich den beobachtbaren Zustand
- *   der Personenliste.
+ * - PeopleUiState enthält die beobachtete Liste, den Ladestatus und einen
+ *   dauerhaften Ladefehler bis zum nächsten RetryLoad.
  *
  * - Swipe-Gesten benötigen in A4_01 keinen zusätzlichen Screen-State.
  *   Swipe-to-Detail erzeugt Navigation; Swipe-to-Delete fordert zunächst eine

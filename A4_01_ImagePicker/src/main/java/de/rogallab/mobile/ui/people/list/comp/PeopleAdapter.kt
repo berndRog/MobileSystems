@@ -1,20 +1,24 @@
 package de.rogallab.mobile.ui.people.list.comp
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,7 +43,6 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
@@ -53,55 +56,85 @@ fun PeopleAdapter(
    // Collect the persistent UI state from the ViewModel.
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = peopleUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { peopleEffect ->
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         is PeopleEffect.ConfirmRemove -> onConfirmRemove(peopleEffect.message,
-            peopleEffect.actionLabel, peopleEffect.personId)
+         is PeopleEffect.ConfirmRemove -> onConfirmRemove(
+            peopleEffect.message, peopleEffect.actionLabel, peopleEffect.personId
+         )
          PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
 
+   val activity = LocalActivity.current
+
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
-         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  Alog.d(tag, "Exit Application")
+                  activity?.finish()
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                     contentDescription = "Exit")
+               }
+            },
+            title = { Text(text = stringResource(R.string.people_list)) }
+         )
       },
+      floatingActionButtonPosition = FabPosition.End,
       floatingActionButton = {
          ExtendedFloatingActionButton(
             containerColor = colorScheme.secondary,
-            onClick = { viewModel.onIntent(PeopleIntent.Create) },
-            icon = { Icon( imageVector = Icons.Default.Add,
-                           contentDescription = null) },
+            onClick = {
+               Alog.d(tag, "Create new person")
+               viewModel.onIntent(PeopleIntent.Create)
+            },
+            icon = { Icon(imageVector = Icons.Default.Add,
+               contentDescription = null) },
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-            modifier = Modifier.imePadding())
-      },
    ) { innerPadding ->
 
-      // Show either a loading indicator
-      if (peopleUiState.isLoading && peopleUiState.people.isEmpty()) {
+      // Show loading before presenting a result or a persistent failure.
+      if (peopleUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
                .padding(innerPadding),
             contentAlignment = Alignment.TopCenter,
          ) {
-            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+            CircularProgressIndicator(
+               modifier = Modifier.size(64.dp)
+            )
          }
-      }
-      // Show the stateless PeopleScreen with the current list of people.
-      else {
+
+      } else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure)
+            Button(onClick = { viewModel.onIntent(PeopleIntent.RetryLoad) }) {
+               Text(text = stringResource(R.string.action_retry))
+            }
+         }
+
+      // Show the stateless PeopleScreen, including a successfully loaded empty list.
+      } else {
          val people = peopleUiState.people
+
          PeopleScreen(
-            people = peopleUiState.people,
+            people = people,
             onDetail = { personId ->
                viewModel.onIntent(PeopleIntent.Detail(personId))
             },
@@ -114,6 +147,32 @@ fun PeopleAdapter(
                .padding(horizontal = 16.dp)
          )
       }
+   }
+}
+
+@Composable
+private fun PeopleCreateButton(
+   onCreate: () -> Unit,
+) {
+   Box(
+      modifier = Modifier
+         .fillMaxSize()
+         .padding(16.dp),
+      contentAlignment = Alignment.BottomEnd,
+   ) {
+      ExtendedFloatingActionButton(
+         containerColor = colorScheme.secondary,
+         onClick = onCreate,
+         icon = {
+            Icon(
+               imageVector = Icons.Default.Add,
+               contentDescription = null,
+            )
+         },
+         text = {
+            Text(text = stringResource(R.string.action_create))
+         },
+      )
    }
 }
 
