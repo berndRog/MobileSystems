@@ -40,10 +40,10 @@ interface IPersonDao {
    suspend fun insert(personDtos: List<PersonDto>)
 
    @Update
-   suspend fun update(personDto: PersonDto): Int
+   suspend fun update(personDto: PersonDto)
 
    @Delete
-   suspend fun delete(personDto: PersonDto): Int
+   suspend fun delete(personDto: PersonDto)
 }
 
 /*

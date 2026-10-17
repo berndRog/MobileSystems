@@ -16,54 +16,82 @@ class PersonRepository(
    private val _personDao: IPersonDao,
 ) : IPersonRepository {
 
-   override fun observeAll(): Flow<Result<List<Person>>> =
-      _personDao.observeAll()
+   private var _counterObserveAll = 0
+   private var _counterFindById = 0
+
+   override fun observeAll(): Flow<Result<List<Person>>> {
+      //_counterObserveAll++
+      //Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
+
+      return _personDao.observeAll()
          .map { dtos: List<PersonDto> ->
+      //      if (_counterObserveAll == 1)
+      //         throw RuntimeException("Test exception in observeAll()")
             Result.success(dtos.map(PersonDto::toPerson))
          }
          .catch { throwable ->
             if (throwable is CancellationException) throw throwable
             emit(Result.failure(throwable))
          }
+   }
 
-   override suspend fun findById(id: String): Result<Person?> =
-      resultOf {
-         _personDao.findById(id)?.toPerson()
+   override suspend fun findById(id: String): Result<Person?> {
+//      _counterFindById++
+//      Alog.d(TAG,"findById(), counter=$_counterFindById")
+
+      return try {
+//         if(_counterFindById == 1)
+//            throw RuntimeException("Test exception in findById()")
+//         else if(_counterFindById == 2)
+//            Result.success(null)
+//         else
+         Result.success(_personDao.findById(id)?.toPerson())
       }
+      // don't handle CancellationException, let it propagate to the caller
+      // viewModelScope will catch it and cancel the coroutine
+      catch (e: CancellationException) {
+         throw e
+      }
+      // handle other exceptions and return a failure result
+      catch (e: Throwable) {
+         Result.failure(e)
+      }
+   }
 
    override suspend fun create(person: Person): Result<Unit> =
-      resultOf {
-         _personDao.insert(person.toPersonDto())
+      try {
+         //throw RuntimeException("Test exception in create()")
+         Result.success(_personDao.insert(person.toPersonDto()))
+      }
+      catch (e: CancellationException) {
+         throw e
+      }
+      catch (e: Throwable) {
+         Result.failure(e)
       }
 
    override suspend fun update(person: Person): Result<Unit> =
-      resultOf {
-         checkRows(_personDao.update(person.toPersonDto()), person)
+      try {
+         //throw RuntimeException("Test exception in update()")
+         Result.success(_personDao.update(person.toPersonDto()))
+      }
+      catch (e: CancellationException) {
+         throw e
+      }
+      catch (e: Throwable) {
+         Result.failure(e)
       }
 
    override suspend fun remove(person: Person): Result<Unit> =
-      resultOf {
-         checkRows(_personDao.delete(person.toPersonDto()), person)
-      }
-
-   private fun checkRows(changedRows: Int, person: Person): Result<Unit> =
-      if (changedRows == 1) {
-         Result.success(Unit)
-      } else {
-         Result.failure(
-            IllegalArgumentException("Person ${person.id} was not found.")
-         )
-      }
-
-   private suspend fun <T> resultOf(
-      block: suspend () -> T,
-   ): Result<T> =
       try {
-         Result.success(block())
-      } catch (exception: CancellationException) {
-         throw exception
-      } catch (throwable: Throwable) {
-         Result.failure(throwable)
+         //throw RuntimeException("Test exception in remove()")
+         Result.success(_personDao.delete(person.toPersonDto()))
+      }
+      catch (e: CancellationException) {
+         throw e
+      }
+      catch (e: Throwable) {
+         Result.failure(e)
       }
 
    companion object {
