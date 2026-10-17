@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.list.comp
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
@@ -15,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -65,10 +68,23 @@ fun PeopleAdapter(
       }
    }
 
+   val activity = LocalActivity.current
+
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
-         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  Alog.d(tag, "Exit Application")
+                  activity?.finish()
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                     contentDescription = "Exit")
+               }
+            },
+            title = { Text(text = stringResource(R.string.people_list)) }
+         )
       },
       floatingActionButtonPosition = FabPosition.End,
       floatingActionButton = {

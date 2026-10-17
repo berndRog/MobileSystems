@@ -84,7 +84,7 @@ class PersonRepository(
 
    override suspend fun remove(person: Person): Result<Unit> =
       try {
-         throw RuntimeException("Test exception in remove()")
+         // throw RuntimeException("Test exception in remove()")
          Result.success(_personDao.delete(person.toPersonDto()))
       }
       catch (e: CancellationException) {

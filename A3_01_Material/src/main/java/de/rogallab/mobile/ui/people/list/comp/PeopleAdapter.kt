@@ -1,17 +1,24 @@
 package de.rogallab.mobile.ui.people.list.comp
 
+import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,11 +30,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.list.PeopleIntent
 import de.rogallab.mobile.ui.people.list.PeopleUiState
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
@@ -45,11 +54,25 @@ fun PeopleAdapter(
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
 
+   val activity = LocalActivity.current
+
    Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
-         TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  Alog.d(tag, "Exit Application")
+                  activity?.finish()
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                     contentDescription = "Exit")
+               }
+            },
+            title = { Text(text = stringResource(R.string.people_list)) }
+         )
       },
+
       floatingActionButtonPosition = FabPosition.End,
       floatingActionButton = {
          ExtendedFloatingActionButton(

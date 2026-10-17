@@ -58,8 +58,6 @@ fun AppNavigation() {
 
    // Selects the visible remove animation for Save or Cancel.
    var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
-   // Keep the current entry's ViewModel for a direct state read on system back.
-   var activePerson by remember { mutableStateOf<Pair<PersonKey, PersonViewModel>?>(null) }
 
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
@@ -67,28 +65,23 @@ fun AppNavigation() {
    }
 
    Scaffold(
-      contentWindowInsets = WindowInsets(0, 0, 0, 0),
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier
-               .imePadding()
-               .padding(bottom = if (backStack.lastOrNull() == PeopleKey) 80.dp else 0.dp),
+            modifier = Modifier.imePadding()
          )
       },
    ) { innerPadding ->
       NavDisplay(
-         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         modifier = Modifier.
+         padding(innerPadding)
+            .consumeWindowInsets(innerPadding),
          backStack = backStack,
 
          // Handles system back navigation as a cancel operation.
          onBack = {
-            val top = backStack.lastOrNull()
-            if (top !is PersonKey ||
-               (activePerson?.first === top && activePerson?.second?.stateFlow?.value?.isSaving == false)) {
-               currentPopReason = PopReason.Cancel
-               remove(backStack)
-            }
+            currentPopReason = PopReason.Cancel
+            remove(backStack)
          },
 
          // Preserves saveable Compose state and ViewModels per NavEntry.
@@ -138,11 +131,6 @@ fun AppNavigation() {
             entry<PersonKey> { personKey ->
                val personViewModel = koinViewModel<PersonViewModel> {
                   parametersOf(personKey.personId)
-               }
-               SideEffect {
-                  if (backStack.lastOrNull() === personKey) {
-                     activePerson = personKey to personViewModel
-                  }
                }
 
                PersonAdapter(
