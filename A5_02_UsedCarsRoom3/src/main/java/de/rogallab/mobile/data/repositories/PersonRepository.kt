@@ -28,14 +28,10 @@ class PersonRepository(private val _personDao: IPersonDao) : IPersonRepository {
       write("create", person) { _personDao.insert(person.toPersonDto()) }
 
    override suspend fun update(person: Person): Result<Unit> =
-      write("update", person) {
-         check(_personDao.update(person.toPersonDto()) == 1) { "Person ${person.id} was not found." }
-      }
+      write("update", person) { _personDao.update(person.toPersonDto()) }
 
    override suspend fun remove(person: Person): Result<Unit> =
-      write("remove", person) {
-         check(_personDao.delete(person.toPersonDto()) == 1) { "Person ${person.id} was not found." }
-      }
+      write("remove", person) { _personDao.delete(person.toPersonDto()) }
 
    private suspend fun write(operation: String, person: Person, block: suspend () -> Unit): Result<Unit> =
       try {

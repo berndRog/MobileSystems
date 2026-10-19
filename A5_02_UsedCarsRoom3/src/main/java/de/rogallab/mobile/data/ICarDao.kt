@@ -45,8 +45,8 @@ interface ICarDao {
    suspend fun insert(carDtos: List<CarDto>)
 
    @Update
-   suspend fun update(carDto: CarDto): Int
+   suspend fun update(carDto: CarDto)
 
    @Delete
-   suspend fun delete(carDto: CarDto): Int
+   suspend fun delete(carDto: CarDto)
 }

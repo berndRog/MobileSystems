@@ -269,6 +269,7 @@ class CarViewModel(
    }
 
    private fun cancel() {
+      if (_isSaving) return
       viewModelScope.launch {
          _imageEdit.discard()
          _effectDelegate.emit(

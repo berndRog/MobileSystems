@@ -65,51 +65,30 @@ class PersonViewModel(
       if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person from the repository
+   // Load failures remain visible until a successful retry or cancellation.
    private fun loadPerson(id: String) {
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
-
-         // Simulate a longer loading operation.
          delay(Globals.delay)
-
          _repository.findById(id)
             .onSuccess { person ->
-               // A successful repository call may still return no matching person.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
-
-                  _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+                  _stateFlow.update {
+                     it.copy(loadFailure = PersonLoadFailure.NotFound(error))
                   }
-                  return@onSuccess
-               }
-
-               // Start the image edit session with the persisted image.
-               // The delegate remembers this image as the original selection.
-               _imageEdit.start(listOfNotNull(person.imagePath))
-
-               // Store the loaded person and finish the loading operation.
-               _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+               } else {
+                  _imageEdit.start(listOfNotNull(person.imagePath))
+                  _stateFlow.update { it.copy(person = person, loadFailure = null) }
                }
             }
             .onFailure {
-               // Repository failures are converted into a localized UI effect.
-               val error = _stringProvider.getString(
-                  R.string.error_person_load
-               )
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               val error = _stringProvider.getString(R.string.error_person_load)
+               _stateFlow.update {
+                  it.copy(loadFailure = PersonLoadFailure.Failed(error))
+               }
             }
-
-         // loading operation is finished, regardless of success or failure.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = false)
-         }
+         _stateFlow.update { it.copy(isLoading = false) }
       }
    }
 
@@ -132,6 +111,11 @@ class PersonViewModel(
          // Technical image errors are converted into the common error effect.
          is PersonIntent.ImageFailed -> showError(intent.message)
 
+         PersonIntent.RetryLoad ->
+            if (!_isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+               loadPerson(_personId!!)
+            }
          PersonIntent.CarsRequested -> loadCars()
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
@@ -259,7 +243,8 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading ||
+         _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
@@ -302,6 +287,7 @@ class PersonViewModel(
 
       // Update: save operation is in progress.
       _isSaving = true
+      _stateFlow.update { it.copy(isSaving = true) }
 
       viewModelScope.launch {
 
@@ -332,11 +318,13 @@ class PersonViewModel(
 
          // Update: save operation is finished
          _isSaving = false
+         _stateFlow.update { it.copy(isSaving = false) }
       }
    }
 
    // Discard the current edit session and navigate back without saving.
    private fun cancel() {
+      if (_isSaving) return
       viewModelScope.launch {
 
          // Remove only images created during the current edit session.
@@ -478,14 +466,12 @@ class PersonViewModel(
  *   ausgelöst. Dadurch bleibt die Bildverwaltung vollständig abgeschlossen,
  *   bevor der PersonScreen verlassen wird.
  *
- * - _isSaving ist bewusst kein Bestandteil von PersonUiState. Die Variable
- *   verhindert lediglich parallele Repository-Schreibvorgänge und wird von
- *   der UI nicht dargestellt. Technischer interner Zustand muss daher nicht
- *   automatisch Teil des beobachtbaren UI-States sein.
+ * - _isSaving verhindert parallele Schreibvorgänge. Der gleichnamige Wert im
+ *   PersonUiState macht den laufenden Speichervorgang für die UI sichtbar.
  *
- * - Fehlermeldungen werden ebenfalls nicht dauerhaft im PersonUiState
- *   gespeichert. Repository-, Validierungs- und Bildfehler werden als
- *   PersonEffect.ShowError ausgegeben und von der UI einmalig verarbeitet.
+ * - Ladefehler bleiben als PersonLoadFailure im State sichtbar; RetryLoad
+ *   startet einen neuen Versuch. Validierungs-, Bild- und Aktionsfehler
+ *   werden weiterhin als einmalige ShowError-Effects ausgegeben.
  *
  * - Damit bleibt der bekannte Datenfluss erhalten:
  *

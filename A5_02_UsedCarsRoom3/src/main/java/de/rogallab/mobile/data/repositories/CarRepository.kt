@@ -25,12 +25,8 @@ class CarRepository(private val _carDao: ICarDao) : ICarRepository {
    override suspend fun findByPersonId(personId: String): Result<List<Car>> =
       resultOf { _carDao.findByPersonId(personId).map(CarDto::toCar) }
    override suspend fun create(car: Car): Result<Unit> = write("create", car) { _carDao.insert(car.toCarDto()) }
-   override suspend fun update(car: Car): Result<Unit> = write("update", car) {
-      check(_carDao.update(car.toCarDto()) == 1) { "Car ${car.id} was not found." }
-   }
-   override suspend fun remove(car: Car): Result<Unit> = write("remove", car) {
-      check(_carDao.delete(car.toCarDto()) == 1) { "Car ${car.id} was not found." }
-   }
+   override suspend fun update(car: Car): Result<Unit> = write("update", car) { _carDao.update(car.toCarDto()) }
+   override suspend fun remove(car: Car): Result<Unit> = write("remove", car) { _carDao.delete(car.toCarDto()) }
    private suspend fun write(operation: String, car: Car, block: suspend () -> Unit): Result<Unit> =
       try { block(); Alog.d(TAG, "$operation: $car"); Result.success(Unit) }
       catch (exception: CancellationException) { throw exception }

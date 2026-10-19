@@ -1,21 +1,24 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -28,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
@@ -40,6 +44,7 @@ import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
+import de.rogallab.mobile.ui.people.create_detail.PersonLoadFailure
 import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import org.koin.compose.koinInject
@@ -48,7 +53,6 @@ import org.koin.compose.koinInject
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
-   snackbarHostState: SnackbarHostState,
    bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
@@ -64,6 +68,7 @@ fun PersonAdapter(
       by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    val person = personUiState.person
+   val loadFailure = personUiState.loadFailure
    var showCars by remember { mutableStateOf(false) }
 
    EffectHandler(viewModel.effects) { personEffect ->
@@ -75,6 +80,8 @@ fun PersonAdapter(
       }
    }
 
+   BackHandler { viewModel.onIntent(PersonIntent.Cancel) }
+
    val imageSaveError = stringResource(SharedR.string.error_image_save)
 
    Scaffold(
@@ -83,13 +90,16 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(
+                  enabled = !personUiState.isSaving && !personUiState.isLoading,
                   onClick = {
-                     viewModel.onIntent(PersonIntent.Save)
+                     viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
                   },
                ) {
                   Icon(
                      imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_back),
+                     contentDescription = stringResource(
+                        if (loadFailure == null) R.string.action_save else R.string.action_back
+                     ),
                   )
                }
             },
@@ -104,14 +114,8 @@ fun PersonAdapter(
          )
       },
       bottomBar = bottomBar,
-      snackbarHost = {
-         SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.imePadding(),
-         )
-      },
    ) { innerPadding ->
-      if (personUiState.isLoading) {
+      if (personUiState.isLoading || personUiState.isSaving) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -119,6 +123,31 @@ fun PersonAdapter(
             contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      }
+      else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(
+               text = loadFailure.message,
+               style = MaterialTheme.typography.bodyLarge,
+               fontWeight = FontWeight.Bold,
+               modifier = Modifier.padding(bottom = 16.dp),
+            )
+            Button(onClick = {
+               viewModel.onIntent(
+                  if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                  else PersonIntent.RetryLoad
+               )
+            }) {
+               Text(text = stringResource(
+                  if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+                  else R.string.action_retry
+               ))
+            }
          }
       }
       else {
@@ -141,6 +170,7 @@ fun PersonAdapter(
                PersonScreen(
                   isNew = personUiState.isNew,
                   isLoading = personUiState.isLoading,
+                  isSaving = personUiState.isSaving,
                   firstName = person.firstName,
                   onFirstNameChange = {
                      viewModel.onIntent(PersonIntent.FirstNameChange(it))
@@ -195,14 +225,14 @@ fun PersonAdapter(
 /*
  * Didaktik und Lernziele
  *
- * - Der Scaffold liegt wie in A5_01 im PersonAdapter. Damit bleiben TopAppBar,
- *   SnackbarHost und die zustandslose Eingabemaske klar getrennt.
+ * - Der Scaffold liegt im PersonAdapter; der einzige SnackbarHost liegt
+ *   navigationweit in AppNavigation. Der Eingabescreen bleibt zustandslos.
  * - SingleGalleryPickerHandler und CameraPickerHandler bleiben ebenfalls Aufgabe des
  *   Adapters; PersonScreen erhält nur Werte und Callback-Funktionen.
  * - PersonEffect.ShowCars öffnet das Bottom Sheet erst nach erfolgreichem Laden
  *   der angebotenen Fahrzeuge. Die Sichtbarkeit bleibt lokaler UI-Zustand.
  * - Die Navigation zu einem Fahrzeug wird über onNavigateToCar an
  *   AppNavigation delegiert.
- * - Der gemeinsame SnackbarHostState und die Bottom-Navigation werden von
- *   AppNavigation bereitgestellt und in diesem Scaffold verwendet.
+ * - Die Bottom-Navigation wird von AppNavigation bereitgestellt. Dauerhafte
+ *   Ladefehler bieten RetryLoad; System-Back sendet Cancel für Bildbereinigung.
  */

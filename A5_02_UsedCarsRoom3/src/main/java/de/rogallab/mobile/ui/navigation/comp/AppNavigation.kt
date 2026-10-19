@@ -1,5 +1,11 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -56,8 +62,8 @@ fun AppNavigation() {
 
    var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
 
-   // A5_02 has three top-level areas. The NavigationBar is passed into each
-   // adapter Scaffold instead of requiring a global Scaffold in AppNavigation.
+   // A5_02 keeps its three top-level back stacks and passes the NavigationBar
+   // into each destination's Scaffold.
    val bottomBar: @Composable () -> Unit = {
       AppBottomNavigationBar(
          navItems = navigationState.navItems,
@@ -71,7 +77,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<PeopleViewModel>()
          PeopleAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
@@ -84,8 +89,14 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateBack = navigator::pop,
-            onNavigateTo = { navigator.push(PersonKey(it)) },
+            onNavigateBack = {
+               if (navigationState.currentBackStack().lastOrNull() == PersonListKey) navigator.pop()
+            },
+            onNavigateTo = { personId ->
+               if (navigationState.currentBackStack().lastOrNull() == PersonListKey) {
+                  navigator.push(PersonKey(personId))
+               }
+            },
          )
       }
 
@@ -95,16 +106,19 @@ fun AppNavigation() {
          }
          PersonAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
             onNavigateToCar = { carId ->
-               navigator.push(CarKey(carId))
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  navigator.push(CarKey(carId))
+               }
             },
          )
       }
@@ -113,7 +127,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<CarsViewModel>()
          CarsAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
@@ -126,7 +139,11 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateTo = { navigator.push(CarKey(it)) },
+            onNavigateTo = { carId ->
+               if (navigationState.currentBackStack().lastOrNull() == CarListKey) {
+                  navigator.push(CarKey(carId))
+               }
+            },
          )
       }
 
@@ -136,13 +153,14 @@ fun AppNavigation() {
          }
          CarAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
          )
       }
@@ -151,7 +169,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<TDrivesViewModel>()
          TDrivesAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
@@ -164,7 +181,11 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateTo = { navigator.push(TDriveKey(it)) },
+            onNavigateTo = { tDriveId ->
+               if (navigationState.currentBackStack().lastOrNull() == TDrivesKey) {
+                  navigator.push(TDriveKey(tDriveId))
+               }
+            },
          )
       }
 
@@ -174,28 +195,39 @@ fun AppNavigation() {
          }
          TDriveAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
             bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
          )
       }
    }
 
-   NavDisplay(
-      entries = navigationState.toDecoratedEntries(appEntryProvider),
-      onBack = {
-         currentPopReason = PopReason.CANCEL
-         navigator.pop()
+   Scaffold(
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.imePadding(),
+         )
       },
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
-      popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
-   )
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         entries = navigationState.toDecoratedEntries(appEntryProvider),
+         onBack = {
+            currentPopReason = PopReason.CANCEL
+            navigator.pop()
+         },
+         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
+      )
+   }
 }
 
 private fun BackReason.toPopReason(): PopReason = when (this) {
@@ -231,10 +263,10 @@ private fun AppBottomNavigationBar(
 /*
  * Didaktik und Lernziele
  *
- * - AppNavigation enthält keinen Scaffold mehr. Jeder Adapter stellt den
- *   Scaffold bereit, der zu den Aufgaben seines Screens passt.
- * - Ein SnackbarHostState und ein SnackbarController werden weiterhin oberhalb
- *   von NavDisplay erzeugt und von allen Adaptern wiederverwendet.
+ * - AppNavigation besitzt den einzigen SnackbarHost oberhalb von NavDisplay.
+ *   SnackbarHostState und SnackbarController bleiben bei Zielwechseln erhalten.
+ * - Jeder Adapter stellt weiterhin seinen Scaffold mit TopAppBar und
+ *   Bottom-Navigation bereit. Die standardmäßigen Insets bleiben erhalten.
  * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
  *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
  * - Aus dem Person-Detail kann über das Fahrzeug-Bottom-Sheet direkt zu
@@ -242,5 +274,6 @@ private fun AppBottomNavigationBar(
  * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine
  *   navigierbare TopAppBar. Die Screens selbst bleiben zustandslos.
  * - Save/Cancel und Predictive Back verwenden weiterhin die bekannten
- *   unterschiedlichen Navigationstransitionen.
+ *   unterschiedlichen Navigationstransitionen. Verspätete Effects ändern
+ *   nur den aktuell sichtbaren Back-Stack-Eintrag.
  */

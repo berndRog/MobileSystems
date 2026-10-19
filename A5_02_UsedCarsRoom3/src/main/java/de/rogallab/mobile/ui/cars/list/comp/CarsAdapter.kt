@@ -2,7 +2,6 @@ package de.rogallab.mobile.ui.cars.list.comp
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -14,8 +13,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,7 +32,6 @@ import de.rogallab.mobile.ui.cars.list.CarsViewModel
 @Composable
 fun CarsAdapter(
    viewModel: CarsViewModel,
-   snackbarHostState: SnackbarHostState,
    bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
@@ -72,12 +68,6 @@ fun CarsAdapter(
          )
       },
       bottomBar = bottomBar,
-      snackbarHost = {
-         SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.imePadding(),
-         )
-      },
    ) { innerPadding ->
       if (carsUiState.isLoading && carsUiState.cars.isEmpty()) {
          Box(
@@ -107,6 +97,6 @@ fun CarsAdapter(
  *
  * - CarsAdapter übernimmt analog zu PeopleAdapter den vollständigen Scaffold.
  * - CarsScreen bleibt auf die Darstellung der Fahrzeugliste beschränkt.
- * - TopAppBar, FAB, SnackbarHost und Bottom-Navigation sind Rahmenaufgaben des
+ * - TopAppBar, FAB und Bottom-Navigation sind Rahmenaufgaben des
  *   Adapters und nicht Bestandteil des zustandslosen Screens.
  */

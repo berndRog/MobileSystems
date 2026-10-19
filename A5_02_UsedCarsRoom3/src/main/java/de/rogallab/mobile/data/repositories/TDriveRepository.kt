@@ -22,12 +22,8 @@ class TDriveRepository(private val _tDriveDao: ITDriveDao) : ITDriveRepository {
          }
    override suspend fun findById(id: String): Result<TDrive?> = resultOf { _tDriveDao.findById(id)?.toTestDrive() }
    override suspend fun create(tDrive: TDrive): Result<Unit> = write("create", tDrive) { _tDriveDao.insert(tDrive.toTestDriveDto()) }
-   override suspend fun update(tDrive: TDrive): Result<Unit> = write("update", tDrive) {
-      check(_tDriveDao.update(tDrive.toTestDriveDto()) == 1) { "TDrive ${tDrive.id} was not found." }
-   }
-   override suspend fun remove(tDrive: TDrive): Result<Unit> = write("remove", tDrive) {
-      check(_tDriveDao.delete(tDrive.toTestDriveDto()) == 1) { "TDrive ${tDrive.id} was not found." }
-   }
+   override suspend fun update(tDrive: TDrive): Result<Unit> = write("update", tDrive) { _tDriveDao.update(tDrive.toTestDriveDto()) }
+   override suspend fun remove(tDrive: TDrive): Result<Unit> = write("remove", tDrive) { _tDriveDao.delete(tDrive.toTestDriveDto()) }
    private suspend fun write(operation: String, tDrive: TDrive, block: suspend () -> Unit): Result<Unit> =
       try { block(); Alog.d(TAG, "$operation: $tDrive"); Result.success(Unit) }
       catch (exception: CancellationException) { throw exception }

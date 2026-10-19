@@ -22,7 +22,7 @@ interface ITDriveDao {
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(tDriveDtos: List<TDriveDto>)
    @Update
-   suspend fun update(tDriveDto: TDriveDto): Int
+   suspend fun update(tDriveDto: TDriveDto)
    @Delete
-   suspend fun delete(tDriveDto: TDriveDto): Int
+   suspend fun delete(tDriveDto: TDriveDto)
 }

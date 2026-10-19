@@ -50,6 +50,7 @@ import org.koin.compose.koinInject
 fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
+   isSaving: Boolean,
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
    lastName: String = "",
@@ -135,12 +136,12 @@ fun PersonScreen(
             Alignment.CenterHorizontally,
          ),
       ) {
-         OutlinedButton(onClick = onCancel) {
+         OutlinedButton(onClick = onCancel, enabled = !isSaving) {
             Text(text = stringResource(R.string.action_cancel))
          }
          Button(
             onClick = onSave,
-            enabled = enableSave,
+            enabled = enableSave && !isLoading && !isSaving,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
@@ -253,6 +254,8 @@ private fun CarsBottomSheet(
  *   eingeblendet. Seine LazyColumn ist vom scrollbaren Personenformular getrennt.
  * - Ein Klick auf ein Fahrzeug wird über onCarClick nach außen delegiert und
  *   kann dadurch in AppNavigation zu CarKey(carId) navigieren.
- * - TopAppBar, Loading-Anzeige und SnackbarHost liegen im PersonAdapter.
+ * - TopAppBar und Ladeanzeige liegen im PersonAdapter; der SnackbarHost
+ *   liegt navigationweit in AppNavigation. Save und Cancel bleiben während
+ *   eines laufenden Speichervorgangs gesperrt.
  * - UI-Aktionen werden ausschließlich über Callback-Funktionen weitergegeben.
  */

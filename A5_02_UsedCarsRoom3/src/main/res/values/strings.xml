@@ -140,4 +140,6 @@
   <string name="error_test_drive_person_required">Please select a person.</string>
   <string name="error_test_drive_car_required">Please select a car.</string>
   <string name="error_date_time_format">Date and time must use the format DD.MM.YYYY HH:mm.</string>
+  <string name="action_retry">Try again</string>
+  <string name="message_person_removed">%1$s was deleted.</string>
 </resources>

@@ -8,5 +8,7 @@ data class PersonUiState(
    val cars: List<Car> = emptyList(),
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
+   val isSaving: Boolean = false,
+   val loadFailure: PersonLoadFailure? = null,
    val isCarsLoading: Boolean = false,
 )

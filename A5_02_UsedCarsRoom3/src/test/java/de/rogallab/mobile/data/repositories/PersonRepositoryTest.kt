@@ -50,17 +50,26 @@ class PersonRepositoryTest {
    }
 
    @Test
-   fun updateUnknownPerson_returnsFailure() = runTest {
-      val repository = PersonRepository(FakePersonDao())
-
-      val result = repository.update(
-         Person(
-            id = "missing",
-            firstName = "Missing",
-            lastName = "Person"
-         )
+   fun updateAndRemove_returnDaoFailuresAsResults() = runTest {
+      val dao = FakePersonDao()
+      val repository = PersonRepository(dao)
+      val person = Person(
+         id = "p-1",
+         firstName = "Ada",
+         lastName = "Lovelace"
       )
 
-      assertTrue(result.isFailure)
+      repository.create(person).getOrThrow()
+      dao.updateFailure = IllegalStateException("update failed")
+      dao.deleteFailure = IllegalStateException("delete failed")
+      assertTrue(repository.update(person).isFailure)
+      assertTrue(repository.remove(person).isFailure)
+      assertEquals(person, repository.findById(person.id).getOrThrow())
+
+      dao.updateFailure = null
+      dao.deleteFailure = null
+      assertTrue(repository.update(person).isSuccess)
+      assertTrue(repository.remove(person).isSuccess)
+      assertEquals(null, repository.findById(person.id).getOrThrow())
    }
 }

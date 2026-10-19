@@ -99,7 +99,7 @@
   <string name="message_person_saved">%1$s wurde gespeichert.</string>
   <string name="message_car_saved">%1$s wurde gespeichert.</string>
   <string name="message_test_drive_saved">Probefahrt wurde gespeichert.</string>
-  <string name="message_person_remove_confirm">%1$s %2$s wirklich löschen?</string>
+  <string name="message_person_remove_confirm">Wirklich %1$s %2$s löschen?</string>
   <string name="message_car_remove_confirm">%1$s %2$s wirklich löschen?</string>
   <string name="message_test_drive_remove_confirm">Probefahrt wirklich löschen?</string>
 
@@ -141,4 +141,6 @@
   <string name="error_test_drive_person_required">Bitte eine Person auswählen.</string>
   <string name="error_test_drive_car_required">Bitte ein Fahrzeug auswählen.</string>
   <string name="error_date_time_format">Datum und Uhrzeit müssen das Format TT.MM.JJJJ HH:mm besitzen.</string>
+  <string name="action_retry">Erneut versuchen</string>
+  <string name="message_person_removed">%1$s wurde gelöscht.</string>
 </resources>
