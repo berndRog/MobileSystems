@@ -1,6 +1,5 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -17,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -73,9 +71,10 @@ fun AppNavigation() {
       },
    ) { innerPadding ->
       NavDisplay(
-         modifier = Modifier.
-         padding(innerPadding)
+         modifier = Modifier
+            .padding(innerPadding)
             .consumeWindowInsets(innerPadding),
+
          backStack = backStack,
 
          // Handles system back navigation as a cancel operation.
@@ -142,7 +141,7 @@ fun AppNavigation() {
                   onNavigateBack = { reason ->
                      if (backStack.lastOrNull() === personKey) {
                         currentPopReason = when (reason) {
-                           BackReason.Save -> PopReason.SAVE
+                           BackReason.Save -> PopReason.Save
                            BackReason.Cancel -> PopReason.Cancel
                         }
                         remove(backStack)

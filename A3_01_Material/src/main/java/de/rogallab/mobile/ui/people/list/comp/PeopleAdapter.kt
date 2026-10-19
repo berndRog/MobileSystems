@@ -53,6 +53,7 @@ fun PeopleAdapter(
    // Collect PeopleUiState with lifecycle awareness.
    val peopleUiState: PeopleUiState
       by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val people = peopleUiState.people
 
    val activity = LocalActivity.current
 
@@ -100,7 +101,6 @@ fun PeopleAdapter(
       }
       // Show PersonScreen
       else {
-         val people = peopleUiState.people
          PeopleScreen(
             people = people,
             onDetail = { personId ->

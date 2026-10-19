@@ -35,7 +35,7 @@ object NavigationAnimations {
       popReason: PopReason,
    ): AnimatedContentTransitionScope<*>.() -> ContentTransform = {
       when (popReason) {
-         PopReason.SAVE -> {
+         PopReason.Save -> {
             Alog.d("<-popTransitionSpec","slideHorizontally popReason=$popReason")
             slideInHorizontally(
                initialOffsetX = { fullWidth -> -fullWidth },

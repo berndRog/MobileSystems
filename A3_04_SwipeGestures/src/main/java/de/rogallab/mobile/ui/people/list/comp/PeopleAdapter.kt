@@ -150,32 +150,6 @@ fun PeopleAdapter(
    }
 }
 
-@Composable
-private fun PeopleCreateButton(
-   onCreate: () -> Unit,
-) {
-   Box(
-      modifier = Modifier
-         .fillMaxSize()
-         .padding(16.dp),
-      contentAlignment = Alignment.BottomEnd,
-   ) {
-      ExtendedFloatingActionButton(
-         containerColor = colorScheme.secondary,
-         onClick = onCreate,
-         icon = {
-            Icon(
-               imageVector = Icons.Default.Add,
-               contentDescription = null,
-            )
-         },
-         text = {
-            Text(text = stringResource(R.string.action_create))
-         },
-      )
-   }
-}
-
 /*
  * Didaktik und Lernziele
  *

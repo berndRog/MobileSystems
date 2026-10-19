@@ -115,7 +115,9 @@ fun PeopleAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else if (loadFailure != null) {
+      }
+      // Show a persistent error with a Retry button.
+      else if (loadFailure != null) {
          Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -126,7 +128,9 @@ fun PeopleAdapter(
                Text(text = stringResource(R.string.action_retry))
             }
          }
-      } else {
+      }
+      // Show PeopleScreen
+      else {
          PeopleScreen(
             people = people,
             onDetail = { personId ->

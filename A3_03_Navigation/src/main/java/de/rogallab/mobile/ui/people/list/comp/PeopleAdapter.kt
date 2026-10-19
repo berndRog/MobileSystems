@@ -108,12 +108,12 @@ fun PeopleAdapter(
                .padding(innerPadding),
             contentAlignment = Alignment.TopCenter,
          ) {
-            CircularProgressIndicator(
-               modifier = Modifier.size(64.dp)
-            )
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
 
-      } else if (loadFailure != null) {
+      }
+
+      else if (loadFailure != null) {
          Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -145,32 +145,6 @@ fun PeopleAdapter(
                .padding(horizontal = 16.dp)
          )
       }
-   }
-}
-
-@Composable
-private fun PeopleCreateButton(
-   onCreate: () -> Unit,
-) {
-   Box(
-      modifier = Modifier
-         .fillMaxSize()
-         .padding(16.dp),
-      contentAlignment = Alignment.BottomEnd,
-   ) {
-      ExtendedFloatingActionButton(
-         containerColor = colorScheme.secondary,
-         onClick = onCreate,
-         icon = {
-            Icon(
-               imageVector = Icons.Default.Add,
-               contentDescription = null,
-            )
-         },
-         text = {
-            Text(text = stringResource(R.string.action_create))
-         },
-      )
    }
 }
 
