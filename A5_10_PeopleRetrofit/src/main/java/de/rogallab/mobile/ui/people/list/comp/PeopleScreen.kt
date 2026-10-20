@@ -61,7 +61,7 @@ fun PeopleScreen(
 /*
  * Didaktik und Lernziele
  *
- * - A4_01 verwendet die gemeinsame SwipeCard aus Shared. Die PersonCard bleibt
+ * - A5_01 verwendet die gemeinsame SwipeCard aus Shared. Die PersonCard bleibt
  *   der konkrete Inhalt der Karte.
  *
  *      StartToEnd -> Detail einer bestehenden Person
@@ -74,9 +74,9 @@ fun PeopleScreen(
  *   animiert die Listenänderung, nachdem das Repository eine bestätigte Löschung
  *   ausgeführt und observeAll() die neue Liste geliefert hat.
  *
- * - Da A4_01 kein Undo enthält, benötigt der Screen weder restoredPersonId noch
- *   einen eigenen LazyListState für das gezielte Wiederanzeigen eines Elements.
- *   Diese Erweiterung folgt in A4_02_ImagePickerUndo.
+ * - Die Room-3-Liste bleibt ein zustandsloser Screen. Bestätigung und
+ *   anschließende Flow-Emission steuern das Entfernen; ein Undo-State gehört
+ *   nicht zu diesem Modul.
  *
  * Lernziele:
  *

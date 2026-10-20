@@ -11,11 +11,11 @@ class PersonUcUpdate(
 
    suspend operator fun invoke(person: Person): Result<Unit> {
 
-      // Updates the remote person before committing the replacement image.
+      // Updates the person before committing the replacement image.
       val result = _repository.update(person)
 
       if (result.isSuccess) {
-         // Commit the image edit session only after a successful server write.
+         // Commit the image edit session only after a successful repository write.
          _imageEdit.commit()
       }
       // Persisted original images remain untouched when the update fails.
@@ -27,15 +27,15 @@ class PersonUcUpdate(
 /*
  * Didaktik und Lernziele
  *
- * - Der Use Case bündelt das Aktualisieren der entfernten Person mit dem
- *   Abschluss der lokalen Bildbearbeitung zu einer Anwendungsoperation.
+ * - Der Use Case bündelt das Aktualisieren der Person mit dem Abschluss der
+ *   laufenden Bildbearbeitung zu einer fachlich zusammengehörigen Operation.
  *
  * - Ein bisher gespeichertes Originalbild darf erst entfernt werden, nachdem
- *   der neue imagePath erfolgreich über das Repository übertragen wurde.
+ *   der neue imagePath erfolgreich im Repository gespeichert wurde.
  *
  * Lernziele:
  *
  * - Mehrschrittige Anwendungslogik in einem Use Case kapseln.
- * - Lokale Ressourcen bei fehlgeschlagenen Netzwerkzugriffen schützen.
- * - Use Cases ohne ViewModel und Android-Lebenszyklus testen.
+ * - Persistierte Originaldaten bei fehlgeschlagenen Updates schützen.
+ * - Use Cases unabhängig vom Android-UI-Lebenszyklus testen.
  */

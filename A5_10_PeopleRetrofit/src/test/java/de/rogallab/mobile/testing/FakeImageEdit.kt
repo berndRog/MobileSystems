@@ -37,11 +37,11 @@ class FakeImageEdit : IImageEdit {
  * - Der Fake macht die Interaktion mit IImageEdit beobachtbar, ohne echte
  *   Dateien anzulegen oder Android-Infrastruktur zu benötigen.
  *
- * - commitCount und discardCount zeigen, ob ein Use Case die Bild-Session im
- *   jeweiligen Erfolgs- oder Fehlerpfad korrekt abschließt.
+ * - commitCount und discardCount erlauben präzise Aussagen darüber, ob ein
+ *   Use Case die Bild-Session im jeweiligen Erfolgs- oder Fehlerpfad abschließt.
  *
  * Lernziele:
  *
- * - Abhängigkeiten in Unit-Tests durch kontrollierbare Fakes ersetzen.
+ * - Abhängigkeiten in Unit-Tests durch kleine, kontrollierbare Fakes ersetzen.
  * - Seiteneffekte über beobachtbare Testzustände verifizieren.
  */

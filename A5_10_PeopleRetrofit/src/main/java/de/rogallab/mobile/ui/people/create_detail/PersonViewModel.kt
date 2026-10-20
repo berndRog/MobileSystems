@@ -7,10 +7,8 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
-import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -63,57 +61,35 @@ class PersonViewModel(
       if (!_isNew) loadPerson(_personId!!)
    }
 
-   // Loads an existing person from the repository
+   // Load failures remain visible until a successful retry or cancellation.
    private fun loadPerson(id: String) {
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       viewModelScope.launch {
-         // Indicate that the loading operation is in progress.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = true)
-         }
-
-         // Simulate a longer loading operation.
          delay(1000)
-
          _repository.findById(id)
             .onSuccess { person ->
-               // A successful repository call may still return no matching person.
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
-
-                  _stateFlow.update { state: PersonUiState ->
-                     state.copy(isLoading = false)
+                  _stateFlow.update {
+                     it.copy(loadFailure = PersonLoadFailure.NotFound(error))
                   }
-                  return@onSuccess
-               }
-
-               // Start the image edit session with the persisted image.
-               // The delegate remembers this image as the original selection.
-               _imageEdit.start(listOfNotNull(person.imagePath))
-
-               // Store the loaded person and finish the loading operation.
-               _stateFlow.update { state: PersonUiState ->
-                  state.copy(person = person)
+               } else {
+                  _imageEdit.start(listOfNotNull(person.imagePath))
+                  _stateFlow.update { it.copy(person = person, loadFailure = null) }
                }
             }
-            .onFailure { throwable ->
-               // Repository failures are converted into a localized UI effect.
-               val fallback = _stringProvider.getString(R.string.error_person_load)
-               val error = throwable.userMessageOr(fallback)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+            .onFailure {
+               val error = _stringProvider.getString(R.string.error_person_load)
+               _stateFlow.update {
+                  it.copy(loadFailure = PersonLoadFailure.Failed(error))
+               }
             }
-
-         // loading operation is finished, regardless of success or failure.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isLoading = false)
-         }
+         _stateFlow.update { it.copy(isLoading = false) }
       }
    }
 
    // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
-      Alog.d(TAG, "intent: $intent")
-
       when (intent) {
          is PersonIntent.FirstNameChange ->changeFirstName(intent.firstName)
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
@@ -129,6 +105,11 @@ class PersonViewModel(
          // Technical image errors are converted into the common error effect.
          is PersonIntent.ImageFailed -> showError(intent.message)
 
+         PersonIntent.RetryLoad ->
+            if (!_isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+               loadPerson(_personId!!)
+            }
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
       }
@@ -172,8 +153,6 @@ class PersonViewModel(
          val imagePath = _imageFileStorage
             .copyImageToAppStorage(sourceUri)
             .getOrElse {
-               // The gallery image could not be stored, therefore the current
-               // edit-session image remains unchanged.
                showError(_stringProvider.getString(SharedR.string.error_image_save))
                return@launch
             }
@@ -196,16 +175,11 @@ class PersonViewModel(
       }
    }
 
-
    // Delegate image lifecycle management to IImageEdit.
-   //
-   // The ViewModel only provides the desired selection. The delegate decides
-   // which temporary images may already be deleted and which persisted originals
-   // must remain until Save has completed successfully.
    private suspend fun replaceImage(imagePath: String?) {
 
-      // Person currently supports one image, while IImageEdit deliberately
-      // uses List<String> so that it can also support multi-image entities.
+      // Person currently supports one image, while IImageEdit uses List<String>
+      //  so that it can also support multi-image entities.
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
@@ -225,10 +199,13 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving) return
+      if (_isSaving || _stateFlow.value.isLoading ||
+         _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
+
+
 
       // Sanitize the email before validation.
       if (person.email != null) {
@@ -271,7 +248,7 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         // Delegate the complete write operation to the matching use case.
+         // Delegate the complete save operation to the matching use case.
          val result =
             if (_isNew) _personUcCreate(person)
             else _personUcUpdate(person)
@@ -285,13 +262,11 @@ class PersonViewModel(
                // ...and then request reverse navigation with Save semantics.
                _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
-            .onFailure { throwable ->
+            .onFailure {
                // A failed repository write must not commit the image session.
                // The original and replacement images therefore remain available
                // so that the user can retry or cancel the edit operation.
-               val fallback =
-                  _stringProvider.getString(R.string.error_person_save)
-               val error = throwable.userMessageOr(fallback)
+               val error = _stringProvider.getString(R.string.error_person_save)
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 
@@ -302,6 +277,7 @@ class PersonViewModel(
 
    // Discard the current edit session and navigate back without saving.
    private fun cancel() {
+      if (_isSaving) return
       viewModelScope.launch {
 
          // Remove only images created during the current edit session.
@@ -325,10 +301,6 @@ class PersonViewModel(
  *   die Personenbearbeitung. Der Screen beobachtet weiterhin genau einen
  *   StateFlow<PersonUiState>, während einmalige Meldungen und Navigationen
  *   getrennt über PersonEffect ausgegeben werden.
- * - Klassifizierte Netzwerkfehler werden als fertige Shared-Meldung angezeigt.
- *   Das ViewModel kennt weiterhin keine Retrofit-, OkHttp- oder HTTP-Typen.
- * - PersonUcCreate und PersonUcUpdate koordinieren Repository und ImageEdit.
- *   Das ViewModel entscheidet nur noch anhand von isNew über den Use Case.
  *
  * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
  *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.
@@ -409,21 +381,25 @@ class PersonViewModel(
  * - Beim erfolgreichen Speichern gilt folgende Reihenfolge:
  *
  *      Person validieren
+ *          -> PersonUcCreate oder PersonUcUpdate
  *          -> Repository.create/update(...)
- *          -> erfolgreich
- *          -> IImageEdit.commit()
+ *          -> IImageEdit.commit() im Use Case
  *          -> ShowMessage
  *          -> NavigateBack
  *
- * - commit() wird bewusst erst nach erfolgreichem Repository-Zugriff aufgerufen.
- *   Erst dann ist sichergestellt, dass die neue Bildreferenz dauerhaft in der
- *   PeopleApi gespeichert wurde. Jetzt dürfen nicht mehr verwendete Original-
- *   bilder gelöscht werden.
+ * - Das ViewModel entscheidet anhand von isNew, welcher Use Case zur aktuellen
+ *   Benutzeraktion gehört. Die Koordination von Room-Repository und
+ *   Bild-Session liegt jedoch nicht mehr im ViewModel.
  *
- * - Schlägt das Speichern fehl, wird commit() nicht ausgeführt. Dadurch bleiben
- *   sowohl das bisher gespeicherte Originalbild als auch das aktuell gewählte
- *   Ersatzbild erhalten. Der Benutzer kann den Speichervorgang erneut versuchen
- *   oder die Bearbeitung abbrechen.
+ * - commit() wird im jeweiligen Use Case erst nach erfolgreichem Repository-
+ *   Zugriff aufgerufen. Erst dann ist sichergestellt, dass die neue
+ *   Bildreferenz dauerhaft gespeichert wurde. Jetzt dürfen nicht mehr
+ *   verwendete Originalbilder gelöscht werden.
+ *
+ * - Schlägt das Speichern fehl, führt der Use Case commit() nicht aus. Dadurch
+ *   bleiben sowohl das bisher gespeicherte Originalbild als auch das aktuell
+ *   gewählte Ersatzbild erhalten. Der Benutzer kann den Speichervorgang erneut
+ *   versuchen oder die Bearbeitung abbrechen.
  *
  * - Beim Abbrechen gilt:
  *
@@ -442,9 +418,9 @@ class PersonViewModel(
  *   der UI nicht dargestellt. Technischer interner Zustand muss daher nicht
  *   automatisch Teil des beobachtbaren UI-States sein.
  *
- * - Fehlermeldungen werden ebenfalls nicht dauerhaft im PersonUiState
- *   gespeichert. Repository-, Validierungs- und Bildfehler werden als
- *   PersonEffect.ShowError ausgegeben und von der UI einmalig verarbeitet.
+ * - Ladefehler bleiben als PersonLoadFailure im PersonUiState sichtbar.
+ *   RetryLoad startet nach einem Repository-Fehler einen neuen Versuch;
+ *   Validierungs- und Bildfehler bleiben einmalige ShowError-Effects.
  *
  * - Damit bleibt der bekannte Datenfluss erhalten:
  *
@@ -470,7 +446,9 @@ class PersonViewModel(
  * - Technische Dateiverwaltung über IImageFileStorage kapseln.
  * - Bild-Lebenszyklen einer Bearbeitung über IImageEdit delegieren.
  * - Original- und Ersatzbilder bei Save und Cancel sicher behandeln.
- * - commit() erst nach erfolgreichem Repository-Zugriff ausführen.
+ * - UI-State-Logik im ViewModel und Anwendungslogik im Use Case unterscheiden.
+ * - Use Cases gezielt für zusammengesetzte Operationen einsetzen.
+ * - commit() im Use Case erst nach erfolgreichem Repository-Zugriff ausführen.
  * - cancel() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
  * - Bestehenden UDF-/MVI-Datenfluss auch bei komplexerer Bildlogik beibehalten.
  */

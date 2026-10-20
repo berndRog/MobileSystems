@@ -11,14 +11,14 @@ class PersonUcCreate(
 
    suspend operator fun invoke(person: Person): Result<Unit> {
 
-      // Creates the remote person before committing the local image edit session.
+      // Creates the person before committing the image edit session.
       val result = _repository.create(person)
 
       if (result.isSuccess) {
-         // Commit the image edit session only after a successful server write.
+         // Commit the image edit session only after a successful repository write.
          _imageEdit.commit()
       }
-      // A failed server write keeps the selected image available for retry.
+      // A failed repository write keeps the selected image available for retry.
 
       return result
    }
@@ -28,15 +28,15 @@ class PersonUcCreate(
  * Didaktik und Lernziele
  *
  * - Der Use Case beschreibt die vollständige Anwendungsoperation
- *   "Person über REST anlegen" und koordiniert Repository und ImageEdit.
+ *   "Person mit Bild anlegen" und koordiniert dafür Repository und ImageEdit.
  *
- * - Die Bild-Session wird erst nach einem erfolgreichen Serverzugriff
- *   übernommen. Bei einem Netzwerkfehler bleibt das lokale Bild erhalten,
- *   sodass der Benutzer den Speichervorgang erneut versuchen kann.
+ * - Die Bild-Session wird erst nach einem erfolgreichen Repository-Zugriff
+ *   übernommen. Bei einem Fehler kann der Benutzer den Speichervorgang erneut
+ *   versuchen oder die Bearbeitung abbrechen.
  *
  * Lernziele:
  *
  * - Zusammengesetzte Anwendungslogik aus dem ViewModel auslagern.
- * - Use Cases unabhängig von Retrofit und Android UI formulieren.
- * - Die Reihenfolge von Serverzugriff und lokaler Bildverwaltung begründen.
+ * - Technische Abhängigkeiten über Constructor Injection bereitstellen.
+ * - Die Reihenfolge von Datenbankzugriff und Bildverwaltung begründen.
  */
