@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">A3_03 Navigation</string>
+  <string name="app_name">A3_03_Navigation</string>
 
   <string name="person_create">Add person</string>
   <string name="person_detail">Edit person</string>

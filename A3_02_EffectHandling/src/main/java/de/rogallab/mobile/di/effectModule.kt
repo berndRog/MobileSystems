@@ -16,12 +16,12 @@ fun effectModule() = module {
 
    // Creates a new PersonEffect delegate for each PersonViewModel.
    factory<EffectDelegate<PersonEffect>>(personEffectQualifier) {
-      EffectDelegate<PersonEffect>()
+      EffectDelegate()
    }
 
    // Creates a new PeopleEffect delegate for each PeopleViewModel.
    factory<EffectDelegate<PeopleEffect>>(peopleEffectQualifier) {
-      EffectDelegate<PeopleEffect>()
+      EffectDelegate()
    }
 }
 
