@@ -24,12 +24,16 @@ class NavigationEffectTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   // Creates the ViewModel with the dependencies required by A4_01.
+   // Creates the ViewModel with the dependencies required by A5_01.
    private fun createViewModel(): PeopleViewModel {
       val repository = FakePersonRepository()
+
       return PeopleViewModel(
          _repository = repository,
-         _personUcDelete = PersonUcDelete(repository, FakeImageFileStorage()),
+         _personUcDelete = PersonUcDelete(
+            repository,
+            FakeImageFileStorage(),
+         ),
          _stringProvider = FakeStringProvider(),
          _effectDelegate = EffectDelegate(),
       )

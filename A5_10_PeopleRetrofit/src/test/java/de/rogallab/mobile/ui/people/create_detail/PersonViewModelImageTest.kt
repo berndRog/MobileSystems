@@ -46,6 +46,7 @@ class PersonViewModelImageTest {
 
    private fun createViewModel(personId: String? = null): PersonViewModel {
       val imageEdit = ImageEdit(storage)
+
       return PersonViewModel(
          personId = personId,
          _repository = repository,
@@ -57,6 +58,32 @@ class PersonViewModelImageTest {
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate = EffectDelegate(),
       )
+   }
+
+   @Test
+   fun failedLoad_staysVisibleUntilRetry() = runTest(mainDispatcherRule.testDispatcher) {
+      repository.findResult = Result.failure(IllegalStateException("offline"))
+      val viewModel = createViewModel("p1")
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.Failed)
+      assertFalse(viewModel.stateFlow.value.isLoading)
+
+      val person = Person(firstName = "Ada", lastName = "Lovelace", id = "p1")
+      repository.findResult = Result.success(person)
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertNull(viewModel.stateFlow.value.loadFailure)
+      assertEquals(person, viewModel.stateFlow.value.person)
+   }
+
+   @Test
+   fun missingPerson_showsPersistentNotFound() = runTest(mainDispatcherRule.testDispatcher) {
+      val viewModel = createViewModel("missing")
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.NotFound)
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.NotFound)
    }
 
    @Test

@@ -10,13 +10,13 @@ class PersonUcDelete(
    private val _imageFileStorage: IImageFileStorage,
 ) {
 
-   // Deletes the server resource before removing its local image file.
-   // This order prevents a failed request from leaving a broken image reference.
+   // Deletes the database entry before removing its image file.
+   // This order prevents a failed repository call from leaving a broken image reference.
    suspend operator fun invoke(person: Person): Result<Unit> {
       val result = _repository.remove(person)
 
       if (result.isSuccess) {
-         // Image cleanup is best effort because the person is already deleted.
+         // Image cleanup is best effort because the person has already been deleted.
          _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
             .onFailure { throwable ->
                Alog.e(TAG, "delete person image failed: ${throwable.message}")
@@ -34,18 +34,20 @@ class PersonUcDelete(
 /*
  * Didaktik und Lernziele
  *
- * - "Person löschen" umfasst in A5_10 den Datensatz auf dem Server und die
- *   lokal verwaltete Bilddatei, deren Pfad lediglich als String übertragen wird.
+ * - "Person löschen" umfasst auch mit Room zwei Datenquellen: den Datensatz
+ *   in der Datenbank und die zugehörige Datei im privaten App-Speicher.
  *
- * - Zuerst wird der Serverdatensatz gelöscht. Bei einem Netzwerkfehler bleibt
- *   das Bild erhalten und die Person besitzt weiterhin eine gültige Referenz.
+ * - Zuerst wird der Datensatz gelöscht. Würde das Bild zuerst entfernt und der
+ *   Repository-Zugriff anschließend fehlschlagen, bliebe eine Person mit einem
+ *   ungültigen imagePath zurück.
  *
- * - Das anschließende Löschen der Datei ist Best Effort: Ein Dateifehler darf
- *   die bereits erfolgreiche Serveroperation nicht nachträglich als Fehler melden.
+ * - Schlägt nur das abschließende Aufräumen der Bilddatei fehl, bleibt die
+ *   bereits erfolgreiche Personenlöschung das Ergebnis der Hauptoperation.
+ *   Der Fehler wird protokolliert, damit die UI keinen falschen Zustand meldet.
  *
  * Lernziele:
  *
- * - Entfernte und lokale Datenquellen in einem Use Case koordinieren.
- * - Nicht atomare Schritte in einer fachlich sicheren Reihenfolge ausführen.
- * - Hauptoperation und nachgelagertes Aufräumen unterscheiden.
+ * - Mehrere Datenquellen in einer Anwendungsoperation koordinieren.
+ * - Die Reihenfolge nicht-atomarer Schritte anhand möglicher Fehler begründen.
+ * - Kritische Operationen von nachgelagertem Best-Effort-Aufräumen trennen.
  */

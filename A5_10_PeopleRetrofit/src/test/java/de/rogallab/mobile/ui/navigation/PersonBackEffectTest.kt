@@ -37,36 +37,34 @@ class PersonBackEffectTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   private val context =
-      ApplicationProvider.getApplicationContext<android.content.Context>()
+   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
    @Test
-   fun cancel_emitsNavigateBackWithCancelReason() =
-      runTest(mainDispatcherRule.testDispatcher) {
-         val imageFileStorage = FakeImageFileStorage()
-         val repository = FakePersonRepository()
-         val imageEdit = ImageEdit(imageFileStorage)
-         val viewModel = PersonViewModel(
-            personId = null,
-            _repository = repository,
-            _stringProvider = stringProvider,
-            _validator = validator,
-            _imageFileStorage = imageFileStorage,
-            _imageEdit = imageEdit,
-            _personUcCreate = PersonUcCreate(repository, imageEdit),
-            _personUcUpdate = PersonUcUpdate(repository, imageEdit),
-            _effectDelegate = EffectDelegate(),
-         )
+   fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
+      val imageFileStorage = FakeImageFileStorage()
+      val repository = FakePersonRepository()
+      val imageEdit = ImageEdit(imageFileStorage)
+      val viewModel = PersonViewModel(
+         personId = null,
+         _repository = repository,
+         _stringProvider = stringProvider,
+         _validator = validator,
+         _imageFileStorage = imageFileStorage,
+         _imageEdit = imageEdit,
+         _personUcCreate = PersonUcCreate(repository, imageEdit),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _effectDelegate = EffectDelegate(),
+      )
 
-         viewModel.effects.test {
-            viewModel.onIntent(PersonIntent.Cancel)
-            advanceUntilIdle()
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.Cancel)
+         advanceUntilIdle()
 
-            val effect = awaitItem() as PersonEffect.NavigateBack
-            assertEquals(BackReason.Cancel, effect.reason)
-            cancelAndIgnoreRemainingEvents()
-         }
+         val effect = awaitItem() as PersonEffect.NavigateBack
+         assertEquals(BackReason.Cancel, effect.reason)
+         cancelAndIgnoreRemainingEvents()
       }
+   }
 }

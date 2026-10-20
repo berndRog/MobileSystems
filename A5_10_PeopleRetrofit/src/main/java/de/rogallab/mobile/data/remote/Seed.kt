@@ -7,71 +7,58 @@ import de.rogallab.mobile.shared.domain.io.ImageFileFormat
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
 import java.util.Locale
 import kotlin.random.Random
 
 class Seed(
    private val _imageFileStorage: IImageFileStorage,
-   private val _withImages: Boolean = true,
-) {
+   private val _withImages: Boolean = true
+) : KoinComponent {
 
-   val people: MutableList<Person> = mutableListOf()
+   var people: MutableList<Person> = mutableListOf<Person>()
 
-   suspend fun createPeopleList() {
-      people.clear()
-
-      val firstNames = listOf(
+   fun createPeopleList() {
+      val firstNames = mutableListOf(
          "Arne", "Berta", "Cord", "Dagmar", "Ernst", "Frieda", "Günter", "Hanna",
          "Ingo", "Johanna", "Klaus", "Luise", "Martin", "Nadja", "Otto", "Patrizia",
          "Quirin", "Rebecca", "Stefan", "Tanja", "Uwe", "Veronika", "Walter", "Xenia",
-         "Yannick", "Zwantje",
-      )
-      val lastNames = listOf(
+         "Yannick", "Zwantje")
+      val lastNames = mutableListOf(
          "Arndt", "Bauer", "Conrad", "Diehl", "Engel", "Fischer", "Graf", "Hoffmann",
          "Imhoff", "Jung", "Klein", "Lang", "Meier", "Neumann", "Olbrich", "Peters",
          "Quart", "Richter", "Schmidt", "Thormann", "Ulrich", "Vogel", "Wagner", "Xander",
-         "Yakov", "Zander",
-      )
-      val emailProviders = listOf(
-         "t-online.de", "gmx.de", "web.de", "freenet.de",
-         "posteo.de", "mailbox.org", "tuta.com", "mail.de",
-      )
-
+         "Yakov", "Zander")
+      val emailProvider = mutableListOf("gmail.com", "icloud.com", "outlook.com", "yahoo.com",
+         "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "yahoo.com", "web.de")
       val random = Random(0)
       for (index in firstNames.indices) {
+//         var indexFirst = random.nextInt(firstNames.size)
+//         var indexLast = random.nextInt(lastNames.size)
          val firstName = firstNames[index]
          val lastName = lastNames[index]
-         val provider = emailProviders[index % emailProviders.size]
 
+
+         val provider = emailProvider[index % emailProvider.size]   // rotiert bei Überlauf wieder von vorne
          val email = sanitizeEmailInput(
-            "${firstName.lowercase(Locale.ROOT)}." +
-               "${lastName.lowercase(Locale.ROOT)}@$provider"
-         )
-         val phone = sanitizePhoneInput(
+            "${firstName.lowercase(locale = Locale.ROOT)}." +
+               "${lastName.lowercase(locale = Locale.ROOT)}@" +
+               "${provider}")
+
+         val phone: String = sanitizePhoneInput(
             "0${random.nextInt(1234, 9999)} " +
                "${random.nextInt(100, 999)}-" +
-               "${random.nextInt(10, 9999)}"
-         )
-         val id = String.format(
-            Locale.ROOT,
-            "%02d000000-0000-0000-0000-000000000000",
-            index + 1,
-         )
+               "${random.nextInt(10, 9999)}")
 
-         people.add(
-            Person(
-               firstName = firstName,
-               lastName = lastName,
-               email = email,
-               phone = phone,
-               imagePath = null,
-               id = id,
-            )
-         )
+         val uuid = String.format(Locale.ROOT, "%02d000000-0000-0000-0000-000000000000", index + 1)
+         val person = Person(firstName, lastName, email, phone, null, uuid)
+         people.add(person)
       }
 
-      if (_withImages)
-         createImages()
+      // convert the drawables into image files
+      runBlocking { createImages() }
+
    }
 
    private suspend fun createImages() {
@@ -82,7 +69,7 @@ class Seed(
          R.drawable.man_07, R.drawable.woman_07, R.drawable.man_08, R.drawable.woman_08,
          R.drawable.man_09, R.drawable.woman_09, R.drawable.man_10, R.drawable.woman_10,
          R.drawable.man_11, R.drawable.woman_11, R.drawable.man_12, R.drawable.woman_12,
-         R.drawable.man_13, R.drawable.woman_13,
+         R.drawable.man_13, R.drawable.woman_13
       )
 
       check(people.size >= drawables.size) {
@@ -90,40 +77,27 @@ class Seed(
       }
 
       drawables.forEachIndexed { index, drawableId ->
-         val id = String.format(
-            Locale.ROOT,
-            "%02d000000-0000-0000-0000-000000000000",
-            index + 1,
-         )
+
+         val uuidString = String.format(
+            Locale.ROOT, "%02d000000-0000-0000-0000-000000000000", index + 1)
 
          val imagePath = _imageFileStorage.saveDrawableToAppStorage(
             drawableResId = drawableId,
-            fileName = id,
+            fileName = uuidString,
             format = ImageFileFormat.Jpeg,
             quality = 90,
-         ).getOrElse { throwable ->
-            Alog.e(TAG, "create image: ${throwable.message}")
+         )
+         .getOrElse { throwable ->
+            val message = throwable.localizedMessage
+               ?: "Failed to create seed image: $uuidString"
+            Alog.e("<-Seed", message)
             throw throwable
          }
+         Alog.d("<-Seed", "Uri: $imagePath")
 
+         // Update the person with the image path
          people[index] = people[index].copy(imagePath = imagePath)
+
       }
    }
-
-   companion object {
-      private const val TAG = "<-Seed"
-   }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - Seed erzeugt dieselben deterministischen 26 Personen wie die lokalen Beispiele,
- *   damit Room- und Retrofit-Variante direkt vergleichbar bleiben.
- * - Die Seed-Daten entstehen jetzt im Android-Client. Die PeopleApi muss keine
- *   fachlichen Beispieldaten mehr kennen oder beim Start automatisch anlegen.
- * - Optional werden die vorhandenen Drawable-Portraits in lokale JPEG-Dateien
- *   umgewandelt. Diese Dateien bleiben im privaten App-Verzeichnis gespeichert.
- * - Person.imagePath enthält den lokalen Pfad. SeedApi überträgt nur diesen String
- *   als imageUrl des PersonDto, nicht den Inhalt der Bilddatei.
- */

@@ -130,13 +130,15 @@ class PersonUseCasesTest {
  * Didaktik und Lernziele
  *
  * - Die Tests prüfen die Use Cases unabhängig von ViewModel, Compose, Koin und
- *   der konkreten Retrofit-Implementierung.
+ *   der konkreten Room-Datenbank.
  *
- * - Erfolgs- und Fehlerpfade sichern ab, dass Bildzustand erst nach einem
- *   erfolgreichen Serverzugriff übernommen oder entfernt wird.
+ * - Erfolgs- und Fehlerpfade belegen die entscheidende Reihenfolge: Eine
+ *   Bild-Session wird nur nach erfolgreichem Create oder Update committed und
+ *   eine Bilddatei nur nach erfolgreichem Delete entfernt.
  *
  * Lernziele:
  *
- * - Netzwerk-unabhängige Anwendungslogik mit kleinen Fakes isoliert testen.
+ * - Zusammengesetzte Operationen mit kleinen Fakes isoliert testen.
+ * - Room-unabhängige Anwendungslogik ohne Android-UI überprüfen.
  * - Reihenfolgen und Seiteneffekte durch beobachtbare Aufrufe absichern.
  */
