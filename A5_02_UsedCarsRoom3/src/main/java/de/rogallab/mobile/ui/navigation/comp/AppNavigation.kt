@@ -27,11 +27,11 @@ import de.rogallab.mobile.ui.cars.list.CarsViewModel
 import de.rogallab.mobile.ui.cars.list.comp.CarsAdapter
 import de.rogallab.mobile.ui.navigation.AppNavigator
 import de.rogallab.mobile.ui.navigation.CarKey
-import de.rogallab.mobile.ui.navigation.CarListKey
+import de.rogallab.mobile.ui.navigation.CarsKey
 import de.rogallab.mobile.ui.navigation.ITopLevelNavItem
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
 import de.rogallab.mobile.ui.navigation.PersonKey
-import de.rogallab.mobile.ui.navigation.PersonListKey
+import de.rogallab.mobile.ui.navigation.PeopleKey
 import de.rogallab.mobile.ui.navigation.PopReason
 import de.rogallab.mobile.ui.navigation.TDriveKey
 import de.rogallab.mobile.ui.navigation.TDrivesKey
@@ -73,7 +73,7 @@ fun AppNavigation() {
    }
 
    val appEntryProvider = entryProvider {
-      entry<PersonListKey> {
+      entry<PeopleKey> {
          val viewModel = koinViewModel<PeopleViewModel>()
          PeopleAdapter(
             viewModel = viewModel,
@@ -90,10 +90,10 @@ fun AppNavigation() {
                )
             },
             onNavigateBack = {
-               if (navigationState.currentBackStack().lastOrNull() == PersonListKey) navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == PeopleKey) navigator.pop()
             },
             onNavigateTo = { personId ->
-               if (navigationState.currentBackStack().lastOrNull() == PersonListKey) {
+               if (navigationState.currentBackStack().lastOrNull() == PeopleKey) {
                   navigator.push(PersonKey(personId))
                }
             },
@@ -123,7 +123,7 @@ fun AppNavigation() {
          )
       }
 
-      entry<CarListKey> {
+      entry<CarsKey> {
          val viewModel = koinViewModel<CarsViewModel>()
          CarsAdapter(
             viewModel = viewModel,
@@ -140,7 +140,7 @@ fun AppNavigation() {
                )
             },
             onNavigateTo = { carId ->
-               if (navigationState.currentBackStack().lastOrNull() == CarListKey) {
+               if (navigationState.currentBackStack().lastOrNull() == CarsKey) {
                   navigator.push(CarKey(carId))
                }
             },

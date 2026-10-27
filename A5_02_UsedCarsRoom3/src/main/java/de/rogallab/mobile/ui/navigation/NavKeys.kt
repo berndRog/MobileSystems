@@ -4,7 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object PersonListKey : NavKey
+data object PeopleKey : NavKey
 
 @Serializable
 data class PersonKey(
@@ -12,7 +12,7 @@ data class PersonKey(
 ) : NavKey
 
 @Serializable
-data object CarListKey : NavKey
+data object CarsKey : NavKey
 
 @Serializable
 data class CarKey(

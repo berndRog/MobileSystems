@@ -12,7 +12,7 @@ import androidx.navigation3.runtime.NavKey
 import de.rogallab.mobile.R
 
 data object PeopleTopLevel : ITopLevelNavItem {
-   override val navKey: NavKey = PersonListKey
+   override val navKey: NavKey = PeopleKey
    override val labelResourceId: Int = R.string.navigation_people
    override val logLabel: String = "People"
    override val iconActive: ImageVector = Icons.Filled.People
@@ -20,7 +20,7 @@ data object PeopleTopLevel : ITopLevelNavItem {
 }
 
 data object CarsTopLevel : ITopLevelNavItem {
-   override val navKey: NavKey = CarListKey
+   override val navKey: NavKey = CarsKey
    override val labelResourceId: Int = R.string.navigation_cars
    override val logLabel: String = "Cars"
    override val iconActive: ImageVector = Icons.Filled.DirectionsCar

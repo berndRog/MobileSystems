@@ -7,7 +7,7 @@
   <integer name="char_min">2</integer>
   <integer name="char_max">50</integer>
 
-  <string name="navigation_people">People</string>
+  <string name="navigation_people">Personen</string>
   <string name="navigation_cars">Fahrzeuge</string>
   <string name="navigation_test_drives">Probefahrten</string>
 

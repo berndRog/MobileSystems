@@ -12,11 +12,11 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import de.rogallab.mobile.ui.navigation.CarListKey
+import de.rogallab.mobile.ui.navigation.CarsKey
 import de.rogallab.mobile.ui.navigation.CarsTopLevel
 import de.rogallab.mobile.ui.navigation.ITopLevelNavItem
 import de.rogallab.mobile.ui.navigation.PeopleTopLevel
-import de.rogallab.mobile.ui.navigation.PersonListKey
+import de.rogallab.mobile.ui.navigation.PeopleKey
 import de.rogallab.mobile.ui.navigation.TDrivesKey
 import de.rogallab.mobile.ui.navigation.TDrivesTopLevel
 import de.rogallab.mobile.ui.navigation.topLevelNavItems
@@ -33,9 +33,9 @@ fun rememberAppNavigationState(): AppNavigationState {
    // top-level section. The explicit variables make the three stacks easy to
    // inspect in the debugger and keep the example approachable for students.
    val personBackStack: NavBackStack<NavKey> =
-      rememberNavBackStack(PersonListKey)
+      rememberNavBackStack(PeopleKey)
    val carBackStack: NavBackStack<NavKey> =
-      rememberNavBackStack(CarListKey)
+      rememberNavBackStack(CarsKey)
    val testDriveBackStack: NavBackStack<NavKey> =
       rememberNavBackStack(TDrivesKey)
 
