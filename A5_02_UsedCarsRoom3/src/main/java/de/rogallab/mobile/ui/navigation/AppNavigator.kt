@@ -15,10 +15,8 @@ class AppNavigator(
    private val navigationState: AppNavigationState,
 ) {
    init {
-      logNavigationOperation(
-         operation = "initial",
-         destination = navigationState.currentBackStack().lastOrNull(),
-      )
+      logNavigationOperation("initial",
+         navigationState.currentBackStack().lastOrNull(), )
    }
 
    // Switches the visible top-level section without clearing its back stack.
@@ -26,66 +24,41 @@ class AppNavigator(
       topLevelNavItem: ITopLevelNavItem,
    ) {
       if (topLevelNavItem == navigationState.currentTopLevelNavItem) {
-         logNavigationOperation(
-            operation = "switch ignored - already selected",
-            destination = topLevelNavItem.navKey,
-         )
+         logNavigationOperation("switch ignored - already selected", topLevelNavItem.navKey)
          return
       }
 
       navigationState.currentTopLevelNavItem = topLevelNavItem
-
-      logNavigationOperation(
-         operation = "switch top-level",
-         destination = topLevelNavItem.navKey,
-      )
+      logNavigationOperation("switch top-level",topLevelNavItem.navKey, )
    }
 
    // Adds a destination to the back stack of the selected top-level section.
-   fun push(destination: NavKey) {
+   fun add(destination: NavKey) {
       navigationState.currentBackStack().add(destination)
-
-      logNavigationOperation(
-         operation = "push",
-         destination = destination,
-      )
+      logNavigationOperation("add", destination)
    }
 
    // Removes the current destination from the selected back stack.
    //
    // At the root of Cars or TestDrives, Back returns to People. At the
    // root of People, the navigation state remains unchanged.
-   fun pop() {
+   fun remove() {
       val currentBackStack = navigationState.currentBackStack()
 
       if (currentBackStack.size > 1) {
          val removedDestination = currentBackStack.removeLastOrNull()
-
-         logNavigationOperation(
-            operation = "pop",
-            destination = removedDestination,
-         )
+         logNavigationOperation("remove", removedDestination)
       }
       else if (
-         navigationState.currentTopLevelNavItem !=
-         navigationState.startTopLevelNavItem
+         navigationState.currentTopLevelNavItem != navigationState.startTopLevelNavItem
       ) {
-         val previousTopLevelNavItem =
-            navigationState.currentTopLevelNavItem
-
-         navigationState.currentTopLevelNavItem =
-            navigationState.startTopLevelNavItem
-
-         logNavigationOperation(
-            operation = "pop to start section",
-            destination = previousTopLevelNavItem.navKey,
-         )
+         val previousTopLevelNavItem =  navigationState.currentTopLevelNavItem
+         navigationState.currentTopLevelNavItem = navigationState.startTopLevelNavItem
+         logNavigationOperation("renove to start section", previousTopLevelNavItem.navKey, )
       }
       else {
          logNavigationOperation(
-            operation = "pop ignored - app root remains",
-            destination = currentBackStack.lastOrNull(),
-         )
+            "remove ignored - app root remains", currentBackStack.lastOrNull(), )
       }
    }
 
@@ -116,7 +89,7 @@ class AppNavigator(
                postfix = "]",
             )
 
-         "$selectionMarker ${topLevelNavItem.logLabel}=$backStackText"
+         "$selectionMarker ${topLevelNavItem.toString()}=$backStackText"
       }
 
       AppLogger.debug(

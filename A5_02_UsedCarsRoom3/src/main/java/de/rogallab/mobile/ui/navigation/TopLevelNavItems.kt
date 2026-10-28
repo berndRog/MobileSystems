@@ -14,7 +14,6 @@ import de.rogallab.mobile.R
 data object PeopleTopLevel : ITopLevelNavItem {
    override val navKey: NavKey = PeopleKey
    override val labelResourceId: Int = R.string.navigation_people
-   override val logLabel: String = "People"
    override val iconActive: ImageVector = Icons.Filled.People
    override val iconOutlined: ImageVector = Icons.Outlined.People
 }
@@ -22,7 +21,6 @@ data object PeopleTopLevel : ITopLevelNavItem {
 data object CarsTopLevel : ITopLevelNavItem {
    override val navKey: NavKey = CarsKey
    override val labelResourceId: Int = R.string.navigation_cars
-   override val logLabel: String = "Cars"
    override val iconActive: ImageVector = Icons.Filled.DirectionsCar
    override val iconOutlined: ImageVector = Icons.Outlined.DirectionsCar
 }
@@ -30,7 +28,6 @@ data object CarsTopLevel : ITopLevelNavItem {
 data object TDrivesTopLevel : ITopLevelNavItem {
    override val navKey: NavKey = TDrivesKey
    override val labelResourceId: Int = R.string.navigation_test_drives
-   override val logLabel: String = "TestDrives"
    override val iconActive: ImageVector = Icons.Filled.Event
    override val iconOutlined: ImageVector = Icons.Outlined.Event
 }

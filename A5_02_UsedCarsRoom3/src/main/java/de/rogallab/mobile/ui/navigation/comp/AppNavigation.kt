@@ -90,11 +90,11 @@ fun AppNavigation() {
                )
             },
             onNavigateBack = {
-               if (navigationState.currentBackStack().lastOrNull() == PeopleKey) navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == PeopleKey) navigator.remove()
             },
             onNavigateTo = { personId ->
                if (navigationState.currentBackStack().lastOrNull() == PeopleKey) {
-                  navigator.push(PersonKey(personId))
+                  navigator.add(PersonKey(personId))
                }
             },
          )
@@ -112,12 +112,12 @@ fun AppNavigation() {
             onNavigateBack = { reason ->
                if (navigationState.currentBackStack().lastOrNull() == key) {
                   currentPopReason = reason.toPopReason()
-                  navigator.pop()
+                  navigator.remove()
                }
             },
             onNavigateToCar = { carId ->
                if (navigationState.currentBackStack().lastOrNull() == key) {
-                  navigator.push(CarKey(carId))
+                  navigator.add(CarKey(carId))
                }
             },
          )
@@ -141,7 +141,7 @@ fun AppNavigation() {
             },
             onNavigateTo = { carId ->
                if (navigationState.currentBackStack().lastOrNull() == CarsKey) {
-                  navigator.push(CarKey(carId))
+                  navigator.add(CarKey(carId))
                }
             },
          )
@@ -159,7 +159,7 @@ fun AppNavigation() {
             onNavigateBack = { reason ->
                if (navigationState.currentBackStack().lastOrNull() == key) {
                   currentPopReason = reason.toPopReason()
-                  navigator.pop()
+                  navigator.remove()
                }
             },
          )
@@ -183,7 +183,7 @@ fun AppNavigation() {
             },
             onNavigateTo = { tDriveId ->
                if (navigationState.currentBackStack().lastOrNull() == TDrivesKey) {
-                  navigator.push(TDriveKey(tDriveId))
+                  navigator.add(TDriveKey(tDriveId))
                }
             },
          )
@@ -201,7 +201,7 @@ fun AppNavigation() {
             onNavigateBack = { reason ->
                if (navigationState.currentBackStack().lastOrNull() == key) {
                   currentPopReason = reason.toPopReason()
-                  navigator.pop()
+                  navigator.remove()
                }
             },
          )
@@ -221,7 +221,7 @@ fun AppNavigation() {
          entries = navigationState.toDecoratedEntries(appEntryProvider),
          onBack = {
             currentPopReason = PopReason.CANCEL
-            navigator.pop()
+            navigator.remove()
          },
          transitionSpec = NavigationAnimations.enterTransitionSpec,
          popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),

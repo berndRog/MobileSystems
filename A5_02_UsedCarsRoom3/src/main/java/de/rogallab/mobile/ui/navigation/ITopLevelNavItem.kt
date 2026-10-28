@@ -5,10 +5,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
 
 // Describes one item of the Material 3 NavigationBar.
-interface ITopLevelNavItem : NavKey {
+interface ITopLevelNavItem {
    val navKey: NavKey
    @get:StringRes val labelResourceId: Int
-   val logLabel: String
+   //val logLabel: String
    val iconActive: ImageVector
    val iconOutlined: ImageVector
 }
