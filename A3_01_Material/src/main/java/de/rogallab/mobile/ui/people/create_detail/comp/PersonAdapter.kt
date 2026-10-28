@@ -51,8 +51,7 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect PersonUiState with lifecycle awareness.
-   val personUiState: PersonUiState
-      by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val personUiState: PersonUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
    val person = personUiState.person
 
    Scaffold(

@@ -235,30 +235,30 @@ private fun BackReason.toPopReason(): PopReason = when (this) {
    BackReason.Cancel -> PopReason.CANCEL
 }
 
-@Composable
-private fun AppBottomNavigationBar(
-   navItems: List<ITopLevelNavItem>,
-   currentTopLevelNavItem: ITopLevelNavItem,
-   onTopLevelSelected: (ITopLevelNavItem) -> Unit,
-) {
-   NavigationBar {
-      navItems.forEach { item ->
-         val selected = item == currentTopLevelNavItem
-         val label = stringResource(item.labelResourceId)
-         NavigationBarItem(
-            selected = selected,
-            onClick = { onTopLevelSelected(item) },
-            icon = {
-               Icon(
-                  imageVector = if (selected) item.iconActive else item.iconOutlined,
-                  contentDescription = label,
-               )
-            },
-            label = { Text(label) },
-         )
-      }
-   }
-}
+//@Composable
+//private fun AppBottomNavigationBar(
+//   navItems: List<ITopLevelNavItem>,
+//   currentTopLevelNavItem: ITopLevelNavItem,
+//   onTopLevelSelected: (ITopLevelNavItem) -> Unit,
+//) {
+//   NavigationBar {
+//      navItems.forEach { item ->
+//         val selected = item == currentTopLevelNavItem
+//         val label = stringResource(item.labelResourceId)
+//         NavigationBarItem(
+//            selected = selected,
+//            onClick = { onTopLevelSelected(item) },
+//            icon = {
+//               Icon(
+//                  imageVector = if (selected) item.iconActive else item.iconOutlined,
+//                  contentDescription = label,
+//               )
+//            },
+//            label = { Text(label) },
+//         )
+//      }
+//   }
+//}
 
 /*
  * Didaktik und Lernziele

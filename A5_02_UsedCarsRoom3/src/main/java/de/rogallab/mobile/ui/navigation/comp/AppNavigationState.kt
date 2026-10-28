@@ -39,14 +39,12 @@ fun rememberAppNavigationState(): AppNavigationState {
    val testDriveBackStack: NavBackStack<NavKey> =
       rememberNavBackStack(TDrivesKey)
 
-   // The selected index is saveable because it is a simple Int value.
    // Index 0 represents People, the start section of the application.
    val selectedTopLevelIndexState = rememberSaveable {
       mutableStateOf(0)
    }
 
-   // The map connects the UI metadata of each NavigationBar item with the
-   // standard back stack that belongs to that section.
+   // Map connects ToplLevelNavItem with the back stack that belongs to that section.
    val backStacks: Map<ITopLevelNavItem, NavBackStack<NavKey>> = remember(
       personBackStack,
       carBackStack,

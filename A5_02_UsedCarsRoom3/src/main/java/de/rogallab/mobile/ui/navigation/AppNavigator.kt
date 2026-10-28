@@ -23,11 +23,7 @@ class AppNavigator(
    fun switchTopLevel(
       topLevelNavItem: ITopLevelNavItem,
    ) {
-      if (topLevelNavItem == navigationState.currentTopLevelNavItem) {
-         logNavigationOperation("switch ignored - already selected", topLevelNavItem.navKey)
-         return
-      }
-
+      if (topLevelNavItem == navigationState.currentTopLevelNavItem) return
       navigationState.currentTopLevelNavItem = topLevelNavItem
       logNavigationOperation("switch top-level",topLevelNavItem.navKey, )
    }
@@ -43,22 +39,16 @@ class AppNavigator(
    // At the root of Cars or TestDrives, Back returns to People. At the
    // root of People, the navigation state remains unchanged.
    fun remove() {
-      val currentBackStack = navigationState.currentBackStack()
+      val backStack = navigationState.currentBackStack()
 
-      if (currentBackStack.size > 1) {
-         val removedDestination = currentBackStack.removeLastOrNull()
+      if (backStack.size > 1) {
+         val removedDestination = backStack.removeLastOrNull()
          logNavigationOperation("remove", removedDestination)
       }
-      else if (
-         navigationState.currentTopLevelNavItem != navigationState.startTopLevelNavItem
-      ) {
-         val previousTopLevelNavItem =  navigationState.currentTopLevelNavItem
+      else if (navigationState.currentTopLevelNavItem != navigationState.startTopLevelNavItem) {
+         val topLevelNavKey =  navigationState.currentTopLevelNavItem.navKey
          navigationState.currentTopLevelNavItem = navigationState.startTopLevelNavItem
-         logNavigationOperation("renove to start section", previousTopLevelNavItem.navKey, )
-      }
-      else {
-         logNavigationOperation(
-            "remove ignored - app root remains", currentBackStack.lastOrNull(), )
+         logNavigationOperation("remove to start section", topLevelNavKey )
       }
    }
 
