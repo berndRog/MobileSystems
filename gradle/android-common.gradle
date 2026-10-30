@@ -1,0 +1,124 @@
+// Shared Android configuration for each independent application build.
+// Plugin and library versions come from ../gradle/libs.versions.toml.
+import org.gradle.api.JavaVersion
+import org.gradle.api.tasks.testing.Test
+
+allprojects { p ->
+    def library = p.path == ':Shared'
+    p.pluginManager.apply(library ? 'com.android.library' : 'com.android.application')
+    p.pluginManager.apply('org.jetbrains.kotlin.plugin.compose')
+    p.pluginManager.apply('org.jetbrains.kotlin.plugin.serialization')
+    p.pluginManager.apply('com.google.devtools.ksp')
+
+    p.tasks.withType(Test).configureEach {
+        jvmArgs '--enable-native-access=ALL-UNNAMED'
+    }
+
+    p.android {
+        namespace = library ? 'de.rogallab.mobile.shared' : 'de.rogallab.mobile'
+        compileSdk {
+            version = release(37) { minorApiLevel = 2 }
+        }
+        defaultConfig {
+            minSdk = 26
+            testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
+            if (library) {
+                consumerProguardFiles 'consumer-rules.keep'
+            } else {
+                applicationId = "de.rogallab.mobile.${p.name.toLowerCase().replaceAll('[^a-z0-9]', '')}"
+                targetSdk = 37
+                versionCode = 1
+                versionName = '1.0'
+            }
+        }
+        testOptions {
+            animationsDisabled = true
+            unitTests.includeAndroidResources = true
+        }
+        if (!library) {
+            buildTypes {
+                release {
+                    minifyEnabled = false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                        p.rootProject.file('../proguard-rules.pro')
+                }
+            }
+        }
+        compileOptions {
+            sourceCompatibility = JavaVersion.VERSION_21
+            targetCompatibility = JavaVersion.VERSION_21
+        }
+        buildFeatures {
+            compose = true
+            if (!library) buildConfig = true
+        }
+    }
+
+    def catalog = p.rootProject.extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')
+    p.dependencies {
+        if (!library) implementation p.project(':Shared')
+        def composeBom = platform(catalog.findLibrary('androidx-compose-bom').get())
+        implementation composeBom
+        testImplementation composeBom
+        androidTestImplementation composeBom
+        implementation catalog.findLibrary('androidx-core-ktx').get()
+        implementation catalog.findLibrary('kotlinx-coroutines-core').get()
+        implementation catalog.findLibrary('kotlinx-coroutines-android').get()
+        implementation catalog.findLibrary('kotlinx-datetime').get()
+        implementation catalog.findLibrary('kotlinx-serialization-json').get()
+        implementation catalog.findLibrary('androidx-activity-compose').get()
+        implementation catalog.findLibrary('androidx-compose-foundation-layout').get()
+        implementation catalog.findLibrary('androidx-ui').get()
+        implementation catalog.findLibrary('androidx-ui-graphics').get()
+        implementation catalog.findLibrary('androidx-ui-tooling-preview').get()
+        implementation catalog.findLibrary('androidx-animation').get()
+        implementation catalog.findLibrary('androidx-material3').get()
+        implementation catalog.findLibrary('androidx-material-icons-extended').get()
+        implementation catalog.findLibrary('androidx-lifecycle-runtime-ktx').get()
+        implementation catalog.findLibrary('androidx-lifecycle-runtime-compose').get()
+        implementation catalog.findLibrary('androidx-lifecycle-viewmodel-compose').get()
+        implementation catalog.findLibrary('androidx-lifecycle-viewmodel-navigation3').get()
+        implementation catalog.findLibrary('androidx-navigation3-runtime').get()
+        implementation catalog.findLibrary('androidx-navigation3-ui').get()
+        implementation catalog.findLibrary('androidx-room3-runtime').get()
+        implementation catalog.findLibrary('androidx-sqlite-bundled').get()
+        ksp catalog.findLibrary('androidx-room3-compiler').get()
+        implementation catalog.findLibrary('coil-compose').get()
+        implementation catalog.findLibrary('coil-network-okhttp').get()
+        implementation catalog.findLibrary('androidx-media3-exoplayer').get()
+        implementation catalog.findLibrary('koin-core').get()
+        implementation catalog.findLibrary('koin-android').get()
+        implementation catalog.findLibrary('koin-androidx-compose').get()
+        implementation catalog.findLibrary('gson-json').get()
+        implementation catalog.findLibrary('retrofit2-core').get()
+        implementation catalog.findLibrary('retrofit2-gson').get()
+        implementation catalog.findLibrary('retrofit2-kotlinx-serialization').get()
+        implementation catalog.findLibrary('retrofit2-logging').get()
+        implementation catalog.findLibrary('gplay-location').get()
+        testImplementation catalog.findLibrary('junit').get()
+        testImplementation catalog.findLibrary('androidx-test-core').get()
+        testImplementation catalog.findLibrary('androidx-test-core-ktx').get()
+        testImplementation catalog.findLibrary('koin-test').get()
+        testImplementation catalog.findLibrary('koin-test-junit4').get()
+        testImplementation catalog.findLibrary('kotlinx-coroutines-test').get()
+        testImplementation catalog.findLibrary('turbine-test').get()
+        testImplementation catalog.findLibrary('robolectric-test').get()
+        androidTestImplementation catalog.findLibrary('kotlinx-coroutines-test').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-core').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-core-ktx').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-ext-junit').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-ext-junit-ktx').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-ext-truth').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-runner').get()
+        androidTestImplementation catalog.findLibrary('androidx-ui-test-junit4').get()
+        androidTestImplementation catalog.findLibrary('androidx-test-espresso-core').get()
+        androidTestImplementation catalog.findLibrary('koin-test').get()
+        androidTestImplementation catalog.findLibrary('koin-test-junit4').get()
+        androidTestImplementation catalog.findLibrary('koin-androidx-compose').get()
+        androidTestImplementation catalog.findLibrary('mockito-core').get()
+        androidTestImplementation catalog.findLibrary('mockito-android').get()
+        androidTestImplementation catalog.findLibrary('mockito-kotlin').get()
+        debugImplementation catalog.findLibrary('androidx-ui-tooling').get()
+        debugImplementation catalog.findLibrary('androidx-ui-test-manifest').get()
+    }
+}

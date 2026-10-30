@@ -1,2 +1,1 @@
-// Android configuration, plugins, and dependencies are managed centrally in
-// the build.gradle.kts file of the root project.
+// Android library settings are applied from ../gradle/android-common.gradle.

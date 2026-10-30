@@ -1,10 +1,19 @@
 import java.util.Properties
 
-// Most Android configuration, plugins, and dependencies are managed centrally
-// in the build.gradle.kts file of the root project. This module only adds its
-// News API key to the generated BuildConfig class.
+plugins {
+   alias(libs.plugins.android.application) apply false
+   alias(libs.plugins.android.library) apply false
+   alias(libs.plugins.kotlin.compose) apply false
+   alias(libs.plugins.kotlin.serialization) apply false
+   alias(libs.plugins.google.devtools.ksp) apply false
+}
+
+apply(from = "../gradle/android-common.gradle")
+
+// The shared Gradle script supplies the Android configuration and dependencies.
+// This application also adds its News API key to the generated BuildConfig class.
 val localProperties = Properties().apply {
-   val localPropertiesFile = rootProject.file("local.properties")
+   val localPropertiesFile = rootProject.file("../local.properties")
    if (localPropertiesFile.exists()) {
       localPropertiesFile.inputStream().use { inputStream ->
          load(inputStream)
@@ -22,7 +31,7 @@ val escapedNewsApiKey = newsApiKey
    .replace("\\", "\\\\")
    .replace("\"", "\\\"")
 
-android {
+extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
    defaultConfig {
       buildConfigField(
          type = "String",

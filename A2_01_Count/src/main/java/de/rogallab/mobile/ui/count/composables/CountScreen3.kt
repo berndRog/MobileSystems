@@ -44,7 +44,7 @@ fun CountScreen3(
          onClick = { onIncrementCount() },  // setter
          modifier = Modifier
             .padding(vertical = 8.dp)
-            //.fillMaxWidth()
+            .fillMaxWidth()
       ) {
          Text(text = "Hochzählen")
       }
