@@ -107,8 +107,8 @@ class PersonViewModel(
          PersonIntent.Cancel -> cancel()
          PersonIntent.RetryLoad ->
             // A3_02 has no Back action, so NotFound can also be retried.
-            if (!_stateFlow.value.isNew &&
-               !_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null
+            if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure != null
             ) {
                loadPerson(_personId!!)
             }

@@ -29,10 +29,9 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
 
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      if (_personId == null) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
    // StateFloe PersonUiState
@@ -41,7 +40,7 @@ class PersonViewModel(
 
    // For a detail screen load the existing person.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load existing person in detail mode.
@@ -104,8 +103,9 @@ class PersonViewModel(
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
          PersonIntent.RetryLoad ->
-            if (!_isNew && !_stateFlow.value.isLoading &&
-               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+            if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed
+            ) {
                loadPerson(_personId!!)
             }
       }
