@@ -29,10 +29,9 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
 
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      if (_personId == null) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
    // StateFloe PersonUiState
@@ -41,7 +40,7 @@ class PersonViewModel(
 
    // For a detail screen load the existing person.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load existing person in detail mode.
@@ -104,8 +103,9 @@ class PersonViewModel(
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
          PersonIntent.RetryLoad ->
-            if (!_isNew && !_stateFlow.value.isLoading &&
-               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+            if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed
+            ) {
                loadPerson(_personId!!)
             }
       }
@@ -183,8 +183,8 @@ class PersonViewModel(
 
          // Create a new person or update the existing person
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_stateFlow.value.isNew) _repository.create(person)
+            else                        _repository.update(person)
 
          result
             // Handle the repository result and emit a one-time effect for success
@@ -201,9 +201,7 @@ class PersonViewModel(
             }
 
          // Reset the saving flag regardless of success or failure.
-         _stateFlow.update { state: PersonUiState ->
-            state.copy(isSaving = false)
-         }
+         _stateFlow.update { state  -> state.copy(isSaving = false) }
 
       }
    }
