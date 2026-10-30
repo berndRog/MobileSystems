@@ -238,12 +238,8 @@ class PersonViewModel(
       }
 
       // Publish the normalized and validated person before saving it.
-      _stateFlow.update { state: PersonUiState ->
-         state.copy(person = person)
-      }
-
       // Expose the active save to both the UI and the duplicate-save guard.
-      _stateFlow.update { state -> state.copy(isSaving = true) }
+      _stateFlow.update { state  -> state.copy(person = person, isSaving = true) }
 
       viewModelScope.launch {
 
@@ -277,7 +273,8 @@ class PersonViewModel(
 
    // Discard the current edit session and navigate back without saving.
    private fun cancel() {
-      if (_isSaving) return
+      if (_stateFlow.value.isSaving) return
+
       viewModelScope.launch {
 
          // Remove only images created during the current edit session.
