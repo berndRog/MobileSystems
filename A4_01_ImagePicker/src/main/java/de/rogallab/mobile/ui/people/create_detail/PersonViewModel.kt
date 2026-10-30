@@ -42,7 +42,6 @@ class PersonViewModel(
    private val _isNew = _personId == null
 
    // Prevent duplicate repository writes while a Save operation is running.
-   // This is internal processing state and therefore not part of PersonUiState.
    private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
@@ -50,12 +49,9 @@ class PersonViewModel(
       if (_isNew) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
-   // Mutable PersonUiState is kept private inside the ViewModel.
-   private val _stateFlow: MutableStateFlow<PersonUiState> =
-      MutableStateFlow(_initialState)
-   // Exposes the PersonUiState as a read-only StateFlow to the UI.
-   val stateFlow: StateFlow<PersonUiState> =
-      _stateFlow.asStateFlow()
+   // StateFlow PersonUiState
+   private val _stateFlow = MutableStateFlow(_initialState)
+   val stateFlow: StateFlow<PersonUiState> = _stateFlow.asStateFlow()
 
    // Load the existing person when the ViewModel is detail mode.
    init {
@@ -64,35 +60,44 @@ class PersonViewModel(
 
    // Load failures remain visible until a successful retry or cancellation.
    private fun loadPerson(id: String) {
-      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      _stateFlow.update { state ->
+         state.copy(isLoading = true, loadFailure = null)
+      }
+
       viewModelScope.launch {
+
          delay(1000)
+
          _repository.findById(id)
             .onSuccess { person ->
-               if (person == null) {
-                  val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _stateFlow.update {
-                     it.copy(loadFailure = PersonLoadFailure.NotFound(error))
+               if (person != null) {
+                  _imageEdit.start(listOfNotNull(person.imagePath))
+                  _stateFlow.update { state ->
+                     state.copy(person = person, loadFailure = null)
                   }
                } else {
-                  _imageEdit.start(listOfNotNull(person.imagePath))
-                  _stateFlow.update { it.copy(person = person, loadFailure = null) }
+                  val error = _stringProvider.getString(R.string.error_person_not_found)
+                  _stateFlow.update { state ->
+                     state.copy(loadFailure = PersonLoadFailure.NotFound(error))
+                  }
                }
             }
             .onFailure {
                val error = _stringProvider.getString(R.string.error_person_load)
-               _stateFlow.update {
-                  it.copy(loadFailure = PersonLoadFailure.Failed(error))
+               _stateFlow.update { personUiState ->
+                  personUiState.copy(loadFailure = PersonLoadFailure.Failed(error))
                }
             }
-         _stateFlow.update { it.copy(isLoading = false) }
+         _stateFlow.update { personUiState ->
+            personUiState.copy(isLoading = false)
+         }
       }
    }
 
    // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
       when (intent) {
-         is PersonIntent.FirstNameChange ->changeFirstName(intent.firstName)
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
@@ -111,6 +116,7 @@ class PersonViewModel(
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
                loadPerson(_personId!!)
             }
+
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
       }
@@ -204,8 +210,6 @@ class PersonViewModel(
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
 
-
-
       // Sanitize the email before validation.
       if (person.email != null) {
          val email = sanitizeEmailInput(person.email)
@@ -255,7 +259,7 @@ class PersonViewModel(
          result
             .onSuccess {
                // First show the success message...
-               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName,)
+               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
 
                // ...and then request reverse navigation with Save semantics.

@@ -15,11 +15,9 @@ import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.coroutines.cancellation.CancellationException
 
 class PersonViewModel(
    val personId: String?,
@@ -31,11 +29,11 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
 
+   // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
-      else PersonUiState(isNew = false, isLoading = true)
+      if (_personId == null) PersonUiState(isNew = true,  isLoading = false)
+      else                   PersonUiState(isNew = false, isLoading = true)
 
    // StateFloe PersonUiState
    private val _stateFlow = MutableStateFlow(_initialState)
@@ -43,7 +41,7 @@ class PersonViewModel(
 
    // For a detail screen load the existing person.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load existing person in detail mode.
@@ -90,7 +88,9 @@ class PersonViewModel(
             }
 
          // Reset the loading flag regardless of success or failure.
-         _stateFlow.update { state -> state.copy(isLoading = false) }
+         _stateFlow.update { state ->
+            state.copy(isLoading = false)
+         }
       }
    }
 
@@ -107,7 +107,9 @@ class PersonViewModel(
          PersonIntent.Cancel -> cancel()
          PersonIntent.RetryLoad ->
             // A3_02 has no Back action, so NotFound can also be retried.
-            if (!_isNew && !_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+            if (!_stateFlow.value.isNew &&
+               !_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null
+            ) {
                loadPerson(_personId!!)
             }
       }
@@ -185,8 +187,8 @@ class PersonViewModel(
 
          // Create a new person or update the existing person
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_stateFlow.value.isNew) _repository.create(person)
+            else                        _repository.update(person)
 
          result
             // Handle the repository result and emit a one-time effect for success
@@ -202,7 +204,7 @@ class PersonViewModel(
             }
 
          // Reset the saving flag regardless of success or failure.
-         _stateFlow.update { state: PersonUiState ->
+         _stateFlow.update { state ->
             state.copy(isSaving = false)
          }
 
@@ -215,7 +217,8 @@ class PersonViewModel(
 
       _stateFlow.update { state ->
          state.copy(
-            person = state.person.copy(firstName = "", lastName = "")
+            person = state.person.copy(firstName = "", lastName = "",
+               email = null, phone = null, imagePath = null)
          )
       }
    }
