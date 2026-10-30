@@ -91,7 +91,7 @@ fun PersonScreen(
          label = stringResource(R.string.email),
          leadingIcon = Icons.Default.Email,
          validate = validator::validateEmail,
-         keyboardType = KeyboardType.Text,
+         keyboardType = KeyboardType.Email,
          imeAction = ImeAction.Next,
       )
 

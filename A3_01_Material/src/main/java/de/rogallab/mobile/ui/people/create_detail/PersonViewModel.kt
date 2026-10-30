@@ -10,6 +10,7 @@ import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
+import de.rogallab.mobile.ui.people.toNullableInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,7 @@ class PersonViewModel(
 ) : ViewModel() {
 
    // A null or blank id means that a new person is created.
-   private val _personId = personId?.takeUnless(String::isBlank)
+   private val _personId = personId?.toNullableInput()
    private val _isNew = _personId == null
    private var _isSaving = false
 
@@ -113,16 +114,14 @@ class PersonViewModel(
       }
 
    private fun changeEmail(email: String) {
-      var emailNullable: String? = null
-      if (email.trim().isNotEmpty()) emailNullable = email.trim()
+      var emailNullable: String? = email.toNullableInput()
       _stateFlow.update { state ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
 
    private fun changePhone(phone: String) {
-      var phoneNullable: String? = null
-      if (phone.trim().isNotEmpty()) phoneNullable = phone.trim()
+      var phoneNullable: String? = phone.toNullableInput()
       _stateFlow.update { state ->
          state.copy(person = state.person.copy(phone = phoneNullable))
       }
@@ -161,9 +160,12 @@ class PersonViewModel(
       }
 
       // Validate the complete person before accessing the repository.
-      val errorMessage = _validator.validatePerson(person)
-      if (errorMessage != null) {
-         Alog.e(TAG, errorMessage)
+      val error = _validator.validatePerson(person)
+
+      Alog.d(TAG, "error: $error")
+
+      if (error != null) {
+         Alog.e(TAG, error)
          return
       }
 

@@ -90,7 +90,7 @@ class PeopleViewModel(
             .onSuccess {
                val message = _stringProvider.getString(
                   R.string.message_person_removed, person.fullName)
-               Alog.d(TAG, "remove success")
+               Alog.d(TAG, "remove success: $message")
             }
             .onFailure {
                Alog.e(TAG, it.message ?: "Error in remove")

@@ -32,7 +32,7 @@ class MainActivity : BaseActivity(TAG) {
          // DetailScreen
          val personViewModel = koinViewModel<PersonViewModel> {
             parametersOf(null) // New Person
-            parametersOf("01000000-0000-0000-0000-000000000000")
+         // parametersOf("01000000-0000-0000-0000-000000000000")
          }
 
          // ListScreen
