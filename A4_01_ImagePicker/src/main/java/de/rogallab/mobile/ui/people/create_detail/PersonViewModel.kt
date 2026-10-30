@@ -39,14 +39,10 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is being created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
-
-   // Prevent duplicate repository writes while a Save operation is running.
-   private var _isSaving = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      if (_personId == null) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
    // StateFlow PersonUiState
@@ -55,7 +51,7 @@ class PersonViewModel(
 
    // Load the existing person when the ViewModel is detail mode.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load failures remain visible until a successful retry or cancellation.
@@ -84,8 +80,8 @@ class PersonViewModel(
             }
             .onFailure {
                val error = _stringProvider.getString(R.string.error_person_load)
-               _stateFlow.update { personUiState ->
-                  personUiState.copy(loadFailure = PersonLoadFailure.Failed(error))
+               _stateFlow.update { state ->
+                  state.copy(loadFailure = PersonLoadFailure.Failed(error))
                }
             }
          _stateFlow.update { personUiState ->
@@ -112,7 +108,7 @@ class PersonViewModel(
          is PersonIntent.ImageFailed -> showError(intent.message)
 
          PersonIntent.RetryLoad ->
-            if (!_isNew && !_stateFlow.value.isLoading &&
+            if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
                loadPerson(_personId!!)
             }
@@ -124,20 +120,20 @@ class PersonViewModel(
 
    // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
    // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
    // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
       var emailNullable: String? = email.toNullableInput()
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
@@ -188,7 +184,7 @@ class PersonViewModel(
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(imagePath = images.firstOrNull()))
       }
    }
@@ -204,7 +200,7 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving || _stateFlow.value.isLoading ||
+      if (_stateFlow.value.isSaving || _stateFlow.value.isLoading ||
          _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
@@ -215,7 +211,7 @@ class PersonViewModel(
          val email = sanitizeEmailInput(person.email)
          if (email != person.email) {
             // Show the sanitized value in the UI as well.
-            _stateFlow.update { state: PersonUiState ->
+            _stateFlow.update { state  ->
                state.copy(person = state.person.copy(email = email))
             }
             person = _stateFlow.value.person.normalized()
@@ -246,15 +242,15 @@ class PersonViewModel(
          state.copy(person = person)
       }
 
-      // Update: save operation is in progress.
-      _isSaving = true
+      // Expose the active save to both the UI and the duplicate-save guard.
+      _stateFlow.update { state -> state.copy(isSaving = true) }
 
       viewModelScope.launch {
 
          // Delegate the complete save operation to the matching use case.
          val result =
-            if (_isNew) _personUcCreate(person)
-            else _personUcUpdate(person)
+            if (_stateFlow.value.isNew) _personUcCreate(person)
+            else                        _personUcUpdate(person)
 
          result
             .onSuccess {
@@ -273,8 +269,9 @@ class PersonViewModel(
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 
-         // Update: save operation is finished
-         _isSaving = false
+         // Reset the saving flag regardless of success or failure.
+         _stateFlow.update { state -> state.copy(isSaving = false) }
+
       }
    }
 

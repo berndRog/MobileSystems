@@ -204,9 +204,7 @@ class PersonViewModel(
             }
 
          // Reset the saving flag regardless of success or failure.
-         _stateFlow.update { state ->
-            state.copy(isSaving = false)
-         }
+         _stateFlow.update { state -> state.copy(isSaving = false) }
 
       }
    }
