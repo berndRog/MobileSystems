@@ -183,8 +183,8 @@ class PersonViewModel(
 
          // Create a new person or update the existing person
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_stateFlow.value.isNew) _repository.create(person)
+            else                        _repository.update(person)
 
          result
             // Handle the repository result and emit a one-time effect for success
@@ -214,7 +214,8 @@ class PersonViewModel(
 
       _stateFlow.update { state ->
          state.copy(
-            person = state.person.copy(firstName = "", lastName = "")
+            person = state.person.copy(firstName = "", lastName = "",
+               email = null, phone = null, imagePath = null)
          )
       }
       viewModelScope.launch {
