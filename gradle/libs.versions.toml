@@ -5,7 +5,7 @@
 
 [versions]
 # Android and Jetpack
-agp = "9.5.0"
+agp = "9.4.1"
 activityCompose = "1.13.0"
 appcompat = "1.8.0"
 core = "1.19.1"
@@ -23,12 +23,12 @@ kotlinxSerializationJson = "1.11.0"
 
 # Data, dependency injection, images, networking, and device services
 coil = "3.6.3"
-googleJson = "2.14.0"
+googleJson = "2.15.0"
 googlePlayLocation = "21.4.0"
 koin = "4.2.2"
 ksp = "2.3.10"
 retrofit = "3.0.0"
-retrofitLogging = "5.5.0"
+retrofitLogging = "5.5.1"
 room3 = "3.0.3"
 sqliteBundled = "2.7.1"
 

@@ -41,6 +41,9 @@ class ImageFileStorage(
    // Keep only the application context to avoid retaining an Activity or other UI context.
    private val appContext = context.applicationContext
 
+   // Copies an image from a readable content URI into private app storage.
+   // The URI may originate from the Photo Picker, MediaStore, another
+   // ContentProvider or a FileProvider.
    override suspend fun copyImageToAppStorage(
       sourceUri: Uri
    ): Result<String> =
@@ -81,6 +84,7 @@ class ImageFileStorage(
          }
       }
 
+   // Creates an empty private JPEG file and its FileProvider URI for TakePicture.
    override suspend fun createCameraImageFile(): Result<CameraImageFile> =
       withContext(ioDispatcher) {
          storageResult {
@@ -112,6 +116,9 @@ class ImageFileStorage(
          }
       }
 
+
+   // Verifies that a camera application wrote a non-empty private image file.
+   // The verified absolute path is returned unchanged.
    override suspend fun confirmCameraImageFile(imagePath: String): Result<String> =
       withContext(ioDispatcher) {
          storageResult {
@@ -144,6 +151,7 @@ class ImageFileStorage(
          }
       }
 
+   // Writes a drawable resource into private app storage
    override suspend fun saveDrawableToAppStorage(
       drawableResId: Int,
       fileName: String,
@@ -204,6 +212,7 @@ class ImageFileStorage(
          }
       }
 
+   // Deletes a private image. A null, blank or missing path is treated as success.
    override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
       withContext(ioDispatcher) {
          storageResult {
