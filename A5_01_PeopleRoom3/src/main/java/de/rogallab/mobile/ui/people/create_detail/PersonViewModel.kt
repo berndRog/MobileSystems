@@ -39,53 +39,48 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is being created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
 
-   // Prevent duplicate repository writes while a Save operation is running.
-   // This is internal processing state and therefore not part of PersonUiState.
-   private var _isSaving = false
-
-   // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
-      else PersonUiState(isNew = false, isLoading = true)
+      if (_personId == null) PersonUiState(isNew = true, isLoading = false)
+      else                   PersonUiState(isNew = false, isLoading = true)
 
-   // Mutable PersonUiState is kept private inside the ViewModel.
-   private val _stateFlow: MutableStateFlow<PersonUiState> =
-      MutableStateFlow(_initialState)
-   // Exposes the PersonUiState as a read-only StateFlow to the UI.
-   val stateFlow: StateFlow<PersonUiState> =
-      _stateFlow.asStateFlow()
+   // StateFlow PersonUiState
+   private val _stateFlow = MutableStateFlow(_initialState)
+    val stateFlow = _stateFlow.asStateFlow()
 
    // Load the existing person when the ViewModel is detail mode.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load failures remain visible until a successful retry or cancellation.
    private fun loadPerson(id: String) {
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+
       viewModelScope.launch {
          delay(1000)
+
          _repository.findById(id)
             .onSuccess { person ->
                if (person == null) {
                   val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _stateFlow.update {
-                     it.copy(loadFailure = PersonLoadFailure.NotFound(error))
+                  _stateFlow.update { state ->
+                     state.copy(loadFailure = PersonLoadFailure.NotFound(error))
                   }
                } else {
                   _imageEdit.start(listOfNotNull(person.imagePath))
-                  _stateFlow.update { it.copy(person = person, loadFailure = null) }
+                  _stateFlow.update { state ->
+                     state.copy(person = person, loadFailure = null)
+                  }
                }
             }
             .onFailure {
                val error = _stringProvider.getString(R.string.error_person_load)
-               _stateFlow.update {
-                  it.copy(loadFailure = PersonLoadFailure.Failed(error))
+               _stateFlow.update { state ->
+                  state.copy(loadFailure = PersonLoadFailure.Failed(error))
                }
             }
-         _stateFlow.update { it.copy(isLoading = false) }
+         _stateFlow.update { state -> state.copy(isLoading = false) }
       }
    }
 
@@ -107,8 +102,9 @@ class PersonViewModel(
          is PersonIntent.ImageFailed -> showError(intent.message)
 
          PersonIntent.RetryLoad ->
-            if (!_isNew && !_stateFlow.value.isLoading &&
-               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+            if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed
+            ) {
                loadPerson(_personId!!)
             }
          PersonIntent.Save -> save()
@@ -118,20 +114,20 @@ class PersonViewModel(
 
    // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(firstName = firstName.trim()))
       }
 
    // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(lastName = lastName.trim()))
       }
 
    // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
       var emailNullable: String? = email.toNullableInput()
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state  ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
@@ -139,7 +135,7 @@ class PersonViewModel(
    // Updates the optional phone number while keeping all other state values.
    private fun changePhone(phone: String) {
       var phoneNullable: String? = phone.toNullableInput()
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(phone = phoneNullable))
       }
    }
@@ -182,7 +178,7 @@ class PersonViewModel(
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
-      _stateFlow.update { state: PersonUiState ->
+      _stateFlow.update { state  ->
          state.copy(person = state.person.copy(imagePath = images.firstOrNull()))
       }
    }
@@ -198,20 +194,18 @@ class PersonViewModel(
    private fun save() {
 
       // Prevent multiple concurrent save operations.
-      if (_isSaving || _stateFlow.value.isLoading ||
+      if (_stateFlow.value.isSaving || _stateFlow.value.isLoading ||
          _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
       var person = _stateFlow.value.person.normalized()
-
-
 
       // Sanitize the email before validation.
       if (person.email != null) {
          val email = sanitizeEmailInput(person.email)
          if (email != person.email) {
             // Show the sanitized value in the UI as well.
-            _stateFlow.update { state: PersonUiState ->
+            _stateFlow.update { state ->
                state.copy(person = state.person.copy(email = email))
             }
             person = _stateFlow.value.person.normalized()
@@ -223,7 +217,7 @@ class PersonViewModel(
          val phone = sanitizePhoneInput(person.phone)
          if (phone != person.phone) {
             // Show the sanitized value in the UI as well.
-            _stateFlow.update { state: PersonUiState ->
+            _stateFlow.update { state ->
                state.copy(person = state.person.copy(phone = phone))
             }
             person = _stateFlow.value.person.normalized()
@@ -238,19 +232,14 @@ class PersonViewModel(
       }
 
       // Publish the normalized and validated person before saving it.
-      _stateFlow.update { state: PersonUiState ->
-         state.copy(person = person)
-      }
-
-      // Update: save operation is in progress.
-      _isSaving = true
+      _stateFlow.update { state -> state.copy(person = person, isSaving = true) }
 
       viewModelScope.launch {
 
          // Delegate the complete save operation to the matching use case.
          val result =
-            if (_isNew) _personUcCreate(person)
-            else _personUcUpdate(person)
+            if (_stateFlow.value.isNew) _personUcCreate(person)
+            else                        _personUcUpdate(person)
 
          result
             .onSuccess {
@@ -270,13 +259,15 @@ class PersonViewModel(
             }
 
          // Update: save operation is finished
-         _isSaving = false
+         _stateFlow.update { state -> state.copy(isSaving = false) }
+
       }
    }
 
    // Discard the current edit session and navigate back without saving.
    private fun cancel() {
-      if (_isSaving) return
+      if (_stateFlow.value.isSaving) return
+
       viewModelScope.launch {
 
          // Remove only images created during the current edit session.

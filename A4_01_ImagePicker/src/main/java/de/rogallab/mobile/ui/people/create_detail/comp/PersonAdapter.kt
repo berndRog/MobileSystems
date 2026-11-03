@@ -118,7 +118,9 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else if (loadFailure != null) {
+      }
+      // load failure screen
+      else if (loadFailure != null) {
          Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -142,8 +144,9 @@ fun PersonAdapter(
                ))
             }
          }
-      } else {
-         // Show person data
+      }
+      // Show person form
+      else {
          val person = personUiState.person
 
          // The gallery handler selects one image and returns its content URI.
