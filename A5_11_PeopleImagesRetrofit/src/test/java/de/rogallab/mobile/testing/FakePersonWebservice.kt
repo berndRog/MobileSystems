@@ -14,6 +14,7 @@ class FakePersonWebservice : IPersonWebservice {
    var uploadResult = personDto(imageUrl = IMAGE_URL)
    var deleteImageResult = personDto(imageUrl = null)
    var uploadFailure: Throwable? = null
+   var deleteResponse: Response<Unit> = Response.success(Unit)
 
    var createdDto: PersonDto? = null
    var updatedDto: PersonDto? = null
@@ -63,7 +64,7 @@ class FakePersonWebservice : IPersonWebservice {
 
    override suspend fun delete(id: String): Response<Unit> {
       calls += "delete:$id"
-      return Response.success(Unit)
+      return deleteResponse
    }
 
    companion object {

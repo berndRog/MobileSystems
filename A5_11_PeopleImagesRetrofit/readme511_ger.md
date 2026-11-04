@@ -85,7 +85,7 @@ Prüfe auch die zurückgegebene `imageUrl`: Enthält sie einen vom Handy nicht e
 ./gradlew connectedDebugAndroidTest # Gerät oder Emulator erforderlich
 ```
 
-`PersonRepositoryImageTest` verwendet einen Fake-Webservice und prüft Create/Upload, Rollback, Wiederverwendung von Server-URLs, Ersatz-Upload und Bildlöschung. Weitere lokale Tests prüfen Mapping, Use Cases, ViewModel-Verhalten und Navigation. Sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
+`PersonRepositoryImageTest` verwendet einen Fake-Webservice und prüft Create/Upload, Rollback, Wiederverwendung von Server-URLs, Ersatz-Upload und Bildlöschung. Weitere lokale Tests prüfen Mapping, Use Cases, ViewModel-Verhalten, Navigation sowie erfolgreiches und fehlgeschlagenes Löschen im Repository. Sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
 
 ## Vorgeschlagener Lernpfad
 

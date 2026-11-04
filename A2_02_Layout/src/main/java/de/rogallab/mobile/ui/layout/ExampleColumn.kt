@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,15 +31,18 @@ fun ExampleColumn(
 
       Column {
          Box(modifier = Modifier
+            .testTag("redBox")
             .size(80.dp, 160.dp)
             .background(Color.Red)
          )
          Box(modifier = Modifier
+            .testTag("greenBox")
             .fillMaxWidth(fraction = 1f)
             .weight(1f)
             .background(Color.Green)
          )
          Box(modifier = Modifier
+            .testTag("blueBox")
             .size(40.dp, 240.dp)
             .background(Color.Blue)
          )

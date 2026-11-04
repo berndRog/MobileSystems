@@ -76,7 +76,7 @@ The app's manifest permits the HTTP traffic used by this teaching setup. Open th
 ./gradlew connectedDebugAndroidTest # connected device or emulator required
 ```
 
-The local tests cover DTO mapping, use cases, navigation, ViewModel behavior, and image editing with fakes; they do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that the AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
+The local tests cover DTO mapping, use cases, navigation, ViewModel behavior, image editing, and successful and failed repository deletion with fakes; they do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that the AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
 ## Suggested learning path
 

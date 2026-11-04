@@ -7,12 +7,14 @@ import retrofit2.Response
 
 class FakePersonWebservice : IPersonWebservice {
    val calls = mutableListOf<String>()
+   var people = mutableListOf<PersonDto>()
+   var deleteResponse: Response<Unit> = Response.success(Unit)
    var uploadFailure: Throwable? = null
    var createdDto: PersonDto? = null
    var updatedDto: PersonDto? = null
    var uploadedPart: MultipartBody.Part? = null
 
-   override suspend fun getAll(): List<PersonDto> = emptyList()
+   override suspend fun getAll(): List<PersonDto> = people
    override suspend fun countAll(): Int = 0
    override suspend fun getById(id: String): PersonDto = personDto(id)
 
@@ -42,7 +44,7 @@ class FakePersonWebservice : IPersonWebservice {
 
    override suspend fun delete(id: String): Response<Unit> {
       calls += "delete:$id"
-      return Response.success(Unit)
+      return deleteResponse
    }
 
    companion object {

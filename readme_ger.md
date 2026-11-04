@@ -65,7 +65,10 @@ Zu jedem App-Projekt und zur Library `Shared` gibt es eine englische und eine de
 
 Die Tests verwenden die üblichen Android-Source-Sets: `src/test/java` für lokale JVM-Tests und `src/androidTest/java` für Tests, die Android oder Compose auf einem Gerät benötigen. Die Test-Packages spiegeln die Production-Packages. Modullokale Hilfen liegen unter `de.rogallab.mobile.testing`.
 
-- `A2_01_Count`, `A2_02_Layout`, `A2_03_TextField` und `A2_04_LazyColumn`: lokale und instrumentierte Starttests; sie prüfen das zentrale Verhalten der Beispiele noch nicht gezielt.
+- `A2_01_Count`: lokaler Test des ViewModel-Zustands und instrumentierter Test des Zähler-Buttons.
+- `A2_02_Layout`: ein instrumentierter Test prüft Überschrift und vertikale Reihenfolge der drei Boxen; das Layout-Beispiel hat keinen eigenen lokalen JVM-Test.
+- `A2_03_TextField`: lokale Tests der MVVM-/MVI-Zustände und ein instrumentierter Formular-Test für die Aktivierung des Speichern-Buttons.
+- `A2_04_LazyColumn`: lokaler Test des Personen-Mappings und instrumentierter Test der Interaktionen mit einer Listenkarte.
 - `A3_01_Material`: Mapping, Validierung und grundlegender ViewModel-Zustand.
 - `A3_02_EffectHandling`: einmalige `ShowMessage`- und `ShowError`-Effects.
 - `A3_03_Navigation`: Navigation- und Back-Effects sowie Ladefehler. Die App verwendet Material 3 `SnackbarHostState` direkt und hat keinen eigenen Snackbar-Coordinator-Test.
@@ -74,10 +77,10 @@ Die Tests verwenden die üblichen Android-Source-Sets: `src/test/java` für loka
 - `A4_01_ImagePicker`: Bild- und Use-Case-Verhalten bei erfolgreichen und fehlgeschlagenen Speichervorgängen sowie Navigations- und Swipe-Tests.
 - `A5_01_PeopleRoom3`: Repository-, Use-Case-, Bild-, ViewModel- und Swipe-Verhalten.
 - `A5_02_UsedCarsRoom3`: Room-DAO- und Beziehungstests, Converter, Repository-Verhalten und Löschabläufe.
-- `A5_10_PeopleRetrofit`: Remote-Mapping, Bildpfade, Use Cases, Navigation und Swipe-Verhalten.
-- `A5_11_PeopleImagesRetrofit`: Bild-Upload und -Löschung im Repository, Mapping, Use Cases und UI-Verhalten.
+- `A5_10_PeopleRetrofit`: Remote-Mapping, Bildpfade, Repository-Zustand beim Löschen, Use Cases, Navigation und Swipe-Verhalten.
+- `A5_11_PeopleImagesRetrofit`: Bild-Upload und -Löschung, Repository-Zustand beim Löschen, Mapping, Use Cases und UI-Verhalten.
 - `A5_12_RetrofitNews`: beide Repositories und drei Feature-ViewModels; der Android-Test ist ein Startbeispiel.
-- `A5_13_UsedCars`: Remote-Mapping, `Instant`-Serialisierung, Bildverarbeitung und Listen-ViewModels; derzeit gibt es keine Tests unter `src/androidTest`.
+- `A5_13_UsedCars`: Remote-Mapping, `Instant`-Serialisierung, Bildverarbeitung, Repository-Zustand beim Löschen, Laden und Sortieren der Testfahrten sowie Listen-ViewModels; derzeit gibt es keine Tests unter `src/androidTest`.
 - `Shared`: lokale Tests prüfen Hilfsfunktionen, Speicherung, Bildbearbeitung, `SnackbarController`, `EffectDelegate` und visuelles Entfernen. Instrumentierte Tests prüfen Android-Speicherung, Datenbankintegration, Bildauswahl und Compose-Komponenten.
 
 Die Apps verwenden `targetSdk = 37`. Android-nahe lokale Tests mit Robolectric 4.16.1 wählen über `@Config(sdk = [35])` die unterstützte Test-API 35; das ändert die Produktionskonfiguration nicht. `MainDispatcherRule` schaltet `Alog` auf Nicht-Android-Ausgabe, damit reine JVM-Tests nicht `android.util.Log` aufrufen.

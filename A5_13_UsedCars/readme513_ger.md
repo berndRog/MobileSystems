@@ -84,7 +84,7 @@ Das Manifest erlaubt HTTP für dieses Lehrbeispiel. Im Projektordner:
 ./gradlew testDebugUnitTest
 ```
 
-Lokale Unit-Tests prüfen DTO-Mapping, `Instant`-Serialisierung, Bildverhalten der Repositories und ausgewählte ViewModels. Sie verwenden bei Bedarf Fake-Webservices und benötigen keine laufende API. Für die Nutzung der App muss die API laufen; AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP müssen zur gewählten Variante passen.
+Lokale Unit-Tests prüfen DTO-Mapping, `Instant`-Serialisierung, Bildverhalten und Löschzustand der Repositories, Laden und Sortieren der Testfahrten sowie ausgewählte ViewModels. Sie verwenden bei Bedarf Fake-Webservices und benötigen keine laufende API. Für die Nutzung der App muss die API laufen; AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP müssen zur gewählten Variante passen.
 
 ## Vorgeschlagener Lernpfad
 

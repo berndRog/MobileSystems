@@ -76,7 +76,7 @@ Das Manifest erlaubt den für dieses Lehrbeispiel verwendeten HTTP-Verkehr. Öff
 ./gradlew connectedDebugAndroidTest # Gerät oder Emulator erforderlich
 ```
 
-Die lokalen Tests prüfen DTO-Mapping, Use Cases, Navigation, ViewModel-Verhalten und Bildbearbeitung mit Fakes; sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
+Die lokalen Tests prüfen DTO-Mapping, Use Cases, Navigation, ViewModel-Verhalten, Bildbearbeitung sowie erfolgreiches und fehlgeschlagenes Löschen im Repository mit Fakes; sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
 
 ## Vorgeschlagener Lernpfad
 

@@ -85,7 +85,7 @@ Check the returned `imageUrl` as well: if it contains a host name or address tha
 ./gradlew connectedDebugAndroidTest # connected device or emulator required
 ```
 
-`PersonRepositoryImageTest` uses a fake web service to cover create/upload, rollback, reuse of server URLs, replacement upload, and image deletion. Other local tests cover mapping, use cases, ViewModel behavior, and navigation. They do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
+`PersonRepositoryImageTest` uses a fake web service to cover create/upload, rollback, reuse of server URLs, replacement upload, and image deletion. Other local tests cover mapping, use cases, ViewModel behavior, navigation, and successful and failed repository deletion. They do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
 ## Suggested learning path
 

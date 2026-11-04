@@ -84,7 +84,7 @@ The app manifest permits HTTP for this example. From this project directory:
 ./gradlew testDebugUnitTest
 ```
 
-Local unit tests cover DTO mapping, `Instant` serialization, image handling in repositories, and selected ViewModel behavior. They use fake webservices where needed and do not require a running API. To use the app, check that the API is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
+Local unit tests cover DTO mapping, `Instant` serialization, image handling and deletion state in repositories, test-drive loading and sorting, and selected ViewModel behavior. They use fake webservices where needed and do not require a running API. To use the app, check that the API is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
 ## Suggested learning path
 
