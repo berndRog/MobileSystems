@@ -7,9 +7,3 @@ import androidx.compose.runtime.Stable
 data class GalleryPickerActions(
    val selectFromGallery: () -> Unit
 )
-
-/*
- * Didaktik und Lernziele
- *
- * - Die UI erhält nur eine Aktion; der Launcher bleibt im Handler.
- */

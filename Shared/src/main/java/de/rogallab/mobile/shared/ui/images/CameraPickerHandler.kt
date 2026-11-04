@@ -17,15 +17,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * Actions exposed by CameraPickerHandler to the calling adapter.
- */
-@Stable
-data class CameraPickerActions(
-   val isBusy: Boolean,
-   val takePhoto: () -> Unit,
-)
-
-/**
  * Encapsulates the TakePicture Activity Result contract.
  *
  * A camera application needs a destination URI before it is started.
