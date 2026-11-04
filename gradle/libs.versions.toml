@@ -24,6 +24,7 @@ kotlinxSerializationJson = "1.11.0"
 # Data, dependency injection, images, networking, and device services
 coil = "3.6.3"
 googleJson = "2.15.0"
+errorProneAnnotations = "2.50.0"
 googlePlayLocation = "21.4.0"
 koin = "4.2.2"
 ksp = "2.3.10"
@@ -94,6 +95,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 
 # Retrofit, JSON converters, and HTTP logging
 gson-json = { module = "com.google.code.gson:gson", version.ref = "googleJson" }
+errorprone-annotations = { module = "com.google.errorprone:error_prone_annotations", version.ref = "errorProneAnnotations" }
 retrofit2-core = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit2-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
 retrofit2-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }

@@ -26,7 +26,10 @@ for required in \
    "$template/settings.gradle.kts" \
    "$template/build.gradle.kts" \
    "$repo_root/Shared/build.gradle.kts" \
-   "$repo_root/gradle/android-common.gradle" \
+   "$repo_root/build-logic/settings.gradle.kts" \
+   "$repo_root/build-logic/build.gradle.kts" \
+   "$repo_root/build-logic/src/main/kotlin/mobile.android.application.gradle.kts" \
+   "$repo_root/build-logic/src/main/kotlin/mobile.android.library.gradle.kts" \
    "$repo_root/gradle/libs.versions.toml" \
    "$repo_root/gradle.properties" \
    "$repo_root/gradlew" \

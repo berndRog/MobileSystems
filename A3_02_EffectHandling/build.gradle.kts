@@ -1,9 +1,31 @@
+// Open this directory as a separate Gradle project; Shared is included by settings.gradle.kts.
 plugins {
-   alias(libs.plugins.android.application) apply false
-   alias(libs.plugins.android.library) apply false
-   alias(libs.plugins.kotlin.compose) apply false
-   alias(libs.plugins.kotlin.serialization) apply false
-   alias(libs.plugins.google.devtools.ksp) apply false
+   id("mobile.android.application")
 }
 
-apply(from = "../gradle/android-common.gradle")
+dependencies {
+   // Shared Android library: ../Shared/build.gradle.kts
+   implementation(project(":Shared"))
+
+   // Error Prone @Immutable: https://errorprone.info/api/latest/com/google/errorprone/annotations/Immutable.html
+   implementation(libs.errorprone.annotations)
+
+   // Material icons: https://developer.android.com/jetpack/androidx/releases/compose-material
+   implementation(libs.androidx.material.icons.extended)
+
+   // Room 3 and bundled SQLite: https://developer.android.com/jetpack/androidx/releases/room3
+   implementation(libs.androidx.room3.runtime)
+   implementation(libs.androidx.sqlite.bundled)
+
+   // Koin dependency injection: https://insert-koin.io/docs/reference/koin-android/start/
+   implementation(libs.koin.core)
+   implementation(libs.koin.android)
+   implementation(libs.koin.androidx.compose)
+
+   // Koin testing: https://insert-koin.io/docs/reference/koin-test/testing/
+   testImplementation(libs.koin.test)
+   testImplementation(libs.koin.test.junit4)
+   androidTestImplementation(libs.koin.test)
+   androidTestImplementation(libs.koin.test.junit4)
+   androidTestImplementation(libs.koin.androidx.compose)
+}

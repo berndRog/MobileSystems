@@ -1,9 +1,9 @@
+// Open this directory as a separate Gradle project; Shared is included by settings.gradle.kts.
 plugins {
-   alias(libs.plugins.android.application) apply false
-   alias(libs.plugins.android.library) apply false
-   alias(libs.plugins.kotlin.compose) apply false
-   alias(libs.plugins.kotlin.serialization) apply false
-   alias(libs.plugins.google.devtools.ksp) apply false
+   id("mobile.android.application")
 }
 
-apply(from = "../gradle/android-common.gradle")
+dependencies {
+   // Shared Android library: ../Shared/build.gradle.kts
+   implementation(project(":Shared"))
+}

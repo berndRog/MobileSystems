@@ -1,6 +1,8 @@
 
 // Central plugin repository configuration for the complete Gradle build.
 pluginManagement {
+   // Shared Kotlin build conventions for every independent app project.
+   includeBuild("../build-logic")
    repositories {
       google {
          content {
