@@ -1,62 +1,58 @@
-# A3_05_SwipeDeleteUndo
+# A3_04_SwipeGestures
 
-## Purpose and prerequisites
+## Zielsetzung und Voraussetzungen
 
-This optional extension builds on **A3_04_SwipeGestures**. A3_04 asks for confirmation before deleting. A3_05 changes the interaction: **a swipe immediately hides the person, and a Snackbar offers Undo. Repository deletion is postponed until the Snackbar ends without Undo.**
+Dieses Projekt erweitert **A3_03_Navigation** um horizontale Wischgesten in der Personenliste. `PeopleScreen` bettet jede `PersonCard` in die wiederverwendbare `SwipeCard` aus `Shared` ein. Eine Richtung öffnet eine vorhandene Person im Detailformular, die andere fordert über eine Snackbar eine Löschbestätigung an.
 
-The list (`PeopleAdapter`/`PeopleScreen`), form (`PersonAdapter`/`PersonScreen`), Navigation 3, and reusable `SwipeCard` remain in use. Students should understand the gesture, Intent, ViewModel, Effect, and Snackbar paths from the preceding modules.
+Vorausgesetzt werden Material 3, `LazyColumn`, State Hoisting und der Ablauf von Intent über ViewModel und Effect bis zum Adapter, einschließlich Navigation 3 und Snackbar-Ausgabe.
 
-## Learning objectives
+## Lernziele
 
-After studying the module, students should be able to:
+Nach der Bearbeitung können Studierende:
 
-- Distinguish immediate visual removal from the later repository deletion.
-- Trace `Remove`, `ShowUndo`, `UndoRemove`, and `CommitRemove` through their respective Intent and Effect paths.
-- Explain why Undo requires no compensating repository write in this implementation.
-- Use `IVisualRemoval<Person>` and `VisualRemovalDelegate<T>` to separate temporary removal state from persistence and Snackbar output.
-- Restore the visible entry after a failed repository deletion and report the failure through `ShowError`.
-- Explain how stable keys, item animation, and scrolling make a restored entry visible to the user.
+- Material 3 `SwipeToDismissBox` über `SwipeCard` nutzen und den konkreten Karteninhalt als Composable-Lambda übergeben.
+- `StartToEnd` dem Öffnen der Details und `EndToStart` einer Löschanfrage zuordnen.
+- Gestenerkennung, UI-Callbacks, Intents, ViewModel-Effects und Repository-Zugriffe trennen.
+- Erklären, warum Löschanfrage und Löschbestätigung zwei verschiedene Schritte sind.
+- Richtungsabhängige Farben und Symbole als Rückmeldung während der Geste einsetzen.
+- Das Zurücksetzen des Swipe-Zustands, aktuelle Callbacks nach Rekomposition sowie stabile Listen-Keys und `Modifier.animateItem()` erklären.
 
-## Concrete Swipe-to-Delete/Undo flow
+## Konkreter Gesten- und Effect-Ablauf
 
-`EndToStart` invokes the delete callback. `PeopleAdapter` finds the person and sends `PeopleIntent.Remove(person)`. The ViewModel hides the person through `IVisualRemoval`, publishes the visible list, and emits `PeopleEffect.ShowUndo(message, actionLabel, personId)`.
+| Geste | Intent aus `PeopleAdapter` | Effect aus `PeopleViewModel` | Ergebnis in der UI |
+| --- | --- | --- | --- |
+| `StartToEnd` | `Detail(personId)` | `NavigateTo(personId)` | `AppNavigation` öffnet `PersonKey(personId)` |
+| `EndToStart` | `RequestRemove(personId)` | `ConfirmRemove(message, actionLabel, personId)` | Eine Action-Snackbar fragt nach Bestätigung |
 
-**Swipe → `Remove` intent → visual removal + `ShowUndo` effect → adapter → action Snackbar**
+Beim Löschen lautet die vollständige Abfolge:
 
-The effect originates from the ViewModel and requests a UI action. `PeopleAdapter` forwards it through `onUndo`; `AppNavigation` calls `SnackbarController.showAction()`. The Snackbar result determines the next intent:
+**Swipe → `RequestRemove`-Intent → `ConfirmRemove`-Effect → Snackbar-Aktion → `ConfirmRemove`-Intent → Repository-Löschung → aktualisierte Liste**
 
-| Result | Intent returned to the ViewModel | Outcome |
-| --- | --- | --- |
-| User selects Undo | `UndoRemove(personId)` | Restore visibility; no repository deletion |
-| Snackbar closes or times out without Undo | `CommitRemove(personId)` | Call `repository.remove(person)` |
-| Repository deletion fails | — | Restore visibility and emit `ShowError` |
+`PeopleAdapter` leitet den Bestätigungs-Effect an `onConfirmRemove` weiter. `AppNavigation` zeigt mit `SnackbarController.showAction()` die Anfrage. Erst die Aktion der Snackbar sendet `PeopleIntent.ConfirmRemove(personId)` an das ViewModel zurück. Wird die Snackbar geschlossen oder läuft sie ab, bleibt die Person erhalten.
 
-`StartToEnd` continues to open the existing person's detail form. Creating a new person remains a FAB action.
+Nach erfolgreichem Löschen gibt das ViewModel `ShowMessage` aus, bei einem Fehler `ShowError`. Die beobachtete Repository-Liste liefert den neuen UI-Zustand. Der Swipe allein löscht die Person nicht und entfernt sie auch nicht vorläufig aus der Liste.
 
-## Didactic approach
+## Didaktischer Ansatz
 
-Use the contrast with A3_04 to introduce two distinct states: the latest repository data and the currently visible list. `VisualRemovalDelegate<T>` in `Shared` keeps source items, hidden IDs, and pending removals. `visibleItems()` filters hidden entries from the source list. Repository emissions update the source without prematurely revealing pending removals.
+Die Geste ist ein weiterer Eingabeweg in die vorhandene Architektur. Navigation und Snackbar-Verarbeitung aus A3_03 bleiben erhalten. `PeopleScreen` bekommt Werte und Callbacks und kennt weder Repository noch Navigation. Neue Personen werden weiterhin über den FAB angelegt.
 
-Undo clears the pending/hidden state; no persistent deletion has happened yet. After a successful commit, the delegate keeps the ID hidden until the observed source confirms its removal. This handles either order of repository emissions and operation completion. The delegate itself has no repository, Compose, coroutine, or Effect dependency; the ViewModel coordinates these responsibilities.
+`SwipeCard` kapselt die Gestenmechanik, ohne `Person` zu kennen. Ihr `content`-Lambda liefert die `PersonCard`; lokalisierte Inhaltsbeschreibungen kommen vom Aufrufer. So bleiben wiederverwendbare Interaktion und anwendungsspezifischer Inhalt getrennt.
 
-`PeopleViewModel` and the Snackbar infrastructure are obtained above `NavDisplay` in `AppNavigation`, allowing pending Snackbar callbacks to address the same ViewModel across destination changes. State is collected lifecycle-aware in the adapter.
+Der Hintergrund richtet sich nach `dismissDirection`: Die Detailrichtung nutzt `primaryContainer` mit Edit-Symbol, die Löschrichtung `errorContainer` mit Delete-Symbol. Die visuelle Rückmeldung während des Wischens ist von der Aktion nach Abschluss der Geste zu unterscheiden.
 
-After Undo or a failed commit, `restoredPersonId` identifies the restored entry. `PeopleScreen` uses `ScrollToItemIfNotVisible` to bring it into view when needed. `RestoreHandled` then clears the target. Stable person IDs and `animateItem()` support removal, reinsertion, and movement.
+Vor dem Callback setzt `SwipeCard` ihren Zustand mit `snapTo(Settled)` zurück. `remember` hält den Dismiss-Handler stabil, während `rememberUpdatedState` aktuelle Callbacks bereitstellt. Personen-IDs identifizieren Einträge in der `LazyColumn`; `animateItem()` animiert Änderungen nach dem Repository-Update.
 
-## Suggested learning path and optional depth
+## Vorgeschlagener Lernpfad
 
-**Core, if teaching time is limited:**
+1. Beide Wischrichtungen ausprobieren und Farben, Symbole, Detailansicht und Bestätigungs-Snackbar vergleichen.
+2. Den Detail-Callback von `SwipeCard` über `PeopleScreen`, `PeopleAdapter` und `PeopleViewModel` bis zum Navigation-Effect verfolgen.
+3. Die Löschanfrage einmal verwerfen und einmal bestätigen. Den Zeitpunkt der Repository-Löschung bestimmen.
+4. `SwipeCardTest` für Gesten und Zustandsreset sowie `PeopleViewModelSwipeTest` für Bestätigung, erfolgreiche und fehlgeschlagene Löschung lesen.
 
-1. Compare A3_04's confirmation with A3_05's immediate visual removal.
-2. Trace one swipe through `Remove` and `ShowUndo`; compare Undo with letting the Snackbar expire.
-3. Explain when the repository is changed and why Undo needs no database insert.
+Als Lernnachweis eignet sich eine Ablaufskizze, die Löschanfrage, Bestätigungs-Effect, Bestätigungs-Intent, Repository-Ergebnis und Listenaktualisierung trennt.
 
-**Extension, if time permits:**
+## Position in der Lernfolge
 
-- Inspect `VisualRemovalDelegate` and the ordering of source updates and commit completion.
-- Study `PeopleViewModelSwipeTest`: visual removal without repository access, Undo, delayed commit, failed-commit restoration, and duplicate removal requests.
-- Study `PeopleScreenRestoreTest`: restored entries at the beginning/end of the list become visible and are acknowledged.
+**A3_01:** Material-Oberfläche und Eingaben → **A3_02:** Nachrichten- und Fehler-Effects → **A3_03:** Navigation und Backstack → **A3_04:** Gesten und bestätigtes Löschen.
 
-A suitable learning outcome is a sequence sketch showing the visible list and repository contents at each step. This chapter can be taught as a demonstration first, with delegate internals and scroll handling reserved for later study.
-
-Source basis: [MobileSystems, revision 6e82a97](https://github.com/berndRog/MobileSystems/tree/6e82a973e40dfe863076ac227a70fca73396e8b4/A3_05_SwipeDeleteUndo), including removal, scrolling, and Snackbar infrastructure in `Shared`.
+A3_04 bestätigt vor dem Löschen. A3_05 ergänzt sofortiges visuelles Entfernen mit Undo, verzögertem Repository-Commit und Wiederherstellung bei Fehlern.

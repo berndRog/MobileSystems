@@ -16,7 +16,75 @@ Use the actual SDK path on another computer. The builds need the SDK platform an
 
 `local.properties` is ignored by Git, including symbolic links with that name. Neither the root file nor app-local files are present after a fresh clone. The build scripts still work when `ANDROID_HOME` points to a valid SDK. For Android Studio, you can let the IDE create `local.properties` in each opened app, or create an app-local file containing `sdk.dir=/absolute/path/to/Android/sdk`. Older apps do not inherit a root-level `local.properties`. Do not put `sdk.dir` in `gradle.properties` or commit machine-specific SDK paths.
 
-## Build and test all apps
+## Learning progression
+
+The projects build on one another. Each step adds one main concept to the previous examples:
+
+- `A2_01_Count`: introduce observable Compose state, state hoisting, and recomposition.
+- `A2_02_Layout`: arrange content with `Column`, `Row`, `Box`, and `FlowRow`, then compare image scaling.
+- `A2_03_TextField`: connect text input to stateholders, MVVM, and MVI.
+- `A2_04_LazyColumn`: display keyed lists and connect list events to observed Room data.
+- `A3_01_Material`: add a Material form, mapping, and validation.
+- `A3_02_EffectHandling`: separate persistent UI state from one-time messages and errors.
+- `A3_03_Navigation`: route navigation effects through Navigation 3.
+- `A3_04_SwipeGestures`: distinguish swipe-to-open from swipe-to-confirm-delete.
+- `A3_05_SwipeDeleteUndo`: add immediate visual removal, delayed deletion, undo, and restoration.
+- `A4_01_ImagePicker`: select images and manage temporary or replaced files through save outcomes.
+- `A5_01_PeopleRoom3`: persist people in Room 3 behind a repository.
+- `A5_02_UsedCarsRoom3`: model sellers, cars, and test drives with Room relationships.
+- `A5_10_PeopleRetrofit`: replace Room with a people web API while passing only image paths.
+- `A5_11_PeopleImagesRetrofit`: add API-managed image upload and deletion.
+- `A5_12_RetrofitNews`: combine read-only News API search with locally saved Room articles.
+- `A5_13_UsedCars`: move the people, cars, and test-drive model from Room to Retrofit.
+
+## Project guides
+
+Each app project and the `Shared` library have an English and a German guide. Follow the app rows from Compose fundamentals through effects, navigation, images, Room, and web APIs:
+
+| Project | Focus | Guides |
+| --- | --- | --- |
+| `A2_01_Count` | Counter state, state hoisting, and recomposition | [English](A2_01_Count/readme201.md) · [Deutsch](A2_01_Count/readme201_ger.md) |
+| `A2_02_Layout` | `Column`, `Row`, `Box`, `FlowRow`, and images | [English](A2_02_Layout/readme202.md) · [Deutsch](A2_02_Layout/readme202_ger.md) |
+| `A2_03_TextField` | Text input with stateholder, MVVM, and MVI variants | [English](A2_03_TextField/readme203.md) · [Deutsch](A2_03_TextField/readme203_ger.md) |
+| `A2_04_LazyColumn` | Keyed person list, Room observation, and list events | [English](A2_04_LazyColumn/readme204.md) · [Deutsch](A2_04_LazyColumn/readme204_ger.md) |
+| `A3_01_Material` | Material form, mapping, and validation | [English](A3_01_Material/readme301.md) · [Deutsch](A3_01_Material/readme301_ger.md) |
+| `A3_02_EffectHandling` | One-time UI effects | [English](A3_02_EffectHandling/readme302.md) · [Deutsch](A3_02_EffectHandling/readme302_ger.md) |
+| `A3_03_Navigation` | Navigation 3 and navigation effects | [English](A3_03_Navigation/readme303.md) · [Deutsch](A3_03_Navigation/readme303_ger.md) |
+| `A3_04_SwipeGestures` | Swipe actions and delete confirmation | [English](A3_04_SwipeGestures/readme304.md) · [Deutsch](A3_04_SwipeGestures/readme304_ger.md) |
+| `A3_05_SwipeDeleteUndo` | Visual removal and undo | [English](A3_05_SwipeDeleteUndo/readme305.md) · [Deutsch](A3_05_SwipeDeleteUndo/readme305_ger.md) |
+| `A4_01_ImagePicker` | Image selection and file lifecycle | [English](A4_01_ImagePicker/readme401.md) · [Deutsch](A4_01_ImagePicker/readme401_ger.md) |
+| `A5_01_PeopleRoom3` | People stored in Room 3 | [English](A5_01_PeopleRoom3/readme501.md) · [Deutsch](A5_01_PeopleRoom3/readme501_ger.md) |
+| `A5_02_UsedCarsRoom3` | Sellers, cars, and test drives with Room relationships | [English](A5_02_UsedCarsRoom3/readme502.md) · [Deutsch](A5_02_UsedCarsRoom3/readme502_ger.md) |
+| `A5_10_PeopleRetrofit` | People loaded through a web API; only image paths are stored | [English](A5_10_PeopleRetrofit/readme510.md) · [Deutsch](A5_10_PeopleRetrofit/readme510_ger.md) |
+| `A5_11_PeopleImagesRetrofit` | People API with separate image upload and deletion endpoints | [English](A5_11_PeopleImagesRetrofit/readme511.md) · [Deutsch](A5_11_PeopleImagesRetrofit/readme511_ger.md) |
+| `A5_12_RetrofitNews` | Read-only News API search; selected articles saved locally in Room | [English](A5_12_RetrofitNews/readme512.md) · [Deutsch](A5_12_RetrofitNews/readme512_ger.md) |
+| `A5_13_UsedCars` | A5_02's people, cars, and test drives through Retrofit | [English](A5_13_UsedCars/readme513.md) · [Deutsch](A5_13_UsedCars/readme513_ger.md) |
+| `Shared` (library) | Reusable UI, image, Room, network, and DI components | [English](Shared/readme.md) · [Deutsch](Shared/readme_ger.md) |
+
+## Test layout
+
+Tests use the normal Android source sets: `src/test/java` for local JVM tests and `src/androidTest/java` for tests requiring Android or Compose on a device. Test packages mirror production packages. Module-local helpers live in `de.rogallab.mobile.testing`.
+
+- `A2_01_Count`, `A2_02_Layout`, `A2_03_TextField`, and `A2_04_LazyColumn`: local and instrumented starter tests; they do not yet assert each example's main behavior.
+- `A3_01_Material`: mapping, validation, and basic ViewModel state.
+- `A3_02_EffectHandling`: one-time `ShowMessage` and `ShowError` effects.
+- `A3_03_Navigation`: navigation and back effects plus load failures. The app uses Material 3 `SnackbarHostState` directly, so it has no separate snackbar coordinator test.
+- `A3_04_SwipeGestures`: ViewModel confirmation behavior and instrumented swipes in both directions.
+- `A3_05_SwipeDeleteUndo`: ViewModel undo and restoration plus instrumented swipe and restored-list behavior.
+- `A4_01_ImagePicker`: image and use-case behavior around successful and failed saves, plus navigation and swipe tests.
+- `A5_01_PeopleRoom3`: repository, use-case, image, ViewModel, and swipe behavior.
+- `A5_02_UsedCarsRoom3`: Room DAO and relationship tests, converters, repository behavior, and deletion flows.
+- `A5_10_PeopleRetrofit`: remote mapping, image-path handling, use cases, navigation, and swipe behavior.
+- `A5_11_PeopleImagesRetrofit`: image upload and deletion in the repository, mapping, use cases, and UI behavior.
+- `A5_12_RetrofitNews`: both repositories and three feature ViewModels; the Android test is a starter example.
+- `A5_13_UsedCars`: remote mapping, `Instant` serialization, image handling, and list ViewModels; there are currently no `src/androidTest` tests.
+- `Shared`: local tests cover utilities, storage, image editing, `SnackbarController`, `EffectDelegate`, and visual removal. Instrumented tests cover Android-backed storage, database integration, image picking, and Compose components.
+
+The apps target Android API 37. Android-related local tests using Robolectric 4.16.1 select supported test API 35 with `@Config(sdk = [35])`; this does not change the production target. `MainDispatcherRule` switches `Alog` to non-Android output so pure JVM tests do not call `android.util.Log`.
+
+Tests need not be physically next to production files, but they must belong to a Gradle test source set. Larger projects can use Gradle `testFixtures` or a separate test-support module; these teaching projects keep their small helpers in each module.
+
+### Build and test all apps
 
 From the repository root, run the three scripts in order. Each script also works on its own and from another working directory.
 
@@ -33,6 +101,8 @@ export ANDROID_HOME="$HOME/Library/Android/sdk" # adjust to your machine
 
 Each script stops at the first failure. `&&` starts the next phase only after the previous one succeeds. Only the per-app configuration cache is removed; Gradle's global cache of downloaded dependencies remains. The scripts use `--quiet --warning-mode=none` to hide routine Gradle messages while keeping failures visible. For diagnosis, run the affected app's Gradle task without those options.
 
+The scripts iterate over app directories; run library-specific tests separately as described in the [Shared guide](Shared/readme.md).
+
 If multiple devices are connected, select one explicitly, for example:
 
 ```bash
@@ -44,22 +114,6 @@ This also avoids an installation conflict if another device has the same applica
 To rerun one app with full Gradle output, use `./gradlew -p A3_05_SwipeDeleteUndo testDebugUnitTest` or `ANDROID_SERIAL=emulator-5554 ./gradlew -p A3_05_SwipeDeleteUndo connectedDebugAndroidTest`. Local test reports are under `A3_05_SwipeDeleteUndo/build/reports/tests/testDebugUnitTest/`; Android test reports are under `A3_05_SwipeDeleteUndo/build/reports/androidTests/connected/debug/`.
 
 The scripts build the apps one at a time. Gradle can execute tasks within a build in parallel according to `gradle.properties`. Concurrent app builds are not supported by this layout because they share the output directories of `Shared` and `build-logic`.
-
-## Test layout and learning progression
-
-Tests use the normal Android source sets: `src/test/java` for local JVM tests and `src/androidTest/java` for tests requiring Android or Compose on a device. Test packages mirror production packages. Module-local helpers live in `de.rogallab.mobile.testing`. Local tests cover mappings, validators, ViewModels, effects, and repository fakes; instrumented tests cover behavior such as swipe gestures.
-
-- `A3_01_Material`: mapping, validation, and basic ViewModel state.
-- `A3_02_EffectHandling`: one-time `ShowMessage`/`ShowError` effects and prepared back navigation.
-- `A3_03_Navigation`: `NavigateTo`/`NavigateBack` effects and Navigation 3. The app uses Material 3 `SnackbarHostState` directly, so no separate snackbar coordinator test is needed.
-- `A3_04_SwipeGestures`: StartToEnd opens an existing person in detail mode. EndToStart asks for confirmation through an action snackbar; only its delete action changes the repository. Instrumented tests cover both directions. Undo is introduced later.
-- `A3_05_SwipeDeleteUndo`: adds immediate visual removal, undo, delayed repository commit, restoration after commit errors, and scrolling a restored item into view. Tests cover restore and undo.
-- `A4_01_ImagePicker`: adds image selection, image-path state, and the lifetime of temporary and replaced images, including successful and failed saves.
-- `Shared`: tests reusable `SnackbarController`, `EffectDelegate`, and `SwipeCard` behavior. `SwipeCard` handles gestures while each app supplies its card content. Local snackbar tests cover direct message/error calls and the `performAction`/`dismiss` results.
-
-The apps target Android API 37. Android-related local tests using Robolectric 4.16.1 select supported test API 35 with `@Config(sdk = [35])`; this does not change the production target. `MainDispatcherRule` switches `Alog` to non-Android output so pure JVM tests do not call `android.util.Log`.
-
-Tests need not be physically next to production files, but they must belong to a Gradle test source set. Larger projects can use Gradle `testFixtures` or a separate test-support module; these teaching projects keep their small helpers in each module.
 
 ## Create and open another app
 
