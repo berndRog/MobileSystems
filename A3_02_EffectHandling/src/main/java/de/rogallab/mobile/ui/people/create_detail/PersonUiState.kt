@@ -10,6 +10,9 @@ data class PersonUiState(
    val isLoading: Boolean = false,
    val isSaving: Boolean = false,
    val loadFailure: PersonLoadFailure? = null,
+
+// remove state, use effect handling
+// val snackbarMessage: String? = null
 )
 
 

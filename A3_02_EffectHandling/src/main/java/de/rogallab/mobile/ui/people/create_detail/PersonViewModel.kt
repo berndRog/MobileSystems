@@ -194,6 +194,12 @@ class PersonViewModel(
             // Handle the repository result and emit a one-time effect for success
             .onSuccess {
                val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
+
+//               // remove state, use effect handling
+//               _stateFlow.update { state ->
+//                  state.copy(snackbarMessage = message)
+//               }
+
                _effectDelegate.emit(PersonEffect.ShowMessage(message))
             }
             // Handle repository errors and emit a one-time effect for failure.
