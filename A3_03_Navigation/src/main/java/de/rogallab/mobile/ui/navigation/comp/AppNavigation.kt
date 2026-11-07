@@ -147,7 +147,7 @@ private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
  *
  *      AppNavigation.kt       -> Scaffold, SnackbarHost, NavDisplay, Animationen
  *      AppNavEntryProvider.kt -> Zuordnung NavKey -> Screen (Adapter + ViewModel)
- *      BackStackOperations.kt -> navigateTo / navigateBack / Logging
+ *      BackStackOperations.kt -> add / remove / Logging
  *
  *   Dadurch bleibt AppNavigation übersichtlich. Der Provider enthält keine
  *   Navigationslogik, sondern nur Zuordnung und Guards. Die Stack-Operationen
@@ -155,7 +155,7 @@ private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
  *   prüfbar.
  *
  * - AppNavigation erzeugt den Back-Stack und verändert ihn nur über
- *   backStack.navigateTo(...) und backStack.navigateBack().
+ *   add(destination, backStack) und remove(backStack).
  *
  * - appNavEntryProvider erhält alle Abhängigkeiten explizit als Parameter:
  *
