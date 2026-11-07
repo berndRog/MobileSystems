@@ -39,6 +39,7 @@ class MainActivity : BaseActivity(TAG) {
          val peopleViewModel = koinViewModel<PeopleViewModel>()
 
          AppTheme {
+
             PersonAdapter(
                viewModel = personViewModel
             )

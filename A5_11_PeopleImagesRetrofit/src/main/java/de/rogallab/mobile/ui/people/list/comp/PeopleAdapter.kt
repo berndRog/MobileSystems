@@ -45,6 +45,7 @@ fun PeopleAdapter(
    onConfirmRemove: (String, String, String) -> Unit,
    onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -67,7 +68,9 @@ fun PeopleAdapter(
    }
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier
+         .fillMaxSize()
+         .padding(horizontal = 16.dp),
       topBar = {
          TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
       },

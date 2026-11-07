@@ -39,12 +39,12 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
    onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -69,7 +69,9 @@ fun PeopleAdapter(
    }
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier
+         .fillMaxSize()
+         .padding(horizontal = 16.dp),
       topBar = {
          TopAppBar(title = { Text(text = stringResource(R.string.people_list)) })
       },
@@ -84,7 +86,6 @@ fun PeopleAdapter(
             text = { Text(text = stringResource(R.string.action_create)) },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (peopleUiState.isLoading) {
          Box(

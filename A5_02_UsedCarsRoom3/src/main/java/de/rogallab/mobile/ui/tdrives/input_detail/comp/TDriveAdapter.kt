@@ -36,7 +36,6 @@ import org.koin.compose.koinInject
 @Composable
 fun TDriveAdapter(
    viewModel: TDriveViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
@@ -69,7 +68,6 @@ fun TDriveAdapter(
             },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (tDriveUiState.isLoading) {
          Box(

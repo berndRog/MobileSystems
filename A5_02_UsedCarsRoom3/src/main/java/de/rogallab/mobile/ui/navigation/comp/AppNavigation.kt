@@ -62,8 +62,8 @@ fun AppNavigation() {
 
    var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
 
-   // A5_02 keeps its three top-level back stacks and passes the NavigationBar
-   // into each destination's Scaffold.
+   // Keep the navigation bar and SnackbarHost in the same Scaffold so the
+   // snackbar is placed above the bar on every destination.
    val bottomBar: @Composable () -> Unit = {
       AppBottomNavigationBar(
          navItems = navigationState.navItems,
@@ -77,7 +77,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<PeopleViewModel>()
          PeopleAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, personId ->
@@ -106,7 +105,6 @@ fun AppNavigation() {
          }
          PersonAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -127,7 +125,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<CarsViewModel>()
          CarsAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, carId ->
@@ -153,7 +150,6 @@ fun AppNavigation() {
          }
          CarAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -169,7 +165,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<TDrivesViewModel>()
          TDrivesAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, tDriveId ->
@@ -195,7 +190,6 @@ fun AppNavigation() {
          }
          TDriveAdapter(
             viewModel = viewModel,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -209,6 +203,7 @@ fun AppNavigation() {
    }
 
    Scaffold(
+      bottomBar = bottomBar,
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
@@ -263,12 +258,9 @@ private fun BackReason.toPopReason(): PopReason = when (this) {
 /*
  * Didaktik und Lernziele
  *
- * - AppNavigation besitzt den einzigen SnackbarHost oberhalb von NavDisplay.
- *   SnackbarHostState und SnackbarController bleiben bei Zielwechseln erhalten.
- * - Jeder Adapter stellt weiterhin seinen Scaffold mit TopAppBar und
- *   Bottom-Navigation bereit. Die standardmäßigen Insets bleiben erhalten.
- * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
- *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
+ * - AppNavigation stellt SnackbarHost und Bottom-Navigation im selben Scaffold
+ *   bereit. Der gemeinsame State bleibt bei Zielwechseln erhalten.
+ * - Jeder Adapter stellt seinen Scaffold mit TopAppBar bereit.
  * - Aus dem Person-Detail kann über das Fahrzeug-Bottom-Sheet direkt zu
  *   CarKey(carId) navigiert werden. PersonKey bleibt dabei auf dem Backstack.
  * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine

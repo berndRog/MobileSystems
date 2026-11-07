@@ -53,12 +53,12 @@ import org.koin.compose.koinInject
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
    onNavigateToCar: (String) -> Unit,
    imageFileStorage: IImageFileStorage = koinInject(),
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-PersonAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -85,7 +85,7 @@ fun PersonAdapter(
    val imageSaveError = stringResource(SharedR.string.error_image_save)
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier,
       topBar = {
          TopAppBar(
             navigationIcon = {
@@ -113,7 +113,6 @@ fun PersonAdapter(
             },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (personUiState.isLoading || personUiState.isSaving) {
          Box(

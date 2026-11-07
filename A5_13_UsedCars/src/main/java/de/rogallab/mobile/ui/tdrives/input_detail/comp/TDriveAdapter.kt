@@ -1,8 +1,8 @@
 package de.rogallab.mobile.ui.tdrives.input_detail.comp
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -14,8 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -38,8 +36,6 @@ import org.koin.compose.koinInject
 @Composable
 fun TDriveAdapter(
    viewModel: TDriveViewModel,
-   snackbarHostState: SnackbarHostState,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
@@ -71,11 +67,6 @@ fun TDriveAdapter(
                }
             },
          )
-      },
-      bottomBar = bottomBar,
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-            modifier = Modifier.imePadding())
       },
    ) { innerPadding ->
       if (tDriveUiState.isLoading) {

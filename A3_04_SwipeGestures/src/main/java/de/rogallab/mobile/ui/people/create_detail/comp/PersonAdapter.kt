@@ -70,7 +70,7 @@ fun PersonAdapter(
    }
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier,
       topBar = {
          TopAppBar(
             navigationIcon = {
@@ -151,7 +151,7 @@ fun PersonAdapter(
             onSave = { viewModel.onIntent(PersonIntent.Save) },
             onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
-            modifier = modifier
+            modifier = Modifier
                .fillMaxSize()
                .padding(innerPadding)
                .padding(horizontal = 16.dp)

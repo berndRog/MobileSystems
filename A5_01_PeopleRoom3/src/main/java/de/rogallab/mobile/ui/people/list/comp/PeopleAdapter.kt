@@ -48,6 +48,7 @@ fun PeopleAdapter(
    onConfirmRemove: (String, String, String) -> Unit,
    onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -74,7 +75,9 @@ fun PeopleAdapter(
    val activity = LocalActivity.current
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier
+         .fillMaxSize()
+         .padding(horizontal = 16.dp),
       topBar = {
          TopAppBar(
             navigationIcon = {

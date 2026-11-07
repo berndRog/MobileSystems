@@ -32,7 +32,6 @@ import de.rogallab.mobile.ui.cars.list.CarsViewModel
 @Composable
 fun CarsAdapter(
    viewModel: CarsViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
@@ -67,7 +66,6 @@ fun CarsAdapter(
             text = { Text(stringResource(R.string.action_create)) },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (carsUiState.isLoading && carsUiState.cars.isEmpty()) {
          Box(

@@ -1,8 +1,13 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -56,8 +62,8 @@ fun AppNavigation() {
 
    var currentPopReason by remember { mutableStateOf(PopReason.CANCEL) }
 
-   // A5_13 has three top-level areas. The NavigationBar is passed into each
-   // adapter Scaffold instead of requiring a global Scaffold in AppNavigation.
+   // The SnackbarHost and navigation bar share a Scaffold, so the snackbar
+   // always appears above the bar.
    val bottomBar: @Composable () -> Unit = {
       AppBottomNavigationBar(
          navItems = navigationState.navItems,
@@ -71,8 +77,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<PeopleViewModel>()
          PeopleAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, personId ->
@@ -95,8 +99,6 @@ fun AppNavigation() {
          }
          PersonAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -113,8 +115,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<CarsViewModel>()
          CarsAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, carId ->
@@ -136,8 +136,6 @@ fun AppNavigation() {
          }
          CarAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -151,8 +149,6 @@ fun AppNavigation() {
          val viewModel = koinViewModel<TDrivesViewModel>()
          TDrivesAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onConfirmRemove = { message, actionLabel, tDriveId ->
@@ -174,8 +170,6 @@ fun AppNavigation() {
          }
          TDriveAdapter(
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            bottomBar = bottomBar,
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
@@ -186,16 +180,27 @@ fun AppNavigation() {
       }
    }
 
-   NavDisplay(
-      entries = navigationState.toDecoratedEntries(appEntryProvider),
-      onBack = {
-         currentPopReason = PopReason.CANCEL
-         navigator.pop()
+   Scaffold(
+      bottomBar = bottomBar,
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.imePadding(),
+         )
       },
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
-      popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
-   )
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+         entries = navigationState.toDecoratedEntries(appEntryProvider),
+         onBack = {
+            currentPopReason = PopReason.CANCEL
+            navigator.pop()
+         },
+         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
+      )
+   }
 }
 
 private fun BackReason.toPopReason(): PopReason = when (this) {
@@ -231,12 +236,9 @@ private fun AppBottomNavigationBar(
 /*
  * Didaktik und Lernziele
  *
- * - AppNavigation enthält keinen Scaffold mehr. Jeder Adapter stellt den
- *   Scaffold bereit, der zu den Aufgaben seines Screens passt.
- * - Ein SnackbarHostState und ein SnackbarController werden weiterhin oberhalb
- *   von NavDisplay erzeugt und von allen Adaptern wiederverwendet.
- * - Die gemeinsame Bottom-Navigation wird als Composable an die Adapter
- *   delegiert. So bleibt sie in allen drei Top-Level-Bereichen identisch.
+ * - AppNavigation stellt SnackbarHost und Bottom-Navigation im selben Scaffold
+ *   bereit. Der gemeinsame State bleibt bei Zielwechseln erhalten.
+ * - Jeder Adapter stellt seinen Scaffold mit TopAppBar bereit.
  * - Aus dem Person-Detail kann über das Fahrzeug-Bottom-Sheet direkt zu
  *   CarKey(carId) navigiert werden. PersonKey bleibt dabei auf dem Backstack.
  * - Listenadapter ergänzen TopAppBar und FAB; Detailadapter ergänzen eine

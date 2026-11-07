@@ -43,7 +43,6 @@ import org.koin.compose.koinInject
 @Composable
 fun CarAdapter(
    viewModel: CarViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
@@ -87,7 +86,6 @@ fun CarAdapter(
             },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (carUiState.isLoading) {
          Box(

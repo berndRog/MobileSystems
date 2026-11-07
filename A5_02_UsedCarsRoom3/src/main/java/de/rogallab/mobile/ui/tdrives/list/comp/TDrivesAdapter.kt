@@ -32,7 +32,6 @@ import de.rogallab.mobile.ui.tdrives.list.TDrivesViewModel
 @Composable
 fun TDrivesAdapter(
    viewModel: TDrivesViewModel,
-   bottomBar: @Composable () -> Unit,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
@@ -67,7 +66,6 @@ fun TDrivesAdapter(
             text = { Text(stringResource(R.string.action_create)) },
          )
       },
-      bottomBar = bottomBar,
    ) { innerPadding ->
       if (tDrivesUiState.isLoading && tDrivesUiState.tDrives.isEmpty()) {
          Box(

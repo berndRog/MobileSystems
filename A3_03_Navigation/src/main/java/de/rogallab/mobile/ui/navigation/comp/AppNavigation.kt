@@ -1,9 +1,12 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -16,10 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -27,26 +30,18 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
 import de.rogallab.mobile.ui.navigation.PeopleKey
-import de.rogallab.mobile.ui.navigation.PersonKey
 import de.rogallab.mobile.ui.navigation.PopReason
-import de.rogallab.mobile.ui.people.create_detail.BackReason
-import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
-import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
-import de.rogallab.mobile.ui.people.list.PeopleViewModel
-import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 private const val TAG = "<-AppNavigation"
-private val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
 
 @Composable
 fun AppNavigation() {
+
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
-   // Creates the standard saveable Navigation 3 back stack.
-   val backStack = rememberNavBackStack(PeopleKey)
+   // Selects the visible remove animation for Save or Cancel.
+   var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
 
    // One SnackbarHostState and one visible host are shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
@@ -56,8 +51,25 @@ fun AppNavigation() {
       snackbarHostState = snackbarHostState,
    )
 
-   // Selects the visible remove animation for Save or Cancel.
-   var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
+   // Creates the standard saveable Navigation 3 back stack.
+   val backStack = rememberNavBackStack(PeopleKey)
+
+   val navEntryProvider = appNavEntryProvider(
+      backStack = backStack,
+      onMessage = snackbarController::showMessage,
+      onError = snackbarController::showError,
+      onNavigateBack = { reason ->
+         currentPopReason = reason
+         remove(backStack)
+      },
+      onNavigateTo = { destination ->
+         add(destination, backStack)
+      },
+   )
+
+   val snackbarBottomPadding = calculateSnackbarBottomPadding(
+      showListFab = backStack.lastOrNull() is PeopleKey,
+   )
 
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
@@ -65,14 +77,11 @@ fun AppNavigation() {
    }
 
    Scaffold(
+      modifier = Modifier.fillMaxSize(),
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier
-               .imePadding()
-               .padding(bottom = if (backStack.lastOrNull() is PeopleKey) {
-                  listFabSnackbarClearance
-               } else 0.dp),
+            modifier = Modifier.padding(bottom = snackbarBottomPadding),
          )
       },
    ) { innerPadding ->
@@ -104,104 +113,27 @@ fun AppNavigation() {
          predictivePopTransitionSpec =
             NavigationAnimations.predictivePopTransitionSpec,
 
-         entryProvider = entryProvider {
-
-            // Root destination: list of people.
-            entry<PeopleKey> { peopleKey ->
-               val peopleViewModel = koinViewModel<PeopleViewModel>()
-
-               PeopleAdapter(
-                  viewModel = peopleViewModel,
-
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
-
-                  onNavigateBack = {
-                     currentPopReason = PopReason.Cancel
-                     remove(backStack)
-                  },
-                  // null -> create, id -> detail/edit.
-                  onNavigateTo = { personId ->
-                     if (backStack.lastOrNull() === peopleKey) {
-                        add(
-                           destination = PersonKey(personId),
-                           backStack = backStack,
-                        )
-                     }
-                  },
-               )
-            }
-
-            // Shared destination for create and edit.
-            entry<PersonKey> { personKey ->
-               val personViewModel = koinViewModel<PersonViewModel> {
-                  parametersOf(personKey.personId)
-               }
-
-               PersonAdapter(
-                  viewModel = personViewModel,
-
-                  onMessage = snackbarController::showMessage,
-                  onError = snackbarController::showError,
-
-                  onNavigateBack = { reason ->
-                     if (backStack.lastOrNull() === personKey) {
-                        currentPopReason = when (reason) {
-                           BackReason.Save -> PopReason.Save
-                           BackReason.Cancel -> PopReason.Cancel
-                        }
-                        remove(backStack)
-                     }
-                  },
-               )
-            }
-         },
+         entryProvider = navEntryProvider,
       )
    }
 }
 
-// Adds a destination to the standard Navigation 3 back stack.
-private fun add(
-   destination: NavKey,
-   backStack: MutableList<NavKey>,
-) {
-   // put at the end of the list, so that it becomes the current destination.
-   backStack.add(destination)
+@Composable
+private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
 
-   logNavigationOperation("add", destination, backStack)
-}
+   val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
 
-// Removes the current destination while preserving the root destination.
-private fun remove(
-   backStack: MutableList<NavKey>,
-) {
-   if (backStack.size > 1) {
-      // remove the last destination, so that the previous one becomes the current destination.
-      val removedDestination = backStack.removeLastOrNull()
-      logNavigationOperation("pop", removedDestination, backStack)
-   } else {
-      logNavigationOperation(
-         "pop ignored - root remains", backStack.lastOrNull(), backStack)
+   // Scaffold already places its snackbar above the system bar. Only add the
+   // larger of the remaining IME height and the clearance needed for the FAB.
+   val density = LocalDensity.current
+   val systemBarBottom = ScaffoldDefaults.contentWindowInsets.getBottom(density)
+   val imeBottom = WindowInsets.ime.getBottom(density)
+   val fabClearance = with(density) {
+      if (showListFab) listFabSnackbarClearance.roundToPx() else 0
    }
-}
-
-// Logs one navigation operation and the complete current back stack.
-private fun logNavigationOperation(
-   operation: String,
-   destination: NavKey?,
-   backStack: List<NavKey>,
-) {
-   val destinationText = destination?.toString() ?: "none"
-   val stackText = backStack.joinToString(
-      separator = " -> ",
-      prefix = "[",
-      postfix = "]",
-   )
-
-   Alog.d(
-      TAG,
-      "$operation: $destinationText | stack(${backStack.size}) = $stackText",
-   )
+   return with(density) {
+      maxOf((imeBottom - systemBarBottom).coerceAtLeast(0), fabClearance).toDp()
+   }
 }
 
 /*
@@ -210,6 +142,33 @@ private fun logNavigationOperation(
  * - A3_03_Navigation verwendet den standardmäßigen saveable Navigation-3-Back-Stack:
  *
  *      val backStack = rememberNavBackStack(PeopleKey)
+ *
+ * - Die Verantwortlichkeiten sind auf drei Dateien im selben Package verteilt:
+ *
+ *      AppNavigation.kt       -> Scaffold, SnackbarHost, NavDisplay, Animationen
+ *      AppNavEntryProvider.kt -> Zuordnung NavKey -> Screen (Adapter + ViewModel)
+ *      BackStackOperations.kt -> navigateTo / navigateBack / Logging
+ *
+ *   Dadurch bleibt AppNavigation übersichtlich. Der Provider enthält keine
+ *   Navigationslogik, sondern nur Zuordnung und Guards. Die Stack-Operationen
+ *   brauchen weder Compose noch Android und sind mit einem JVM-Unit-Test
+ *   prüfbar.
+ *
+ * - AppNavigation erzeugt den Back-Stack und verändert ihn nur über
+ *   backStack.navigateTo(...) und backStack.navigateBack().
+ *
+ * - appNavEntryProvider erhält alle Abhängigkeiten explizit als Parameter:
+ *
+ *      backStack      -> List<NavKey>, nur lesend, für den Guard gegen
+ *                        verspätete Effekte
+ *      onMessage      -> (String) -> Unit, statt des ganzen SnackbarController
+ *      onError        -> (String) -> Unit
+ *      onNavigateBack -> (PopReason) -> Unit
+ *      onNavigateTo   -> (PersonKey) -> Unit
+ *
+ *   Der Provider kennt weder SnackbarController noch SnackbarHostState und
+ *   verändert den Back-Stack nicht. Er reicht nur Verhalten an die Adapter
+ *   durch.
  *
  * - Navigation und Meldungsausgabe bleiben bewusst getrennt:
  *
@@ -232,13 +191,22 @@ private fun logNavigationOperation(
  *   System-Back liest isSaving direkt aus dem ViewModel des aktuellen PersonKey
  *   und wartet während eines Speichervorgangs auf dessen Ergebnis.
  *   Verspätete Navigationseffekte ändern nur ihren aktuellen Backstack-Eintrag.
+ *   Der Guard dafür sitzt im appNavEntryProvider.
  *
  * - ShowUndo ist bereits als Action-Snackbar vorbereitet. In diesem Schritt
- *   bleiben onAction und onDismiss bewusst leer.
-
+ *   bleiben onAction und onDismiss bewusst leer. Kommt Undo hinzu, wächst die
+ *   Parameterliste des Providers; dann ist ein Interface oder der
+ *   SnackbarController als einzelner Parameter übersichtlicher.
+ *
  * Lernziele:
  *
  * - Navigation 3 mit rememberNavBackStack, NavDisplay und NavKey einsetzen.
+ * - Verantwortlichkeiten auf mehrere Dateien verteilen: UI-Rahmen,
+ *   Key-Screen-Zuordnung und Stack-Operationen.
+ * - Einen entryProvider in eine eigene Funktion auslagern und seine
+ *   Abhängigkeiten explizit als Parameter übergeben.
+ * - Function-Typen statt konkreter Klassen übergeben, damit eine Funktion nur
+ *   das kennt, was sie tatsächlich braucht.
  * - Screenübergreifende Meldungen mit einem navigationweit lebenden
  *   SnackbarController darstellen.
  * - Navigation und globale UI-Meldungen als getrennte Verantwortlichkeiten

@@ -51,6 +51,7 @@ fun PersonAdapter(
    onError: (String) -> Unit,
    onNavigateBack: (BackReason) -> Unit,
    imageFileStorage: IImageFileStorage = koinInject(),
+   modifier: Modifier = Modifier,
 ) {
    val tag = "<-PersonAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -78,7 +79,7 @@ fun PersonAdapter(
       stringResource(SharedR.string.error_image_save)
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier,
       topBar = {
          TopAppBar(
             navigationIcon = {
