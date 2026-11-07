@@ -3,12 +3,10 @@ package de.rogallab.mobile.ui
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -19,8 +17,6 @@ import de.rogallab.mobile.shared.ui.BaseActivity
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
-import de.rogallab.mobile.ui.people.list.PeopleViewModel
-import de.rogallab.mobile.ui.people.list.comp.PeopleAdapter
 import de.rogallab.mobile.ui.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -40,34 +36,51 @@ class MainActivity : BaseActivity(TAG) {
             snackbarHostState = snackbarHostState,
          )
 
-         // Detail screen.
+         // Create/Detail screen.
          val personViewModel = koinViewModel<PersonViewModel> {
             parametersOf("01000000-0000-0000-0000-000000000000")
+            // parametersOf("12345000-0000-0000-0000-000000000000")
          }
 
          // List screen.
-         val peopleViewModel = koinViewModel<PeopleViewModel>()
+         val list = false
+         // val peopleViewModel = koinViewModel<PeopleViewModel>()
+
 
          AppTheme {
 
-            PersonAdapter(
-               viewModel = personViewModel,
-               snackbarHostState = snackbarHostState,
-               onMessage = snackbarController::showMessage,
-               onError = snackbarController::showError
-            )
+            Scaffold(
+               modifier = Modifier.fillMaxSize(),
+               snackbarHost = {
+                  SnackbarHost(
+                     hostState = snackbarHostState,
+                     modifier = Modifier
+                        .imePadding()
+                        // 56 dp FAB + 16 dp edge + 16 dp gap = 88 dp
+                        .padding(bottom = if (list) 88.dp else 0.dp))
+               },
+            ) { innerPadding ->
+
+               PersonAdapter(
+                  viewModel = personViewModel,
+                  onMessage = snackbarController::showMessage,
+                  onError = snackbarController::showError,
+                  modifier = Modifier
+                     .padding(innerPadding)
+                     .consumeWindowInsets(innerPadding),
+               )
 
 //            PeopleAdapter(
 //               viewModel = peopleViewModel,
-//               snackbarHostState = snackbarHostState,
 //               onMessage = snackbarController::showMessage,
 //               onError = snackbarController::showError,
+//               modifier = Modifier.padding(innerPadding)
 //            )
 
-         }
+            }
+         } //
       }
    }
-
    companion object {
       private const val TAG = "<-MainActivity"
    }

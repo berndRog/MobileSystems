@@ -51,6 +51,7 @@ class PersonViewModel(
       _stateFlow.update { state ->
          state.copy(isLoading = true, loadFailure = null)
       }
+
       viewModelScope.launch {
 
          // Keep the existing delay used to demonstrate loading.

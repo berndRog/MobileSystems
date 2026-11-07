@@ -50,10 +50,9 @@ import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 @Composable
 fun PersonAdapter(
    viewModel: PersonViewModel,
-   snackbarHostState: SnackbarHostState,
-   modifier: Modifier = Modifier,
    onMessage: (String) -> Unit,
-   onError: (String) -> Unit
+   onError: (String) -> Unit,
+   modifier: Modifier = Modifier
 ) {
    val tag = "<-PersonAdapter"
    // Counts successful compositions for diagnostic logging.
@@ -76,8 +75,7 @@ fun PersonAdapter(
    }
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
-
+      modifier = modifier,
       topBar = {
          TopAppBar(
             navigationIcon = {
@@ -96,11 +94,7 @@ fun PersonAdapter(
                else R.string.person_detail ))
             },
          )
-      },
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-                      modifier = Modifier.imePadding())
-      },
+      }
    ) { innerPadding ->
       // Show a loading indicator
       if (personUiState.isLoading || personUiState.isSaving) {
@@ -163,8 +157,8 @@ fun PersonAdapter(
                .fillMaxSize()
                .padding(innerPadding)
                .padding(horizontal = 16.dp)
+               .imePadding()
                .verticalScroll(rememberScrollState())
-               .imePadding(),
          )
       }
    }

@@ -74,7 +74,9 @@ fun PersonAdapter(
       topBar = {
          TopAppBar(
             navigationIcon = {
-               IconButton(enabled = !personUiState.isSaving && !personUiState.isLoading, onClick = {
+               IconButton(
+                  enabled = !personUiState.isSaving && !personUiState.isLoading,
+                  onClick = {
                   viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
                }) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -155,8 +157,8 @@ fun PersonAdapter(
                .fillMaxSize()
                .padding(innerPadding)
                .padding(horizontal = 16.dp)
-               .verticalScroll(rememberScrollState())
                .imePadding()
+               .verticalScroll(rememberScrollState())
          )
       }
    }

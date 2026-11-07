@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -37,6 +38,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 private const val TAG = "<-AppNavigation"
+private val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
 
 @Composable
 fun AppNavigation() {
@@ -66,7 +68,11 @@ fun AppNavigation() {
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.imePadding()
+            modifier = Modifier
+               .imePadding()
+               .padding(bottom = if (backStack.lastOrNull() is PeopleKey) {
+                  listFabSnackbarClearance
+               } else 0.dp),
          )
       },
    ) { innerPadding ->
@@ -212,8 +218,8 @@ private fun logNavigationOperation(
  *
  * - SnackbarController und der einzige sichtbare SnackbarHost liegen oberhalb
  *   des NavDisplay. Der CoroutineScope bleibt bei einem Destination-Wechsel bestehen.
- *   Eine Meldung kann so nach erfolgreichem Speichern und NavigateBack auf der
- *   People-Liste weiter angezeigt werden.
+ *   Auf der People-Liste erhält der Host Abstand zum FAB. Eine Meldung kann so
+ *   nach erfolgreichem Speichern und NavigateBack sichtbar bleiben.
  *
  * - Ladefehler bleiben im jeweiligen Screen-State sichtbar; Retry startet
  *   einen neuen Ladeversuch. Fehler einzelner Aktionen nutzen ShowError.

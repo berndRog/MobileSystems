@@ -46,9 +46,9 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 @Composable
 fun PeopleAdapter(
    viewModel: PeopleViewModel,
-   snackbarHostState: SnackbarHostState,
    onMessage: (String) -> Unit,
-   onError: (String) -> Unit
+   onError: (String) -> Unit,
+   modifier: Modifier = Modifier
 ) {
    val tag = "<-PeopleAdapter"
    val nComp = remember { mutableIntStateOf(1) }
@@ -71,7 +71,9 @@ fun PeopleAdapter(
    val activity = LocalActivity.current
 
    Scaffold(
-      modifier = Modifier.fillMaxSize(),
+      modifier = modifier
+         .fillMaxSize()
+         .padding(horizontal = 16.dp),
       topBar = {
          TopAppBar(
             navigationIcon = {
@@ -98,11 +100,7 @@ fun PeopleAdapter(
                contentDescription = null) },
             text = { Text(text = stringResource(R.string.action_create)) },
          )
-      },
-      snackbarHost = {
-         SnackbarHost(hostState = snackbarHostState,
-                      modifier = Modifier.imePadding())
-      },
+      }
    ) { innerPadding ->
 
       // Show loading, a persistent error, or the stateless PeopleScreen.

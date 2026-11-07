@@ -21,12 +21,12 @@ class PersonRepository(
    private var _counterFindById = 0
 
    override fun observeAll(): Flow<Result<List<Person>>> {
-      //_counterObserveAll++
-      //Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
+//      _counterObserveAll++
+//      Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
       return _personDao.observeAll()
          .map { dtos ->
-         //   if (_counterObserveAll == 1)
-         //      throw RuntimeException("Test exception in observeAll()")
+//            if (_counterObserveAll == 1)
+//               throw RuntimeException("Test exception in observeAll()")
             Result.success(dtos.map(PersonDto::toPerson))
          }
          // Flow.catch handles upstream failures, but does not catch exceptions used for
@@ -37,8 +37,8 @@ class PersonRepository(
    }
 
    override suspend fun findById(id: String): Result<Person?> {
-      // _counterFindById++
-      // Alog.d(TAG,"findById(), counter=$_counterFindById")
+//      _counterFindById++
+//      Alog.d(TAG,"findById(), counter=$_counterFindById")
 
       return try {
 //         if(_counterFindById == 1)
@@ -46,7 +46,7 @@ class PersonRepository(
 //         else if(_counterFindById == 2)
 //            Result.success(null)
 //         else
-         Result.success(_personDao.findById(id)?.toPerson())
+            Result.success(_personDao.findById(id)?.toPerson())
       }
       // don't handle CancellationException, let it propagate to the caller
       // viewModelScope will catch it and cancel the coroutine

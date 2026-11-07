@@ -1,9 +1,6 @@
 package de.rogallab.mobile.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.sp
-import de.rogallab.mobile.R
 
 // a certificate is required to use Google Fonts
 //val provider = GoogleFont.Provider(
