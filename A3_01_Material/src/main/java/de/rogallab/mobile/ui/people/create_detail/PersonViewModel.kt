@@ -28,20 +28,19 @@ class PersonViewModel(
 
    // A null or blank id means that a new person is created.
    private val _personId = personId?.toNullableInput()
-   private val _isNew = _personId == null
-   private var _isSaving = false
 
+   // The initial state depends on whether a person is created or edited.
    private val _initialState =
-      if (_isNew) PersonUiState(isNew = true, isLoading = false)
-      else PersonUiState(isNew = false, isLoading = true)
+      if (_personId == null) PersonUiState(isNew = true,  isLoading = false)
+      else                   PersonUiState(isNew = false, isLoading = true)
 
-   // Stateflow PersonUiState
+   // StateFloe PersonUiState
    private val _stateFlow = MutableStateFlow(_initialState)
    val stateFlow = _stateFlow.asStateFlow()
 
    // For a detail screen load the existing person.
    init {
-      if (!_isNew) loadPerson(_personId!!)
+      if (!_stateFlow.value.isNew) loadPerson(_personId!!)
    }
 
    // Load existing person in detail mode.
@@ -170,16 +169,14 @@ class PersonViewModel(
       }
 
       // Expose the active save to both the UI and the duplicate-save guard.
-      _stateFlow.update { state ->
-         state.copy(isSaving = true)
-      }
+      _stateFlow.update { state -> state.copy(isSaving = true) }
 
       viewModelScope.launch {
 
          // Create a new person or update the existing person
          val result =
-            if (_isNew) _repository.create(person)
-            else _repository.update(person)
+            if (_stateFlow.value.isNew) _repository.create(person)
+            else                        _repository.update(person)
 
          result
             // Handle the repository result and emit success
