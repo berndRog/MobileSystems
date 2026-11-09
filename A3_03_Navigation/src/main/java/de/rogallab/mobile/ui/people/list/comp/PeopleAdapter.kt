@@ -45,7 +45,6 @@ fun PeopleAdapter(
    viewModel: PeopleViewModel,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
-   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
    modifier: Modifier = Modifier,
 ) {
@@ -63,7 +62,6 @@ fun PeopleAdapter(
       when (peopleEffect) {
          is PeopleEffect.ShowMessage -> onMessage(peopleEffect.message)
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
-         PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }

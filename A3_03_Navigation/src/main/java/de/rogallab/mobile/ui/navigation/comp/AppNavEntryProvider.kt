@@ -52,15 +52,12 @@ fun appNavEntryProvider(
             // Global messages are shown by the single SnackbarHost above NavDisplay.
             onMessage = onMessage,
             onError = onError,
-
-            // System back on the root is a cancel; remove() keeps the root entry.
-            onNavigateBack = { onNavigateBack(PopReason.Cancel) },
-
+            
             // null -> create, id -> detail/edit.
             onNavigateTo = { personId ->
                // Guard: ignore late or repeated effects (e.g. a double tap)
                // when this entry is no longer the top of the back stack.
-               if (backStack.lastOrNull() === peopleKey) {
+               if (backStack.lastOrNull() == peopleKey) {
                   onNavigateTo(PersonKey(personId))
                }
             },

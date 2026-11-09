@@ -80,10 +80,10 @@ class PeopleViewModel(
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
+         is PeopleIntent.Create -> navigateToPerson(null)
          is PeopleIntent.Detail -> navigateToPerson(intent.personId)
          is PeopleIntent.Remove -> remove(intent.person)
-         PeopleIntent.RetryLoad ->
+         is PeopleIntent.RetryLoad ->
             if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
                observePeople()
             }

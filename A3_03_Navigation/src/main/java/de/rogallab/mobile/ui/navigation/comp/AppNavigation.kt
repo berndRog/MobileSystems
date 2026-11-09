@@ -62,9 +62,7 @@ fun AppNavigation() {
          currentPopReason = reason
          remove(backStack)
       },
-      onNavigateTo = { destination ->
-         add(destination, backStack)
-      },
+      onNavigateTo = { destination -> add(destination, backStack) },
    )
 
    val snackbarBottomPadding = calculateSnackbarBottomPadding(
@@ -119,7 +117,9 @@ fun AppNavigation() {
 }
 
 @Composable
-private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
+private fun calculateSnackbarBottomPadding(
+   showListFab: Boolean
+): Dp {
 
    val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
 
