@@ -15,9 +15,6 @@ sealed interface PeopleEffect {
       val personId: String,
    ) : PeopleEffect
 
-   // Navigates back to the previous screen. Handled by the Navigation 3 layer.
-   data object NavigateBack : PeopleEffect
-
    // Opens the person destination. A null id represents create mode.
    data class NavigateTo(val personId: String? = null) : PeopleEffect
 }

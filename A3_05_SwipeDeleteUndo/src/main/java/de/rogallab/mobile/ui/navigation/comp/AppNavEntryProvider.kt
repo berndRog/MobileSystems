@@ -41,12 +41,9 @@ fun appNavEntryProvider(
             )
          },
 
-         onNavigateBack = {
-            onNavigateBack(PopReason.Cancel)
-         },
          // null -> create, id -> detail/edit.
          onNavigateTo = { personId ->
-            if (backStack.lastOrNull() === peopleKey) {
+            if (backStack.lastOrNull() == peopleKey) {
                onNavigateTo(PersonKey(personId))
             }
          },

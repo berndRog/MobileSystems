@@ -46,7 +46,6 @@ fun PeopleAdapter(
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onUndo: (String, String, String) -> Unit,
-   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
    modifier: Modifier = Modifier,
 ) {
@@ -67,7 +66,6 @@ fun PeopleAdapter(
          is PeopleEffect.ShowUndo -> onUndo(
             peopleEffect.message, peopleEffect.actionLabel, peopleEffect.personId
          )
-         PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
@@ -199,7 +197,6 @@ private fun PeopleCreateButton(
  *      ShowMessage  -> onMessage()
  *      ShowError    -> onError()
  *      ShowUndo     -> onUndo()
- *      NavigateBack -> onBack()
  *      NavigateTo   -> onNavigateTo()
  *
  * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch

@@ -43,7 +43,6 @@ fun PeopleAdapter(
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onConfirmRemove: (String, String, String) -> Unit,
-   onNavigateBack: () -> Unit,
    onNavigateTo: (String?) -> Unit,
    modifier: Modifier = Modifier,
 ) {
@@ -62,7 +61,6 @@ fun PeopleAdapter(
          is PeopleEffect.ShowError -> onError(peopleEffect.message)
          is PeopleEffect.ConfirmRemove -> onConfirmRemove(peopleEffect.message,
             peopleEffect.actionLabel, peopleEffect.personId)
-         PeopleEffect.NavigateBack -> onNavigateBack()
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }

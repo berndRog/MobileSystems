@@ -13,6 +13,5 @@ sealed interface PeopleEffect {
       val personId: String,
    ) : PeopleEffect
 
-   data object NavigateBack : PeopleEffect
    data class NavigateTo(val personId: String? = null) : PeopleEffect
 }
