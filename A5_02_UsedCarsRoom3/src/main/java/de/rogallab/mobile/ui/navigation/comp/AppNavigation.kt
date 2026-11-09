@@ -88,9 +88,6 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateBack = {
-               if (navigationState.currentBackStack().lastOrNull() == PeopleKey) navigator.remove()
-            },
             onNavigateTo = { personId ->
                if (navigationState.currentBackStack().lastOrNull() == PeopleKey) {
                   navigator.add(PersonKey(personId))

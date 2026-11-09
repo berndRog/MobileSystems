@@ -73,7 +73,7 @@ fun AppNavigation() {
    }
 
    val appEntryProvider = entryProvider {
-      entry<PersonListKey> {
+      entry<PersonListKey> { key ->
          val viewModel = koinViewModel<PeopleViewModel>()
          PeopleAdapter(
             viewModel = viewModel,
@@ -88,8 +88,11 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateBack = navigator::pop,
-            onNavigateTo = { navigator.push(PersonKey(it)) },
+            onNavigateTo = { personId ->
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  navigator.push(PersonKey(personId))
+               }
+            },
          )
       }
 
@@ -102,16 +105,20 @@ fun AppNavigation() {
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
             onNavigateToCar = { carId ->
-               navigator.push(CarKey(carId))
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  navigator.push(CarKey(carId))
+               }
             },
          )
       }
 
-      entry<CarListKey> {
+      entry<CarListKey> { key ->
          val viewModel = koinViewModel<CarsViewModel>()
          CarsAdapter(
             viewModel = viewModel,
@@ -126,7 +133,11 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateTo = { navigator.push(CarKey(it)) },
+            onNavigateTo = { carId ->
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  navigator.push(CarKey(carId))
+               }
+            },
          )
       }
 
@@ -139,13 +150,15 @@ fun AppNavigation() {
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
          )
       }
 
-      entry<TDrivesKey> {
+      entry<TDrivesKey> { key ->
          val viewModel = koinViewModel<TDrivesViewModel>()
          TDrivesAdapter(
             viewModel = viewModel,
@@ -160,7 +173,11 @@ fun AppNavigation() {
                   },
                )
             },
-            onNavigateTo = { navigator.push(TDriveKey(it)) },
+            onNavigateTo = { tDriveId ->
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  navigator.push(TDriveKey(tDriveId))
+               }
+            },
          )
       }
 
@@ -173,8 +190,10 @@ fun AppNavigation() {
             onMessage = snackbarController::showMessage,
             onError = snackbarController::showError,
             onNavigateBack = { reason ->
-               currentPopReason = reason.toPopReason()
-               navigator.pop()
+               if (navigationState.currentBackStack().lastOrNull() == key) {
+                  currentPopReason = reason.toPopReason()
+                  navigator.pop()
+               }
             },
          )
       }
