@@ -22,13 +22,13 @@ class PeopleViewModel(
    val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
 
 
+   // Job to observe the repository for changes to the list of people.
+   private var _observeJob: Job? = null
+
    // initialize the ViewModel by observing the repository for changes to the list of people.
    init {
       observePeople()
    }
-
-   // Job to observe the repository for changes to the list of people.
-   private var _observeJob: Job? = null
 
    // Observe the repository for changes to the list of people and update the UI state accordingly.
    private fun observePeople() {

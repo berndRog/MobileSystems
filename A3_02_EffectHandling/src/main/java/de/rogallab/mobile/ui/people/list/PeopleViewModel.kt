@@ -29,14 +29,14 @@ class PeopleViewModel(
    private val _stateFlow = MutableStateFlow(PeopleUiState())
    val stateFlow = _stateFlow.asStateFlow()
 
+   // Job used to observe changes from the repository.
+   private var _observeJob: Job? = null
+
    // Start the reactive observation pipeline
    init {
       Alog.i(TAG, "init: observePeople()")
       observePeople()
    }
-
-   // Job used to observe changes from the repository.
-   private var _observeJob: Job? = null
 
    // Observes the repository and updates the list state.
    private fun observePeople() {

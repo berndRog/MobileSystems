@@ -89,10 +89,8 @@ class PersonViewModel(
             }
 
          // Reset the loading flag regardless of success or failure.
-         _stateFlow.update { state ->
-            state.copy(isLoading = false)
-         }
-      }
+         _stateFlow.update { state -> state.copy(isLoading = false) }
+      } // launch
    }
 
    // Dispatcher: transform intent into an action
@@ -213,7 +211,7 @@ class PersonViewModel(
          // Reset the saving flag regardless of success or failure.
          _stateFlow.update { state -> state.copy(isSaving = false) }
 
-      }
+      } // launch
    }
 
    // Cancels editing
