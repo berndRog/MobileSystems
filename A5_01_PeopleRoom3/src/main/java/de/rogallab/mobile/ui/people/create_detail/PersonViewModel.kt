@@ -40,6 +40,7 @@ class PersonViewModel(
    // A null or blank id means that a new person is being created.
    private val _personId = personId?.toNullableInput()
 
+   // The initial state depends on whether a person is created or edited.
    private val _initialState =
       if (_personId == null) PersonUiState(isNew = true, isLoading = false)
       else                   PersonUiState(isNew = false, isLoading = true)
@@ -232,6 +233,7 @@ class PersonViewModel(
       }
 
       // Publish the normalized and validated person before saving it.
+      // Expose the active save to both the UI and the duplicate-save guard.
       _stateFlow.update { state -> state.copy(person = person, isSaving = true) }
 
       viewModelScope.launch {
@@ -258,7 +260,7 @@ class PersonViewModel(
                _effectDelegate.emit(PersonEffect.ShowError(error))
             }
 
-         // Update: save operation is finished
+         // Reset the saving flag regardless of success or failure.
          _stateFlow.update { state -> state.copy(isSaving = false) }
 
       }

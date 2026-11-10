@@ -53,8 +53,7 @@ class PeopleViewModel(
          delay(1000)
 
          // Successful Room emissions keep the list current.
-         // Result.failure ends this collector
-         // Only RetryLoad starts a new observation.
+         // Result.failure ends this collector. Only RetryLoad starts a new observation.
          _repository.observeAll().collect { result ->
             result
                // Update the UI state with the list of people when the repository operation succeeded.
@@ -66,9 +65,7 @@ class PeopleViewModel(
 
                // Update the UI state with an error message when the repository operation failed.
                .onFailure { throwable ->
-                  val error = _stringProvider.getString(
-                     R.string.error_people_observe
-                  )
+                  val error = _stringProvider.getString(R.string.error_people_observe)
                   Alog.e(TAG, error, throwable)
                   _stateFlow.update { state ->
                      state.copy(isLoading = false, loadFailure = error)
