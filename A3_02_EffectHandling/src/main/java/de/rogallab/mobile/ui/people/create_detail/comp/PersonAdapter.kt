@@ -165,6 +165,8 @@ fun PersonAdapter(
             )
 
             if (personUiState.isSaving) {
+               // Intercept clicks on the screen while saving,
+               // and show progress while the form stays composed.
                Box(
                   modifier = Modifier
                      .matchParentSize()

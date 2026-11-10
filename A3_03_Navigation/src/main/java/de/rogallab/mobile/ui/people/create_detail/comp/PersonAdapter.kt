@@ -59,10 +59,8 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the current ViewModel state with lifecycle awareness.
-   val personUiState: PersonUiState
-      by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val personUiState: PersonUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
    val person = personUiState.person
-   val loadFailure = personUiState.loadFailure
 
    // Consume system back while saving; the save result decides when to navigate.
    BackHandler(enabled = personUiState.isSaving) {}
@@ -83,12 +81,13 @@ fun PersonAdapter(
             navigationIcon = {
                IconButton(
                   enabled = !personUiState.isSaving && !personUiState.isLoading,
-                  onClick = {
-                  viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
-               }) {
+                  onClick = { viewModel.onIntent(
+                     if (personUiState.loadFailure == null) PersonIntent.Save
+                     else PersonIntent.Cancel) }
+               ) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                        contentDescription = stringResource(
-                          if (loadFailure == null) R.string.action_save
+                          if (personUiState.loadFailure == null) R.string.action_save
                           else R.string.action_back
                        ))
                }
@@ -110,14 +109,17 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else if (loadFailure != null) {
+      } else if (personUiState.loadFailure != null) {
          Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding)
+               .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
          ) {
             Text(
-               text = loadFailure.message,
+               text = personUiState.loadFailure!!.message,
                style = MaterialTheme.typography.bodyLarge,
                fontWeight = FontWeight.Bold,
                modifier = Modifier.padding(bottom = 16.dp),
@@ -125,13 +127,13 @@ fun PersonAdapter(
             Button(
                onClick = {
                   viewModel.onIntent(
-                     if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                     if (personUiState.loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
                      else PersonIntent.RetryLoad
                   )
                },
             ) {
                Text(text = stringResource(
-                  if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+                  if (personUiState.loadFailure is PersonLoadFailure.NotFound) R.string.action_back
                   else R.string.action_retry
                ))
             }
