@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -26,6 +27,7 @@ import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.comp.PersonAdapter
 import de.rogallab.mobile.ui.theme.AppTheme
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -67,6 +69,28 @@ class PersonSnackbarTest {
       compose.onNodeWithText("Byron").assertIsDisplayed()
    }
 
+   @Test fun formStaysVisibleAndActionsAreBlockedWhileSaving() {
+      val pending = CompletableDeferred<Result<Unit>>()
+      repository.pendingCreate = pending
+      showCreateScreen()
+      fillRequiredFields()
+      compose.onNodeWithText(context.getString(R.string.action_save), useUnmergedTree = true).performClick()
+
+      compose.waitUntil(5_000) { repository.createCalls == 1 }
+      compose.onNodeWithText("Ada").assertIsDisplayed()
+      compose.onNodeWithText("Lovelace").assertIsDisplayed()
+      compose.onNodeWithText(context.getString(R.string.action_save)).assertIsNotEnabled()
+      compose.onNodeWithText(context.getString(R.string.action_cancel)).assertIsNotEnabled()
+
+      pending.complete(Result.failure(IllegalStateException("write failed")))
+      compose.waitUntil(5_000) {
+         compose.onAllNodesWithText(context.getString(R.string.error_person_save))
+            .fetchSemanticsNodes().isNotEmpty()
+      }
+      compose.onNodeWithText("Ada").assertIsDisplayed()
+      compose.onNodeWithText(context.getString(R.string.action_save)).assertIsEnabled()
+   }
+
    private fun showCreateScreen() {
       val viewModel = PersonViewModel(
          null, repository, StringProvider(context), PersonValidator(context), EffectDelegate()
@@ -97,12 +121,16 @@ class PersonSnackbarTest {
 
    private class RecordingRepository : IPersonRepository {
       var createResult: Result<Unit> = Result.success(Unit)
+      var pendingCreate: CompletableDeferred<Result<Unit>>? = null
+      var createCalls = 0
       val created = mutableListOf<Person>()
       override fun observeAll(): Flow<Result<List<Person>>> = flowOf(Result.success(emptyList()))
       override suspend fun findById(id: String): Result<Person?> = Result.success(null)
       override suspend fun create(person: Person): Result<Unit> {
-         if (createResult.isSuccess) created += person
-         return createResult
+         createCalls++
+         val result = pendingCreate?.await() ?: createResult
+         if (result.isSuccess) created += person
+         return result
       }
       override suspend fun update(person: Person): Result<Unit> = Result.success(Unit)
       override suspend fun remove(person: Person): Result<Unit> = Result.success(Unit)

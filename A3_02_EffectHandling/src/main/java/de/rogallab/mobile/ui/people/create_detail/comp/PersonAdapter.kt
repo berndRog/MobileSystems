@@ -1,7 +1,10 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -11,19 +14,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -60,11 +60,8 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Collect the PersonUiState with lifecycle awareness.
-   val personUiState: PersonUiState
-      by viewModel.stateFlow.collectAsStateWithLifecycle()
-   // Person data
+   val personUiState: PersonUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
    val person = personUiState.person
-   val loadFailure = personUiState.loadFailure
 
    // Collect one-time effects and forward them to simple callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -80,7 +77,8 @@ fun PersonAdapter(
          TopAppBar(
             navigationIcon = {
                IconButton(
-                  enabled = !personUiState.isLoading && !personUiState.isSaving && loadFailure == null,
+                  enabled = !personUiState.isLoading && !personUiState.isSaving &&
+                              personUiState.loadFailure == null,
                   onClick = {
                      viewModel.onIntent(PersonIntent.Save)
                   }
@@ -96,8 +94,9 @@ fun PersonAdapter(
          )
       }
    ) { innerPadding ->
-      // Show a loading indicator
-      if (personUiState.isLoading || personUiState.isSaving) {
+
+      // Initial loading has no form data to display yet.
+      if (personUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -109,7 +108,7 @@ fun PersonAdapter(
       }
 
       // Show a load failure message and a retry button
-      else if (loadFailure != null) {
+      else if (personUiState.loadFailure != null) {
          Column(
             modifier = Modifier
                .fillMaxSize()
@@ -119,7 +118,7 @@ fun PersonAdapter(
             horizontalAlignment = Alignment.CenterHorizontally,
          ) {
             Text(
-               text = loadFailure.message,
+               text = personUiState.loadFailure!!.message,
                style = MaterialTheme.typography.bodyLarge,
                fontWeight = FontWeight.Bold,
                modifier = Modifier.padding(bottom = 16.dp)
@@ -130,36 +129,59 @@ fun PersonAdapter(
          }
       }
 
-      // Show PersonScreen with the person data if loading succeeded
+      // Keep the form composed while saving so its local focus and input state survive.
       else {
-         PersonScreen(
-            isNew = personUiState.isNew,
-            isLoading = personUiState.isLoading,
-            isSaving = personUiState.isSaving,
-            firstName = person.firstName,
-            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
-
-            lastName = person.lastName,
-            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
-
-            email = person.email,
-            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
-
-            phone = person.phone,
-            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
-
-            imagePath = person.imagePath,
-
-            onSave = { viewModel.onIntent(PersonIntent.Save) },
-            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
-
+         Box(
             modifier = Modifier
                .fillMaxSize()
-               .padding(innerPadding)
-               .padding(horizontal = 16.dp)
-               .imePadding()
-               .verticalScroll(rememberScrollState())
-         )
+               .padding(innerPadding),
+         ) {
+            PersonScreen(
+               isNew = personUiState.isNew,
+               isLoading = personUiState.isLoading,
+               isSaving = personUiState.isSaving,
+               firstName = person.firstName,
+               onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+
+               lastName = person.lastName,
+               onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+
+               email = person.email,
+               onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+
+               phone = person.phone,
+               onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+
+               imagePath = person.imagePath,
+
+               onSave = { viewModel.onIntent(PersonIntent.Save) },
+               onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
+
+               modifier = Modifier
+                  .fillMaxSize()
+                  .padding(horizontal = 16.dp)
+                  .imePadding()
+                  .verticalScroll(rememberScrollState())
+            )
+
+            if (personUiState.isSaving) {
+               Box(
+                  modifier = Modifier
+                     .matchParentSize()
+                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                     .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                     ),
+                  contentAlignment = Alignment.TopCenter,
+               ) {
+                  CircularProgressIndicator(
+                     modifier = Modifier.padding(top = 24.dp).size(64.dp),
+                  )
+               }
+            }
+         }
       }
    }
 
