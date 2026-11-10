@@ -1,5 +1,9 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,6 +64,9 @@ fun PersonAdapter(
    val person = personUiState.person
    val loadFailure = personUiState.loadFailure
 
+   // Consume system back while saving; the save result decides when to navigate.
+   BackHandler(enabled = personUiState.isSaving) {}
+
    // Collect one-time effects and translate them into UI callbacks.
    EffectHandler(viewModel.effects) { personEffect ->
       when (personEffect) {
@@ -91,8 +98,8 @@ fun PersonAdapter(
          )
       },
    ) { innerPadding ->
-      // Show ongoing load and save operations in the persistent UI state.
-      if (personUiState.isLoading || personUiState.isSaving) {
+      // Show initial loading before the form is available.
+      if (personUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -128,36 +135,58 @@ fun PersonAdapter(
             }
          }
       } else {
-
-         PersonScreen(
-            isNew = personUiState.isNew,
-            isLoading = personUiState.isLoading,
-            isSaving = personUiState.isSaving,
-
-            firstName = person.firstName,
-            onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
-
-            lastName = person.lastName,
-            onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
-
-            email = person.email,
-            onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
-
-            phone = person.phone,
-            onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
-
-            imagePath = person.imagePath,
-
-            onSave = { viewModel.onIntent(PersonIntent.Save) },
-            onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
-
+         Box(
             modifier = Modifier
                .fillMaxSize()
-               .padding(innerPadding)
-               .padding(horizontal = 16.dp)
-               .verticalScroll(rememberScrollState())
-               .imePadding()
-         )
+               .padding(innerPadding),
+         ) {
+            PersonScreen(
+               isNew = personUiState.isNew,
+               isLoading = personUiState.isLoading,
+               isSaving = personUiState.isSaving,
+
+               firstName = person.firstName,
+               onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+
+               lastName = person.lastName,
+               onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+
+               email = person.email,
+               onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+
+               phone = person.phone,
+               onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+
+               imagePath = person.imagePath,
+
+               onSave = { viewModel.onIntent(PersonIntent.Save) },
+               onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
+
+               modifier = Modifier
+                  .fillMaxSize()
+                  .padding(horizontal = 16.dp)
+                  .imePadding()
+                  .verticalScroll(rememberScrollState())
+            )
+
+            if (personUiState.isSaving) {
+               Box(
+                  modifier = Modifier
+                     .matchParentSize()
+                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                     .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                     ),
+                  contentAlignment = Alignment.TopCenter,
+               ) {
+                  CircularProgressIndicator(
+                     modifier = Modifier.padding(top = 24.dp).size(64.dp),
+                  )
+               }
+            }
+         }
       }
    }
 }

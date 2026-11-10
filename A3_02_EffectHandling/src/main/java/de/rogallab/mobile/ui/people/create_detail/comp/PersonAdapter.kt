@@ -123,7 +123,11 @@ fun PersonAdapter(
                fontWeight = FontWeight.Bold,
                modifier = Modifier.padding(bottom = 16.dp)
             )
-            Button(onClick = { viewModel.onIntent(PersonIntent.RetryLoad) }) {
+            Button(
+               onClick = {
+                  viewModel.onIntent(PersonIntent.RetryLoad)
+               }
+            ) {
                Text(text = stringResource(R.string.action_retry))
             }
          }
@@ -140,6 +144,7 @@ fun PersonAdapter(
                isNew = personUiState.isNew,
                isLoading = personUiState.isLoading,
                isSaving = personUiState.isSaving,
+
                firstName = person.firstName,
                onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
 

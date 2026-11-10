@@ -81,9 +81,12 @@ fun PersonAdapter(
             navigationIcon = {
                IconButton(
                   enabled = !personUiState.isSaving && !personUiState.isLoading,
-                  onClick = { viewModel.onIntent(
-                     if (personUiState.loadFailure == null) PersonIntent.Save
-                     else PersonIntent.Cancel) }
+                  onClick = {
+                     viewModel.onIntent(
+                        if (personUiState.loadFailure == null) PersonIntent.Save
+                        else PersonIntent.Cancel
+                     )
+                  }
                ) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                        contentDescription = stringResource(
@@ -99,7 +102,8 @@ fun PersonAdapter(
          )
       },
    ) { innerPadding ->
-      // Show initial loading before the form is available.
+
+      // Initial loading has no form data to display yet.
       if (personUiState.isLoading) {
          Box(
             modifier = Modifier
@@ -109,7 +113,10 @@ fun PersonAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      } else if (personUiState.loadFailure != null) {
+      }
+
+      // Show a load failure message and a retry button
+      else if (personUiState.loadFailure != null) {
          Column(
             modifier = Modifier
                .fillMaxSize()
@@ -138,7 +145,10 @@ fun PersonAdapter(
                ))
             }
          }
-      } else {
+      }
+
+      // Keep the form composed while saving so its local focus and input state survive.
+      else {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -174,6 +184,8 @@ fun PersonAdapter(
             )
 
             if (personUiState.isSaving) {
+               // Intercept clicks on the screen while saving,
+               // and show progress while the form stays composed.
                Box(
                   modifier = Modifier
                      .matchParentSize()
