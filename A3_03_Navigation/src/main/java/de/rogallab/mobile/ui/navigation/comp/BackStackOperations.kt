@@ -39,11 +39,11 @@ internal fun remove(
       // Remove the last destination, so that the previous one becomes
       // the current destination.
       val removedDestination = backStack.removeLastOrNull()
-      logNavigationOperation("pop", removedDestination, backStack)
+      logNavigationOperation("remove", removedDestination, backStack)
    } else {
-      // Nothing to pop: the root destination must stay on the stack.
+      // Nothing to remove: the root destination must stay on the stack.
       logNavigationOperation(
-         "pop ignored - root remains", backStack.lastOrNull(), backStack)
+         "remove ignored - root remains", backStack.lastOrNull(), backStack)
    }
 }
 
