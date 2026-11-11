@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -80,9 +83,9 @@ fun PersonAdapter(
       }
    }
 
-   // System back follows Cancel so temporary images are discarded first.
+   // Consume system back while saving; otherwise Cancel discards temporary images.
    BackHandler {
-      viewModel.onIntent(PersonIntent.Cancel)
+      if (!personUiState.isSaving) viewModel.onIntent(PersonIntent.Cancel)
    }
 
    // Resolve the image error text in the UI layer for errors that originate
@@ -109,8 +112,8 @@ fun PersonAdapter(
          )
       },
    ) { innerPadding ->
-      // Show a loading indicator if the person data is still being loaded.
-      if (personUiState.isLoading || personUiState.isSaving) {
+      // Show initial loading before the form is available.
+      if (personUiState.isLoading) {
          Box(
             modifier = Modifier
                .fillMaxSize()
@@ -148,59 +151,81 @@ fun PersonAdapter(
       }
       // Show person form
       else {
-         val person = personUiState.person
+         Box(
+            modifier = Modifier
+               .fillMaxSize()
+               .padding(innerPadding),
+         ) {
 
-         // The gallery handler selects one image and returns its content URI.
-         GalleryPickerHandlerSingle(
-            onImageSelected = { sourceUri ->
-               viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
-            },
-         ) { galleryActions ->
+            // The gallery handler selects one image and returns its content URI.
+            GalleryPickerHandlerSingle(
+               onImageSelected = { sourceUri ->
+                  viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
+               },
+            ) { galleryActions ->
 
-            // The camera handler prepares the target file before starting the camera.
-            // After a successful capture it returns the confirmed internal file path.
-            CameraPickerHandler(
-               imageFileStorage = imageFileStorage,
-               onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
-               onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
-            ) { cameraActions ->
+               // The camera handler prepares the target file before starting the camera.
+               // After a successful capture it returns the confirmed internal file path.
+               CameraPickerHandler(
+                  imageFileStorage = imageFileStorage,
+                  onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
+                  onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
+               ) { cameraActions ->
 
-               // Connect the current UI state and all user actions to PersonScreen.
-               PersonScreen(
-                  isNew = personUiState.isNew,
-                  isLoading = personUiState.isLoading,
-                  isSaving = personUiState.isSaving,
-                  firstName = person.firstName,
-                  onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
-                  lastName = person.lastName,
-                  onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
-                  email = person.email,
-                  onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
-                  phone = person.phone,
-                  onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
+                  // Connect the current UI state and all user actions to PersonScreen.
+                  PersonScreen(
+                     isNew = personUiState.isNew,
+                     isLoading = personUiState.isLoading,
+                     isSaving = personUiState.isSaving,
+                     firstName = person.firstName,
+                     onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
+                     lastName = person.lastName,
+                     onLastNameChange = { viewModel.onIntent(PersonIntent.LastNameChange(it)) },
+                     email = person.email,
+                     onEmailChange = { viewModel.onIntent(PersonIntent.EmailChange(it)) },
+                     phone = person.phone,
+                     onPhoneChange = { viewModel.onIntent(PersonIntent.PhoneChange(it)) },
 
-                  // current image path is provided to the screen for display.
-                  imagePath = person.imagePath,
-                  // Disable image actions while a camera file is being prepared
-                  imageActionsEnabled = !cameraActions.isBusy,
-                  // Gallery is delegated to its Activity Result handler.
-                  onSelectPhoto = galleryActions.selectFromGallery,
-                  // Camera is delegated to its Activity Result handler.
-                  onTakePhoto = cameraActions.takePhoto,
-                  // Removing an image: a physical file may be deleted.
-                  onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
+                     // current image path is provided to the screen for display.
+                     imagePath = person.imagePath,
+                     // Disable image actions while a camera file is being prepared
+                     imageActionsEnabled = !cameraActions.isBusy,
+                     // Gallery is delegated to its Activity Result handler.
+                     onSelectPhoto = galleryActions.selectFromGallery,
+                     // Camera is delegated to its Activity Result handler.
+                     onTakePhoto = cameraActions.takePhoto,
+                     // Removing an image: a physical file may be deleted.
+                     onRemovePhoto = { viewModel.onIntent(PersonIntent.RemoveImage(null)) },
 
-                  // Save/Cancel actions remain ViewModel intents.
-                  onSave = { viewModel.onIntent(PersonIntent.Save) },
-                  onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
+                     // Save/Cancel actions remain ViewModel intents.
+                     onSave = { viewModel.onIntent(PersonIntent.Save) },
+                     onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
+                     modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                        .imePadding()
+                  )
+               }
+            }
+
+            if (personUiState.isSaving) {
+               Box(
                   modifier = Modifier
-                     .fillMaxSize()
-                     .padding(innerPadding)
-                     .padding(horizontal = 16.dp)
-                     .verticalScroll(rememberScrollState())
-                     .imePadding()
-               )
+                     .matchParentSize()
+                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                     .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                     ),
+                  contentAlignment = Alignment.TopCenter,
+               ) {
+                  CircularProgressIndicator(
+                     modifier = Modifier.padding(top = 24.dp).size(64.dp),
+                  )
+               }
             }
          }
       }
@@ -290,7 +315,8 @@ fun PersonAdapter(
  *      onRemovePhoto
  *
  * - Ladefehler bleiben sichtbar; RetryLoad startet den nächsten Ladeversuch.
- *   System-Back sendet Cancel und räumt temporäre Bilddateien auf.
+ *   System-Back sendet außerhalb eines Speichervorgangs Cancel und räumt
+ *   temporäre Bilddateien auf. Während Save läuft, bleibt die Seite geöffnet.
  *
  * - Dadurch bleibt die bekannte Aufgabenteilung erhalten:
  *
