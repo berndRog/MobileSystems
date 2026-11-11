@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class PeopleViewModel(
    private val _repository: IPersonRepository,
@@ -48,29 +49,25 @@ class PeopleViewModel(
       }
 
       _observeJob = viewModelScope.launch {
-
-         delay(1000)
-
-         // Successful repository emissions keep the list current.
-         // Result.failure ends this collector. Only RetryLoad starts a new observation.
-         _repository.observeAll().collect { result ->
-            result
-               // Update the UI state with the list of people when the repository operation succeeded.
-               .onSuccess { people ->
-                  _stateFlow.update { state ->
-                     state.copy(people = people, isLoading = false, loadFailure = null)
-                  }
+         try {
+            delay(1000)
+            // A failed Result or a thrown Flow exception ends this observation.
+            _repository.observeAll().collect { result ->
+               val people = result.getOrThrow()
+               _stateFlow.update { state ->
+                  state.copy(people = people, isLoading = false, loadFailure = null)
                }
-
-               // Update the UI state with an error message when the repository operation failed.
-               .onFailure { throwable ->
-                  val error = _stringProvider.getString(R.string.error_people_observe)
-                  Alog.e(TAG, error, throwable)
-                  _stateFlow.update { state ->
-                     state.copy(isLoading = false, loadFailure = error)
-                  }
-                  _observeJob?.cancel()
-               }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Throwable) {
+            // Keep the failure visible until RetryLoad starts a new collector.
+            val error = _stringProvider.getString(R.string.error_people_observe)
+            Alog.e(TAG, error, e)
+            _stateFlow.update { state -> state.copy(loadFailure = error) }
+         } finally {
+            // Release the spinner even if the Flow fails or is cancelled.
+            _stateFlow.update { state -> state.copy(isLoading = false) }
          }
       }
    }
@@ -138,16 +135,18 @@ class PeopleViewModel(
    // Removes a person through the image-aware use case.
    private fun remove(person: Person) {
       viewModelScope.launch {
-         _personUcDelete(person)
-            .onSuccess {
-               val message = _stringProvider.getString(
-                  R.string.message_person_removed, person.fullName)
-               _effectDelegate.emit(PeopleEffect.ShowMessage(message))
-            }
-            .onFailure { throwable ->
-               val error = _stringProvider.getString(R.string.error_person_remove)
-               _effectDelegate.emit(PeopleEffect.ShowError(error))
-            }
+         try {
+            _personUcDelete(person).getOrThrow()
+            val message = _stringProvider.getString(
+               R.string.message_person_removed, person.fullName)
+            _effectDelegate.emit(PeopleEffect.ShowMessage(message))
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Throwable) {
+            // Convert unexpected delete failures into the existing error effect.
+            val error = _stringProvider.getString(R.string.error_person_remove)
+            _effectDelegate.emit(PeopleEffect.ShowError(error))
+         }
       }
    }
 

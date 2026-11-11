@@ -32,6 +32,7 @@
   <string name="error_person_save">Person konnte nicht gespeichert werden.</string>
   <string name="error_person_remove">Person konnte nicht gelöscht werden.</string>
   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+  <string name="error_image_cleanup">Foto konnte nicht entfernt werden.</string>
 
   <string name="error_firstname_too_short">Vorname ist zu kurz.</string>
   <string name="error_firstname_too_long">Vorname ist zu lang.</string>

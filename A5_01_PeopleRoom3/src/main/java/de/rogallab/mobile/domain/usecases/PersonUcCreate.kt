@@ -2,7 +2,9 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.images.IImageEdit
+import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcCreate(
    private val _repository: IPersonRepository,
@@ -15,12 +17,23 @@ class PersonUcCreate(
       val result = _repository.create(person)
 
       if (result.isSuccess) {
-         // Commit the image edit session only after a successful repository write.
-         _imageEdit.commit()
+         try {
+            // Commit the image edit session only after a successful repository write.
+            _imageEdit.commit()
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Throwable) {
+            // Cleanup cannot turn an already persisted person into a failed Save.
+            Alog.e(TAG, "commit person image failed: ${e.message}")
+         }
       }
       // A failed repository write keeps the selected image available for retry.
 
       return result
+   }
+
+   companion object {
+      private const val TAG = "<-PersonUcCreate"
    }
 }
 

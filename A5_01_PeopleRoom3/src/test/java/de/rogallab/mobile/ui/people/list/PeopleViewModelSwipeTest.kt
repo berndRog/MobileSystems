@@ -12,6 +12,8 @@ import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -37,7 +39,7 @@ class PeopleViewModelSwipeTest {
    private val stringProvider = FakeStringProvider()
    private val imageFileStorage = FakeImageFileStorage()
 
-   private fun createViewModel(repository: FakePersonRepository) =
+   private fun createViewModel(repository: IPersonRepository) =
       PeopleViewModel(
          _repository = repository,
          _personUcDelete = PersonUcDelete(repository, imageFileStorage),
@@ -72,6 +74,33 @@ class PeopleViewModelSwipeTest {
       advanceUntilIdle()
       assertEquals(2, observations)
       assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+      assertNull(viewModel.stateFlow.value.loadFailure)
+      assertFalse(viewModel.stateFlow.value.isLoading)
+   }
+
+   @Test
+   fun thrownObservation_setsFailureAndReleasesLoading() = runTest(mainDispatcherRule.testDispatcher) {
+      val source = FakePersonRepository()
+      val repository = object : IPersonRepository by source {
+         override fun observeAll(): Flow<Result<List<Person>>> =
+            flow { throw IllegalStateException("unexpected observation failure") }
+      }
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+      assertEquals(stringProvider.getString(R.string.error_people_observe),
+         viewModel.stateFlow.value.loadFailure)
+      assertFalse(viewModel.stateFlow.value.isLoading)
+   }
+
+   @Test
+   fun cancelledObservation_releasesLoadingWithoutFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val source = FakePersonRepository()
+      val repository = object : IPersonRepository by source {
+         override fun observeAll(): Flow<Result<List<Person>>> =
+            flow { throw CancellationException("observation cancelled") }
+      }
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
       assertNull(viewModel.stateFlow.value.loadFailure)
       assertFalse(viewModel.stateFlow.value.isLoading)
    }
@@ -146,6 +175,27 @@ class PeopleViewModelSwipeTest {
             assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
 
             cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun thrownConfirmRemove_emitsErrorAndKeepsPerson() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val source = FakePersonRepository(listOf(ada, grace))
+         val repository = object : IPersonRepository by source {
+            override suspend fun remove(person: Person): Result<Unit> =
+               throw IllegalStateException("unexpected delete failure")
+         }
+         val viewModel = createViewModel(repository)
+         advanceUntilIdle()
+
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+            advanceUntilIdle()
+            assertTrue(awaitItem() is PeopleEffect.ShowError)
+            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+            assertTrue(imageFileStorage.deletedPaths.isEmpty())
+            expectNoEvents()
          }
       }
 }

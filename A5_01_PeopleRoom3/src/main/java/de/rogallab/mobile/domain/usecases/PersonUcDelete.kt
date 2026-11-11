@@ -4,6 +4,7 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcDelete(
    private val _repository: IPersonRepository,
@@ -16,11 +17,19 @@ class PersonUcDelete(
       val result = _repository.remove(person)
 
       if (result.isSuccess) {
-         // Image cleanup is best effort because the person has already been deleted.
-         _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
-            .onFailure { throwable ->
-               Alog.e(TAG, "delete person image failed: ${throwable.message}")
-            }
+         try {
+            // Image cleanup is best effort because the person has already been deleted.
+            _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
+               .onFailure { throwable ->
+                  if (throwable is CancellationException) throw throwable
+                  Alog.e(TAG, "delete person image failed: ${throwable.message}")
+               }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Throwable) {
+            // Preserve the database deletion result if cleanup throws.
+            Alog.e(TAG, "delete person image failed: ${e.message}")
+         }
       }
 
       return result

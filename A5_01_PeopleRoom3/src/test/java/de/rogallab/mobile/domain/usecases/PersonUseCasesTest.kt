@@ -1,10 +1,13 @@
 package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.io.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.images.IImageEdit
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -12,6 +15,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.Assert.fail
 
 class PersonUseCasesTest {
 
@@ -86,6 +90,37 @@ class PersonUseCasesTest {
    }
 
    @Test
+   fun save_imageCleanupThrows_keepsPersistedSuccess() = runTest {
+      val repository = FakePersonRepository()
+      val imageEdit = object : IImageEdit by FakeImageEdit() {
+         override suspend fun commit() {
+            throw IllegalStateException("cleanup failed")
+         }
+      }
+
+      assertTrue(PersonUcCreate(repository, imageEdit)(person).isSuccess)
+      assertTrue(PersonUcUpdate(repository, imageEdit)(person).isSuccess)
+      assertEquals(listOf(person), repository.created)
+      assertEquals(listOf(person), repository.updated)
+   }
+
+   @Test
+   fun save_imageCommitCancellation_propagates() = runTest {
+      val imageEdit = object : IImageEdit by FakeImageEdit() {
+         override suspend fun commit() {
+            throw CancellationException("commit cancelled")
+         }
+      }
+
+      try {
+         PersonUcCreate(FakePersonRepository(), imageEdit)(person)
+         fail("Expected cancellation")
+      } catch (_: CancellationException) {
+         // Cancellation must never be reported as a normal save result.
+      }
+   }
+
+   @Test
    fun delete_success_removesPersonAndImage() = runTest {
       val repository = FakePersonRepository(listOf(person))
       val imageFileStorage = FakeImageFileStorage()
@@ -123,6 +158,33 @@ class PersonUseCasesTest {
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.removed)
       assertFalse(imageFileStorage.deletedPaths.isEmpty())
+   }
+
+   @Test
+   fun delete_imageCleanupThrows_keepsSuccessfulDeleteResult() = runTest {
+      val repository = FakePersonRepository(listOf(person))
+      val storage = object : IImageFileStorage by FakeImageFileStorage() {
+         override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
+            throw IllegalStateException("cleanup threw")
+      }
+
+      assertTrue(PersonUcDelete(repository, storage)(person).isSuccess)
+      assertEquals(listOf(person), repository.removed)
+   }
+
+   @Test
+   fun delete_imageCleanupCancellation_propagates() = runTest {
+      val storage = object : IImageFileStorage by FakeImageFileStorage() {
+         override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
+            Result.failure(CancellationException("cleanup cancelled"))
+      }
+
+      try {
+         PersonUcDelete(FakePersonRepository(), storage)(person)
+         fail("Expected cancellation")
+      } catch (_: CancellationException) {
+         // A cancelled cleanup cannot be treated as a completed deletion.
+      }
    }
 }
 
