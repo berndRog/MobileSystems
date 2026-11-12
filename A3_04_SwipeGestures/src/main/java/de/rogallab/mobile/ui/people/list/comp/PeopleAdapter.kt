@@ -74,8 +74,7 @@ fun PeopleAdapter(
 
    Scaffold(
       modifier = modifier
-         .fillMaxSize()
-         .padding(horizontal = 16.dp),
+         .fillMaxSize(),
       topBar = {
          TopAppBar(
             navigationIcon = {
@@ -118,7 +117,10 @@ fun PeopleAdapter(
             )
          }
 
-      } else if (loadFailure != null) {
+      }
+
+      // Show a persistent loading error message.
+      else if (loadFailure != null) {
          Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -129,19 +131,16 @@ fun PeopleAdapter(
                Text(text = stringResource(R.string.action_retry))
             }
          }
+      }
 
       // Show the stateless PeopleScreen, including a successfully loaded empty list.
-      } else {
+      else {
          val people = peopleUiState.people
 
          PeopleScreen(
             people = people,
-            onDetail = { personId ->
-               viewModel.onIntent(PeopleIntent.Detail(personId))
-            },
-            onDelete = { personId ->
-               viewModel.onIntent(PeopleIntent.RequestRemove(personId))
-            },
+            onDetail = { personId -> viewModel.onIntent(PeopleIntent.Detail(personId)) },
+            onDelete = { personId -> viewModel.onIntent(PeopleIntent.RequestRemove(personId)) },
             modifier = Modifier
                .fillMaxSize()
                .padding(innerPadding)

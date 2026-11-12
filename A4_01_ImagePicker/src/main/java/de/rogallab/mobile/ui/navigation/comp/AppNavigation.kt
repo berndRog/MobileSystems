@@ -2,9 +2,11 @@ package de.rogallab.mobile.ui.navigation.comp
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -17,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -63,16 +67,21 @@ fun AppNavigation() {
       onNavigateTo = { destination -> add(destination, backStack) },
    )
 
+   val snackbarBottomPadding = calculateSnackbarBottomPadding(
+      showListFab = backStack.lastOrNull() is PeopleKey,
+   )
+
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
       logNavigationOperation("initial", backStack.lastOrNull(), backStack)
    }
 
    Scaffold(
+      modifier = Modifier.fillMaxSize(),
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.imePadding()
+            modifier = Modifier.padding(bottom = snackbarBottomPadding),
          )
       },
    ) { innerPadding ->
@@ -108,6 +117,23 @@ fun AppNavigation() {
    }
 }
 
+@Composable
+private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
+   val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
+
+   // Scaffold already keeps the snackbar above the system bar. Add the larger
+   // of the remaining IME height and the clearance required for the list FAB.
+   val density = LocalDensity.current
+   val systemBarBottom = ScaffoldDefaults.contentWindowInsets.getBottom(density)
+   val imeBottom = WindowInsets.ime.getBottom(density)
+   val fabClearance = with(density) {
+      if (showListFab) listFabSnackbarClearance.roundToPx() else 0
+   }
+   return with(density) {
+      maxOf((imeBottom - systemBarBottom).coerceAtLeast(0), fabClearance).toDp()
+   }
+}
+
 /*
  * Didaktik und Lernziele
  *
@@ -120,8 +146,9 @@ fun AppNavigation() {
  *   bewusst nicht die zusätzliche Undo-Mechanik. Neu ist in diesem Schritt der
  *   Bild-Lebenszyklus im Person-Feature.
  *
- * - Ein navigationweit lebender SnackbarHost mit imePadding() zeigt Meldungen
- *   auch nach einem Wechsel des Navigation-3-Backstacks weiter an.
+ * - Ein navigationweit lebender SnackbarHost zeigt Meldungen auch nach einem
+ *   Wechsel des Navigation-3-Backstacks weiter an. Sein unterer Abstand hält
+ *   die Snackbar oberhalb der Tastatur und des Listen-FAB.
  *   Save und Cancel behalten unterschiedliche Pop-Animationen.
  *
  * - Navigation und Meldungsausgabe bleiben getrennt:

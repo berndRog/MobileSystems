@@ -3,6 +3,10 @@ package de.rogallab.mobile.ui.navigation
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.R
+import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
@@ -16,10 +20,15 @@ import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,12 +50,10 @@ class PersonBackEffectTest {
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
-   @Test
-   fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
+   private fun createViewModel(repository: IPersonRepository = FakePersonRepository()): PersonViewModel {
       val imageFileStorage = FakeImageFileStorage()
-      val repository = FakePersonRepository()
       val imageEdit = ImageEdit(imageFileStorage)
-      val viewModel = PersonViewModel(
+      return PersonViewModel(
          personId = null,
          _repository = repository,
          _stringProvider = stringProvider,
@@ -57,6 +64,31 @@ class PersonBackEffectTest {
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate = EffectDelegate(),
       )
+   }
+
+   @Test
+   fun invalidPerson_emitsValidationErrorWithoutWritingOrNavigating() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository()
+         val viewModel = createViewModel(repository)
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.FirstNameChange("A"))
+            viewModel.onIntent(PersonIntent.Save)
+            advanceUntilIdle()
+
+            val effect = awaitItem() as PersonEffect.ShowError
+            assertTrue(effect.message.isNotEmpty())
+            assertTrue(repository.created.isEmpty())
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
+      val viewModel = createViewModel()
 
       viewModel.effects.test {
          viewModel.onIntent(PersonIntent.Cancel)
@@ -67,4 +99,97 @@ class PersonBackEffectTest {
          cancelAndIgnoreRemainingEvents()
       }
    }
+
+   @Test
+   fun save_blocksDuplicateSaveAndCancel_thenEmitsMessageBeforeNavigation() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val pending = CompletableDeferred<Result<Unit>>()
+         var createCalls = 0
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override suspend fun create(person: Person): Result<Unit> {
+               createCalls++
+               return pending.await()
+            }
+         }
+         val viewModel = createViewModel(repository)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Cancel)
+            assertTrue(viewModel.stateFlow.value.isSaving)
+            advanceTimeBy(delayWrite)
+            runCurrent()
+            assertEquals(1, createCalls)
+            expectNoEvents()
+
+            pending.complete(Result.success(Unit))
+            advanceUntilIdle()
+
+            val message = awaitItem() as PersonEffect.ShowMessage
+            assertEquals(
+               stringProvider.getString(R.string.message_person_saved, "Ada Lovelace"),
+               message.message,
+            )
+            assertEquals(BackReason.Save, (awaitItem() as PersonEffect.NavigateBack).reason)
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun failedSave_emitsErrorAndAllowsCancelAfterwards() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val pending = CompletableDeferred<Result<Unit>>()
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override suspend fun create(person: Person): Result<Unit> = pending.await()
+         }
+         val viewModel = createViewModel(repository)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Save)
+            runCurrent()
+            assertTrue(viewModel.stateFlow.value.isSaving)
+
+            pending.complete(Result.failure(IllegalStateException("offline")))
+            advanceUntilIdle()
+
+            val error = awaitItem() as PersonEffect.ShowError
+            assertEquals(stringProvider.getString(R.string.error_person_save), error.message)
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+
+            viewModel.onIntent(PersonIntent.Cancel)
+            advanceUntilIdle()
+            assertEquals(BackReason.Cancel, (awaitItem() as PersonEffect.NavigateBack).reason)
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun failedSaveResult_emitsErrorAndResetsSavingWithoutNavigation() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository().apply {
+            createResult = Result.failure(IllegalStateException("repository failure"))
+         }
+         val viewModel = createViewModel(repository)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Save)
+            assertTrue(viewModel.stateFlow.value.isSaving)
+            advanceUntilIdle()
+
+            assertTrue(awaitItem() is PersonEffect.ShowError)
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 }

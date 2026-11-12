@@ -102,9 +102,8 @@ class PeopleViewModel(
       val person = _stateFlow.value.people.find { it.id == personId }
       if (person == null) {
          viewModelScope.launch {
-            _effectDelegate.emit(PeopleEffect.ShowError(
-               _stringProvider.getString(R.string.error_person_not_found)
-            ))
+            val error =_stringProvider.getString(R.string.error_person_not_found)
+            _effectDelegate.emit(PeopleEffect.ShowError(error))
          }
          return
       }
@@ -124,9 +123,8 @@ class PeopleViewModel(
       val person = _stateFlow.value.people.find { it.id == personId }
       if (person == null) {
          viewModelScope.launch {
-            _effectDelegate.emit(PeopleEffect.ShowError(
-               _stringProvider.getString(R.string.error_person_not_found)
-            ))
+            val error = _stringProvider.getString(R.string.error_person_not_found)
+            _effectDelegate.emit(PeopleEffect.ShowError(error))
          }
          return
       }

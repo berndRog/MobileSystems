@@ -26,9 +26,6 @@ fun PeopleScreen(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   val detailContentDescription = stringResource(R.string.person_detail)
-   val deleteContentDescription = stringResource(R.string.action_delete)
-
    LazyColumn(
       modifier = modifier,
       verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -41,8 +38,8 @@ fun PeopleScreen(
          SwipeCard(
             onDetail = { onDetail(person.id) },
             onDelete = { onDelete(person.id) },
-            detailContentDescription = detailContentDescription,
-            deleteContentDescription = deleteContentDescription,
+            detailContentDescription = stringResource(R.string.person_detail), //detailContentDescription,
+            deleteContentDescription = stringResource(R.string.action_delete),
             modifier = Modifier.animateItem(),
          ) {
             PersonCard(
