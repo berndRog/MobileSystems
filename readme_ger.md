@@ -93,9 +93,9 @@ Führe die drei Skripte im Repository-Root der Reihe nach aus. Jedes Skript läs
 
 ```bash
 export ANDROID_HOME="$HOME/Library/Android/sdk" # an deinen Rechner anpassen
-./scripts/assemble.sh && \
-./scripts/test.sh && \
-./scripts/androidtest.sh
+./scripts/assembleDebug.sh && \
+./scripts/testDebugUnitTest.sh && \
+./scripts/connectedDebugAndroidTest.sh
 ```
 
 1. `assemble.sh` löscht den lokalen Gradle-Configuration-Cache jeder App, gibt ihren Namen aus und führt `assembleDebug` aus.
@@ -109,7 +109,7 @@ Die Skripte durchlaufen App-Ordner; die Tests der Library werden separat gestart
 Wenn mehrere Geräte verbunden sind, wähle eines ausdrücklich aus, zum Beispiel:
 
 ```bash
-ANDROID_SERIAL=emulator-5554 ./scripts/androidtest.sh
+ANDROID_SERIAL=emulator-5554 ./scripts/connectedDebugAndroidTest.sh
 ```
 
 Das vermeidet auch einen Installationskonflikt, falls auf einem anderen Gerät dieselbe Application-ID mit einer anderen Signatur installiert ist. Instrumentierte Tests brauchen ein Gerät oder einen Emulator; Build und lokale JVM-Tests nicht.

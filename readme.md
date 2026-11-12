@@ -93,9 +93,9 @@ From the repository root, run the three scripts in order. Each script also works
 
 ```bash
 export ANDROID_HOME="$HOME/Library/Android/sdk" # adjust to your machine
-./scripts/assemble.sh && \
-./scripts/test.sh && \
-./scripts/androidtest.sh
+./scripts/assembleDebug.sh && \
+./scripts/testDebugUnitTest.sh && \
+./scripts/connectedDebugAndroidTest.sh
 ```
 
 1. `assemble.sh` deletes each app's local Gradle configuration cache, prints its name, and runs `assembleDebug`.
@@ -109,7 +109,7 @@ The scripts iterate over app directories; run library-specific tests separately 
 If multiple devices are connected, select one explicitly, for example:
 
 ```bash
-ANDROID_SERIAL=emulator-5554 ./scripts/androidtest.sh
+ANDROID_SERIAL=emulator-5554 ./scripts/connectedDebugAndroidTest.sh
 ```
 
 This also avoids an installation conflict if another device has the same application ID installed with a different signing certificate. Instrumented tests need a device or emulator; builds and local JVM tests do not.
