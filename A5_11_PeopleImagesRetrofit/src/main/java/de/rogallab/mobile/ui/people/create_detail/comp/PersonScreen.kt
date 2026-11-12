@@ -169,7 +169,7 @@ fun PersonScreen(
  *   Galerie, Kamera und Entfernen.
  *
  * - Die technische Anbindung an Android ist bewusst nicht Bestandteil von
- *   PersonScreen. SingleGalleryPickerHandler und CameraPickerHandler werden im
+ *   PersonScreen. GalleryPickerHandlerSingle und CameraPickerHandler werden im
  *   PersonAdapter verwendet. Der Screen erhält lediglich die delegierten
  *   Funktionen onSelectPhoto und onTakePhoto.
  *
@@ -182,7 +182,7 @@ fun PersonScreen(
  *          Verbindung zum ViewModel
  *          Verwendung der beiden Picker-Handler
  *
- *      SingleGalleryPickerHandler
+ *      GalleryPickerHandlerSingle
  *          Auswahl eines vorhandenen Bildes
  *          Rückgabe einer Content-Uri
  *
@@ -213,7 +213,7 @@ fun PersonScreen(
  *
  * - Stateful Adapter und stateless Screen klar voneinander trennen.
  * - Android-spezifische Activity-Result-Logik aus dem Screen heraushalten.
- * - SingleGalleryPickerHandler und CameraPickerHandler für unterschiedliche
+ * - GalleryPickerHandlerSingle und CameraPickerHandler für unterschiedliche
  *   technische Abläufe verwenden.
  * - UI-Aktionen über Callback-Funktionen an den Adapter delegieren.
  * - Bildanzeige und technische Bildauswahl als getrennte Aufgaben verstehen.

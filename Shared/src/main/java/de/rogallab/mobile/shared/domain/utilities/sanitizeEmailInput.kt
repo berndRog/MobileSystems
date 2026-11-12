@@ -68,8 +68,9 @@ fun sanitizeEmailInput(
  * - Unicode-Zeichen können aus einem Grundzeichen und zusätzlichen
  *   diakritischen Zeichen bestehen.
  * - Normalizer.Form.NFD zerlegt z. B. é in e + Akzent.
- * - Sprachspezifische Regeln wie ä -> ae müssen vor der allgemeinen
- *   Unicode-Normalisierung behandelt werden.
+ * - Sprachspezifische Regeln wie ä -> ae werden nach der ersten
+ *   NFD-Zerlegung auf Grundzeichen und kombinierende Zeichen angewendet.
+ *   Die abschließende Normalisierung und Whitelist entfernen übrige Akzente.
  * - filter erlaubt eine explizite Whitelist zulässiger Zeichen.
  *
  * Die Funktion prüft nicht, ob eine syntaktisch gültige E-Mail-Adresse

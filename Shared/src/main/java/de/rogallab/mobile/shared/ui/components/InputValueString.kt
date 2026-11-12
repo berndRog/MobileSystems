@@ -27,8 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
 /**
- * Displays a reusable single-line input field with optional input
- * transformation and validation.
+ * Displays a reusable single-line input field with optional validation.
  *
  * The actual input value is owned by the calling composable or its ViewModel.
  * This composable only manages presentation-related validation state.
@@ -42,7 +41,7 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
  * hidden. The field is validated again when editing is finished.
  *
  * @param value Current text value supplied by the state owner.
- * @param onValueChange Called whenever the transformed input value changes.
+ * @param onValueChange Called whenever the input value changes.
  * The callback should usually dispatch an intent to the ViewModel.
  * @param label Label displayed inside the outlined text field.
  * @param leadingIcon Optional icon displayed at the beginning of the field.
@@ -242,16 +241,17 @@ fun InputValueString(
  *    keine Seiteneffekte.
  *
  *
- * 5. Eingabetransformation und Validierung unterscheiden.
+ * 5. Eingabebereinigung und Validierung unterscheiden.
  *
- *    `transformInput` verändert oder filtert die aktuelle Benutzereingabe.
- *    Beispiele:
+ *    Diese Komponente führt keine Eingabetransformation aus. Der Aufrufer kann
+ *    den neuen Wert in `onValueChange` vor dem Speichern bereinigen, etwa um:
  *
  *       - nicht erlaubte Zeichen entfernen,
  *       - Telefonnummern auf erlaubte Zeichen begrenzen,
  *       - Leerzeichen am Anfang entfernen.
  *
- *    `validate` beurteilt dagegen den bereits transformierten Wert.
+ *    `validate` beurteilt den aktuell über `value` übergebenen Wert. Ob dieser
+ *    zuvor bereinigt wurde, entscheidet der Aufrufer.
  *
  *
  * 6. Tastaturaktionen und Fokussteuerung einsetzen.
@@ -287,7 +287,7 @@ fun InputValueString(
  *    3. KeyboardType und ImeAction,
  *    4. Validierung und Fehlermeldung,
  *    5. Validierung bei Fokusverlust,
- *    6. allgemeine Eingabetransformation,
+ *    6. Eingabebereinigung im aufrufenden ViewModel,
  *    7. Wiederverwendung für Name, E-Mail und Telefonnummer.
  *
  *
@@ -300,7 +300,7 @@ fun InputValueString(
  *    - lokale Sichtbarkeit der Fehlermeldung,
  *    - Tastaturkonfiguration,
  *    - Fokussteuerung,
- *    - einfache Eingabetransformation.
+ *    - Weitergabe geänderter Eingaben an den Aufrufer.
  *
  * Das ViewModel übernimmt:
  *
@@ -309,10 +309,10 @@ fun InputValueString(
  *    - formularübergreifende Regeln,
  *    - die Entscheidung, ob gespeichert werden darf.
  *
- * Der Use Case beziehungsweise die Domain übernimmt:
+ * Die abschließende Prüfung vor dem Speichern liegt beim aufrufenden
+ * ViewModel beziehungsweise bei einer dafür vorgesehenen Domain-Komponente:
  *
  *    - fachliche Invarianten,
- *    - endgültige Prüfung vor dem Speichern,
  *    - Normalisierung fachlicher Werte, sofern erforderlich.
  *
  *
@@ -320,6 +320,6 @@ fun InputValueString(
  * -------------------
  *
  * Eine Validierung in der UI verbessert die Bedienbarkeit, ersetzt aber keine
- * fachliche Validierung im Use Case oder in der Domain.
+ * eine abschließende Prüfung vor dem Speichern.
  * ============================================================================
  */

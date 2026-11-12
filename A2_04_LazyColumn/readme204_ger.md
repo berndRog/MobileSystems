@@ -8,7 +8,7 @@ Dieses Projekt stellt Personen in einer Compose-`LazyColumn` dar und verbindet L
 
 ## Daten- und UI-Fluss
 
-`MainApplikation` startet Koin und die Einrichtung der Beispieldaten. `SeedDatabase` fügt Beispielpersonen ein, wenn die Datenbank leer ist. `PersonRepository` bildet zwischen der Domain-Entity `Person` und dem DAO-DTO ab; `observeAll()` liefert Room-Änderungen als `Flow<Result<List<Person>>>`.
+`MainApplication` startet Koin und die Einrichtung der Beispieldaten. `SeedDatabase` fügt Beispielpersonen ein, wenn die Datenbank leer ist. `PersonRepository` bildet zwischen der Domain-Entity `Person` und dem DAO-DTO ab; `observeAll()` liefert Room-Änderungen als `Flow<Result<List<Person>>>`.
 
 `PeopleViewModel` sammelt diesen Flow in `PeopleUiState`. `PeopleAdapter` beobachtet den Zustand mit `collectAsStateWithLifecycle()` und übergibt Liste und Callbacks an `PeopleScreen`. Der Screen stellt die Einträge in einer `LazyColumn` mit der `id` jeder Person als stabilem Schlüssel dar. Ein Löschereignis gelangt über `PeopleIntent.Remove` zum Repository; Room liefert anschließend die aktualisierte Liste. Der Detail-Intent wird derzeit nur geloggt; Navigation ist dafür noch nicht angeschlossen.
 

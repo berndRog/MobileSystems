@@ -164,20 +164,18 @@ fun PeopleAdapter(
  *
  *      ShowMessage  -> onMessage()
  *      ShowError    -> onError()
- *      ShowUndo     -> onUndo()
- *      NavigateBack -> onBack()
  *      NavigateTo   -> onNavigateTo()
  *
- * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
- *   nicht die spätere Navigationsimplementierung.
+ * - Der Adapter kennt weder die konkrete Darstellung einer Snackbar noch
+ *   die Backstack-Operationen von AppNavigation.
  *
- * - Undo und Navigation sind bereits in der Schnittstelle vorbereitet. Die
- *   eigentliche Funktion wird erst in späteren Lernschritten ergänzt.
+ * - Der NavigateTo-Callback verbindet den Effect mit der Navigationsebene.
+ *   Undo wird erst in A3_05 ergänzt.
  *
  * Lernziele:
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
  * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
- * - Spätere Erweiterungen wie Undo und Navigation vorbereiten.
+ * - Navigation über einen Callback auslösen, ohne sie im Adapter auszuführen.
  */

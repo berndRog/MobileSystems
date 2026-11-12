@@ -188,15 +188,12 @@ private fun calculateSnackbarBottomPadding(
  *
  * - Save und Cancel setzen unterschiedliche PopReason-Werte. Die vorhandenen
  *   Animationen machen damit die Art der Rücknavigation sichtbar.
- *   System-Back liest isSaving direkt aus dem ViewModel des aktuellen PersonKey
- *   und wartet während eines Speichervorgangs auf dessen Ergebnis.
- *   Verspätete Navigationseffekte ändern nur ihren aktuellen Backstack-Eintrag.
- *   Der Guard dafür sitzt im appNavEntryProvider.
+ *   System-Back setzt PopReason.Cancel und entfernt den obersten Eintrag direkt.
+ *   Verspätete Navigationseffekte werden im appNavEntryProvider ignoriert,
+ *   wenn der zugehörige Eintrag nicht mehr oben auf dem Back-Stack liegt.
  *
- * - ShowUndo ist bereits als Action-Snackbar vorbereitet. In diesem Schritt
- *   bleiben onAction und onDismiss bewusst leer. Kommt Undo hinzu, wächst die
- *   Parameterliste des Providers; dann ist ein Interface oder der
- *   SnackbarController als einzelner Parameter übersichtlicher.
+ * - In diesem Schritt werden nur Informations- und Fehler-Snackbars gezeigt.
+ *   Die Action-Snackbar für Undo wird erst in A3_05 ergänzt.
  *
  * Lernziele:
  *

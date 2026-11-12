@@ -199,16 +199,15 @@ private fun PeopleCreateButton(
  *      ShowUndo     -> onUndo()
  *      NavigateTo   -> onNavigateTo()
  *
- * - Der Adapter kennt nicht die konkrete Darstellung einer Snackbar und auch
- *   nicht die spätere Navigationsimplementierung.
+ * - Der Adapter kennt weder die konkrete Darstellung einer Snackbar noch
+ *   die Backstack-Operationen von AppNavigation.
  *
- * - Undo und Navigation sind bereits in der Schnittstelle vorbereitet. Die
- *   eigentliche Funktion wird erst in späteren Lernschritten ergänzt.
+ * - AppNavigation zeigt die Undo-Snackbar und führt die Navigation aus.
  *
  * Lernziele:
  *
  * - State und Effects getrennt verarbeiten.
  * - Funktionen als Parameter zur Entkopplung von UI-Schichten einsetzen.
  * - Einen generischen EffectHandler für unterschiedliche Features verwenden.
- * - Spätere Erweiterungen wie Undo und Navigation vorbereiten.
+ * - Undo und Navigation über Callbacks an AppNavigation weitergeben.
  */

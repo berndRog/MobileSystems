@@ -67,5 +67,5 @@ fun ImageSelection(
  *
  * - ImageSelection ist jetzt eine rein darstellende Compose-Komponente.
  * - Sie kennt weder ActivityResultLauncher noch IImageFileStorage oder Koin.
- * - SingleGalleryPickerHandler und MultipleGalleryPickerHandler und CameraPickerHandler werden im Adapter verbunden.
+ * - GalleryPickerHandlerSingle, GalleryPickerHandlerMultiple und CameraPickerHandler werden im Adapter verbunden.
  */

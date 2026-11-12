@@ -89,7 +89,7 @@ class ImageEdit(
  *   replace(...), add(...) und remove(...) ändern nur die aktuelle Auswahl.
  *
  * - Ein persistiertes Originalbild wird erst nach erfolgreichem Save durch
- *   commit() gelöscht. cancel() entfernt dagegen nur neu erzeugte, noch nicht
+ *   commit() gelöscht. discard() entfernt dagegen nur neu erzeugte, noch nicht
  *   persistierte Bilder.
  *
  * - Der Delegate besitzt bewusst keinen eigenen StateFlow. Der Feature-State

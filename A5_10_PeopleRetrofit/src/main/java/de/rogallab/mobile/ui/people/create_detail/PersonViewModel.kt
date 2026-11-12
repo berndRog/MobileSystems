@@ -323,7 +323,7 @@ class PersonViewModel(
  *   PersonViewModel ein Galerie-Bild zunächst über IImageFileStorage in den
  *   privaten App-Speicher:
  *
- *      SingleGalleryPickerHandler
+ *      GalleryPickerHandlerSingle
  *          -> Uri
  *          -> PersonIntent.GalleryImageSelected
  *          -> PersonViewModel
@@ -403,7 +403,7 @@ class PersonViewModel(
  * - Beim Abbrechen gilt:
  *
  *      Cancel
- *          -> IImageEdit.cancel()
+ *          -> IImageEdit.discard()
  *          -> neu erzeugte, nicht gespeicherte Bilder löschen
  *          -> ursprüngliche Bilder erhalten
  *          -> NavigateBack
@@ -448,6 +448,6 @@ class PersonViewModel(
  * - UI-State-Logik im ViewModel und Anwendungslogik im Use Case unterscheiden.
  * - Use Cases gezielt für zusammengesetzte Operationen einsetzen.
  * - commit() im Use Case erst nach erfolgreichem Repository-Zugriff ausführen.
- * - cancel() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
+ * - discard() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
  * - Bestehenden UDF-/MVI-Datenfluss auch bei komplexerer Bildlogik beibehalten.
  */

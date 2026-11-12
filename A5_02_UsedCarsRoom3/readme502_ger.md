@@ -2,7 +2,7 @@
 
 ## Zielsetzung und Voraussetzungen
 
-**A5_02 baut auf A5_01 auf und erweitert das Room-Beispiel mit einer Tabelle um Beziehungen.** Im Mittelpunkt stehen eine **1:N-Beziehung zwischen Person und Car** für Verkäufer und eine **m:n-Beziehung zwischen Person und Car über TDrive** für Testfahrten.
+**A5_02 baut auf A5_01 auf und erweitert das Room-Beispiel um zwei Tabellen und Beziehungen.** Im Mittelpunkt stehen eine **1:N-Beziehung zwischen Person und Car** für Verkäufer und eine **m:n-Beziehung zwischen Person und Car über TDrive** für Testfahrten.
 
 Vorausgesetzt werden Room-Entities, Primary Keys, DAOs, SQL-Abfragen, DTO-/Domain-Mapping, Repositories und der Koin-Datenbankcontainer aus A5_01. Bestehende UI, Navigation, Effects und Bildinfrastruktur bilden den Anwendungsrahmen.
 

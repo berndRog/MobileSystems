@@ -188,7 +188,7 @@ fun PersonAdapter(
  *
  * - Der Scaffold liegt wie in A5_01 im PersonAdapter. Damit bleiben TopAppBar,
  *   SnackbarHost und die zustandslose Eingabemaske klar getrennt.
- * - SingleGalleryPickerHandler und CameraPickerHandler bleiben ebenfalls Aufgabe des
+ * - GalleryPickerHandlerSingle und CameraPickerHandler bleiben ebenfalls Aufgabe des
  *   Adapters; PersonScreen erhält nur Werte und Callback-Funktionen.
  * - PersonEffect.ShowCars öffnet das Bottom Sheet erst nach erfolgreichem Laden
  *   der angebotenen Fahrzeuge. Die Sichtbarkeit bleibt lokaler UI-Zustand.

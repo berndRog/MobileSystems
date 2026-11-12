@@ -215,7 +215,7 @@ fun PersonAdapter(
  * - Die in A4_01 eingeführte Bildauswahl ergänzt diese Adapter-Aufgabe um zwei
  *   Android-Mechanismen für Bilder:
  *
- *      SingleGalleryPickerHandler
+ *      GalleryPickerHandlerSingle
  *          Auswahl eines vorhandenen Bildes
  *
  *      CameraPickerHandler
@@ -225,7 +225,7 @@ fun PersonAdapter(
  *   ImagePickerHandler zusammengefasst. Dadurch werden die unterschiedlichen
  *   technischen Abläufe von Galerie und Kamera im Code deutlich sichtbar.
  *
- * - Der SingleGalleryPickerHandler verwendet den Android Photo Picker und liefert
+ * - Der GalleryPickerHandlerSingle verwendet den Android Photo Picker und liefert
  *   nach einer erfolgreichen Auswahl eine Content-Uri. Er speichert die Datei
  *   selbst noch nicht im privaten App-Speicher.
  *
@@ -233,7 +233,7 @@ fun PersonAdapter(
  *   weitergegeben. Erst dort wird IImageFileStorage verwendet, um das
  *   ausgewählte Bild in den privaten App-Speicher zu kopieren:
  *
- *      SingleGalleryPickerHandler
+ *      GalleryPickerHandlerSingle
  *          -> Uri
  *          -> PersonAdapter
  *          -> PersonIntent.GalleryImageSelected
@@ -278,7 +278,7 @@ fun PersonAdapter(
  *   entfernt und welche alten Bilder erst nach erfolgreichem Save gelöscht
  *   werden dürfen.
  *
- * - PersonScreen kennt weder SingleGalleryPickerHandler noch CameraPickerHandler,
+ * - PersonScreen kennt weder GalleryPickerHandlerSingle noch CameraPickerHandler,
  *   IImageFileStorage oder ImageEdit. Für den Screen bestehen die
  *   Bildoperationen lediglich aus den Callback-Funktionen:
  *
@@ -297,7 +297,7 @@ fun PersonAdapter(
  *      PersonAdapter
  *          State und Effects beobachten
  *          Intents erzeugen
- *          SingleGalleryPickerHandler und CameraPickerHandler anbinden
+ *          GalleryPickerHandlerSingle und CameraPickerHandler anbinden
  *
  *      PersonViewModel
  *          Anwendungslogik koordinieren
@@ -315,7 +315,7 @@ fun PersonAdapter(
  * - Stateful Adapter und stateless Screen voneinander unterscheiden.
  * - State und Effects getrennt beobachten und verarbeiten.
  * - Unterschiedliche Activity-Result-Abläufe für Galerie und Kamera erkennen.
- * - SingleGalleryPickerHandler und CameraPickerHandler nach Verantwortung trennen.
+ * - GalleryPickerHandlerSingle und CameraPickerHandler nach Verantwortung trennen.
  * - Android-spezifische Picker-Logik aus PersonScreen heraushalten.
  * - UI-Ereignisse über Intents an das ViewModel weiterleiten.
  * - Technische Dateiverwaltung und Edit-Session-Verwaltung unterscheiden.
