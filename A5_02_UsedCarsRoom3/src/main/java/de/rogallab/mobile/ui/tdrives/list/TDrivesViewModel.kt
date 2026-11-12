@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.tdrives.list
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -63,6 +66,8 @@ class TDrivesViewModel(
          emitError(R.string.error_test_drive_not_found); return
       }
       viewModelScope.launch {
+         delay(delayWrite)
+
          _tDriveRepository.remove(tDrive)
             .onFailure { emitErrorNow(R.string.error_test_drive_delete) }
       }
@@ -71,6 +76,8 @@ class TDrivesViewModel(
    private fun observeTDrives() {
       viewModelScope.launch {
          _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = true) }
+         delay(delayRead)
+
          _tDriveRepository.observeAll().collect { result: Result<List<TDrive>> ->
             result.onSuccess { drives ->
                _stateFlow.update { state: TDrivesUiState -> state.copy(tDrives = drives, isLoading = false) }
@@ -84,6 +91,8 @@ class TDrivesViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
+         delay(delayRead)
+
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->
                _stateFlow.update { state: TDrivesUiState -> state.copy(people = people) }
@@ -94,6 +103,8 @@ class TDrivesViewModel(
 
    private fun observeCars() {
       viewModelScope.launch {
+         delay(delayRead)
+
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars ->
                _stateFlow.update { state: TDrivesUiState -> state.copy(cars = cars) }

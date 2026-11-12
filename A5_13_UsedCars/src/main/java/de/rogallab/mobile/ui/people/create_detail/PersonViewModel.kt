@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
@@ -73,7 +75,8 @@ class PersonViewModel(
          }
 
          // Simulate a longer loading operation.
-         delay(Globals.delay)
+
+         delay(delayRead)
 
          _repository.findById(id)
             .onSuccess { person ->
@@ -174,6 +177,8 @@ class PersonViewModel(
       }
 
       viewModelScope.launch {
+         delay(delayRead)
+
          _carRepository.findByPersonId(personId)
             .onSuccess { cars ->
                _stateFlow.update { state: PersonUiState ->
@@ -303,6 +308,8 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // New entities are inserted, existing entities are updated.
+         delay(delayWrite)
+
          val result =
             if (_isNew) _repository.create(person)
             else _repository.update(person)

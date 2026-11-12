@@ -2,6 +2,9 @@ package de.rogallab.mobile.ui.cars.input_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -93,6 +96,8 @@ class CarViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
+         delay(delayRead)
+
          _personRepository.observeAll().collect { result ->
             result
                .onSuccess { people ->
@@ -111,6 +116,8 @@ class CarViewModel(
 
    private fun loadCar(id: String) {
       viewModelScope.launch {
+         delay(delayRead)
+
          _carRepository.findById(id)
             .onSuccess { car ->
                if (car == null) {
@@ -236,6 +243,8 @@ class CarViewModel(
       _isSaving = true
 
       viewModelScope.launch {
+         delay(delayWrite)
+
          val result =
             if (_isNew) _carRepository.create(normalized)
             else _carRepository.update(normalized)

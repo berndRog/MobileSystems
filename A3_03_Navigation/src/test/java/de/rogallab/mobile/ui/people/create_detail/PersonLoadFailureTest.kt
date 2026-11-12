@@ -2,6 +2,7 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -38,12 +39,16 @@ class PersonLoadFailureTest {
       val repository = FakePersonRepository().apply { findResult = Result.success(person) }
       val viewModel = PersonViewModel("person-1", repository, strings, validator, EffectDelegate())
 
-      assertTrue(viewModel.stateFlow.value.isLoading)
-      advanceUntilIdle()
+      viewModel.effects.test {
+         assertTrue(viewModel.stateFlow.value.isLoading)
+         advanceUntilIdle()
 
-      assertEquals(person, viewModel.stateFlow.value.person)
-      assertNull(viewModel.stateFlow.value.loadFailure)
-      assertFalse(viewModel.stateFlow.value.isLoading)
+         assertEquals(person, viewModel.stateFlow.value.person)
+         assertNull(viewModel.stateFlow.value.loadFailure)
+         assertFalse(viewModel.stateFlow.value.isLoading)
+         expectNoEvents()
+         cancelAndIgnoreRemainingEvents()
+      }
    }
 
    @Test

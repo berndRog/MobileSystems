@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -62,7 +64,8 @@ class PersonViewModel(
 
       viewModelScope.launch {
          try {
-            delay(1000)
+            delay(delayRead)
+
             val person = _repository.findById(id).getOrThrow()
             if (person == null) {
                val error = _stringProvider.getString(R.string.error_person_not_found)
@@ -264,6 +267,8 @@ class PersonViewModel(
       viewModelScope.launch {
          try {
             // Use cases keep the database write and image commit in order.
+            delay(delayWrite)
+
             if (_stateFlow.value.isNew) _personUcCreate(person).getOrThrow()
             else                        _personUcUpdate(person).getOrThrow()
 

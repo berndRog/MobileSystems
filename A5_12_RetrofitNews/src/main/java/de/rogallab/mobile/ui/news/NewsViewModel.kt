@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.news
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayRead
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.INewsRepository
@@ -50,6 +52,8 @@ class NewsViewModel(
       }
       viewModelScope.launch {
          // This simple read operation delegates directly to one repository.
+         delay(delayRead)
+
          _newsRepository.search(searchText)
             .onSuccess { articles ->
                _stateFlow.update { state: NewsUiState ->

@@ -1,6 +1,8 @@
 package de.rogallab.mobile
 
 object Globals {
+   const val delayRead = 1000L
+   const val delayWrite = 2000L
    // adb reverse tcp:5080 tcp:5080 forwards this emulator loopback port to the Mac.
    const val baseUrl = "http://127.0.0.1:5080/"
 

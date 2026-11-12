@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
@@ -52,7 +54,8 @@ class PeopleViewModel(
          }
 
          // Simulate a longer loading operation.
-         delay(Globals.delay)
+
+         delay(delayRead)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result
@@ -140,6 +143,8 @@ class PeopleViewModel(
    // Deletes the confirmed person from the repository.
    private fun remove(person: Person) {
       viewModelScope.launch {
+         delay(delayWrite)
+
          _repository.remove(person)
             .onFailure { throwable ->
                val fallback =

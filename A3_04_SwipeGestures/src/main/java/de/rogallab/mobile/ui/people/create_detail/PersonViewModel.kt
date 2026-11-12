@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -53,9 +55,10 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Keep the existing delay used to demonstrate loading.
-         delay(1000)
 
          // load person by id from repository
+         delay(delayRead)
+
          _repository.findById(id) // Result<Person?> is returned
 
             // Handle successful repository result
@@ -182,6 +185,8 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Create a new person or update the existing person
+         delay(delayWrite)
+
          val result =
             if (_stateFlow.value.isNew) _repository.create(person)
             else                        _repository.update(person)

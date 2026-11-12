@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -66,7 +68,8 @@ class PersonViewModel(
    private fun loadPerson(id: String) {
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       viewModelScope.launch {
-         delay(1000)
+         delay(delayRead)
+
          _repository.findById(id)
             .onSuccess { person ->
                if (person == null) {
@@ -248,6 +251,8 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Delegate the complete save operation to the matching use case.
+         delay(delayWrite)
+
          val result =
             if (_isNew) _personUcCreate(person)
             else _personUcUpdate(person)

@@ -6,6 +6,7 @@ sealed interface PeopleIntent {
    data object Create : PeopleIntent
    data class Detail(val personId: String) : PeopleIntent
    data class Remove(val person: Person) : PeopleIntent
+
    data object RetryLoad : PeopleIntent
 }
 

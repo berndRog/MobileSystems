@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.tdrives.input_detail
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -80,6 +83,8 @@ class TDriveViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
+         delay(delayRead)
+
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people -> _stateFlow.update { state: TDriveUiState -> state.copy(people = people) } }
                .onFailure { showErrorNow(_stringProvider.getString(R.string.error_people_load)) }
@@ -88,6 +93,8 @@ class TDriveViewModel(
    }
    private fun observeCars() {
       viewModelScope.launch {
+         delay(delayRead)
+
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars -> _stateFlow.update { state: TDriveUiState -> state.copy(cars = cars) } }
                .onFailure { showErrorNow(_stringProvider.getString(R.string.error_cars_load)) }
@@ -96,6 +103,8 @@ class TDriveViewModel(
    }
    private fun loadTDrive(id: String) {
       viewModelScope.launch {
+         delay(delayRead)
+
          _tDriveRepository.findById(id).onSuccess { tDrive ->
             if (tDrive == null) {
                _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
@@ -132,6 +141,8 @@ class TDriveViewModel(
       _stateFlow.update { current: TDriveUiState -> current.copy(tDrive = normalized) }
       _isSaving = true
       viewModelScope.launch {
+         delay(delayWrite)
+
          val result = if (_isNew) _tDriveRepository.create(normalized) else _tDriveRepository.update(normalized)
          result.onSuccess {
             _effectDelegate.emit(TDriveEffect.ShowMessage(_stringProvider.getString(R.string.message_test_drive_saved)))

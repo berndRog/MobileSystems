@@ -3,6 +3,8 @@ package de.rogallab.mobile.ui.navigation
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -17,6 +19,7 @@ import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -42,6 +45,26 @@ class PersonBackEffectTest {
    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
+
+   @Test
+   fun invalidPerson_emitsValidationErrorWithoutWritingOrNavigating() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository()
+         val viewModel = PersonViewModel(null, repository, stringProvider, validator, EffectDelegate())
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.FirstNameChange("A"))
+            viewModel.onIntent(PersonIntent.Save)
+            advanceUntilIdle()
+
+            val effect = awaitItem() as PersonEffect.ShowError
+            assertTrue(effect.message.isNotEmpty())
+            assertTrue(repository.created.isEmpty())
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 
    @Test
    fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
@@ -83,6 +106,7 @@ class PersonBackEffectTest {
             viewModel.onIntent(PersonIntent.Save)
             viewModel.onIntent(PersonIntent.Cancel)
             assertTrue(viewModel.stateFlow.value.isSaving)
+            advanceTimeBy(delayWrite)
             runCurrent()
             assertEquals(1, createCalls)
             expectNoEvents()
@@ -90,7 +114,11 @@ class PersonBackEffectTest {
             pending.complete(Result.success(Unit))
             advanceUntilIdle()
 
-            assertTrue(awaitItem() is PersonEffect.ShowMessage)
+            val message = awaitItem() as PersonEffect.ShowMessage
+            assertEquals(
+               stringProvider.getString(R.string.message_person_saved, "Ada Lovelace"),
+               message.message,
+            )
             assertEquals(BackReason.Save, (awaitItem() as PersonEffect.NavigateBack).reason)
             assertFalse(viewModel.stateFlow.value.isSaving)
             expectNoEvents()
@@ -117,7 +145,8 @@ class PersonBackEffectTest {
             pending.complete(Result.failure(IllegalStateException("offline")))
             advanceUntilIdle()
 
-            assertTrue(awaitItem() is PersonEffect.ShowError)
+            val error = awaitItem() as PersonEffect.ShowError
+            assertEquals(stringProvider.getString(R.string.error_person_save), error.message)
             assertFalse(viewModel.stateFlow.value.isSaving)
             expectNoEvents()
 

@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -72,7 +74,8 @@ class PersonViewModel(
          }
 
          // Simulate a longer loading operation.
-         delay(1000)
+
+         delay(delayRead)
 
          _repository.findById(id)
             .onSuccess { person ->
@@ -263,6 +266,8 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Delegate JSON, image transport and successful cleanup to a use case.
+         delay(delayWrite)
+
          val result =
             if (_isNew) _personUcCreate(person)
             else _personUcUpdate(person)

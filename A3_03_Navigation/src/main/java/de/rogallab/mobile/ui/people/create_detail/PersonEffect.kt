@@ -6,7 +6,6 @@ enum class BackReason {
 }
 
 sealed interface PersonEffect {
-
    data class ShowMessage(val message: String) : PersonEffect
    data class ShowError(val message: String) : PersonEffect
 

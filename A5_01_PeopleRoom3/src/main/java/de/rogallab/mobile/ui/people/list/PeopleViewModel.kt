@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -50,8 +52,9 @@ class PeopleViewModel(
 
       _observeJob = viewModelScope.launch {
          try {
-            delay(1000)
             // A failed Result or a thrown Flow exception ends this observation.
+            delay(delayRead)
+
             _repository.observeAll().collect { result ->
                val people = result.getOrThrow()
                _stateFlow.update { state ->
@@ -136,6 +139,8 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          try {
+            delay(delayWrite)
+
             _personUcDelete(person).getOrThrow()
             val message = _stringProvider.getString(
                R.string.message_person_removed, person.fullName)

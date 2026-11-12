@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -49,11 +51,12 @@ class PeopleViewModel(
 
       _observeJob = viewModelScope.launch {
 
-         delay(1000)
 
          // Successful repository emissions keep the list current.
          // Result.failure ends this collector
          // Only RetryLoad starts a new observation.
+         delay(delayRead)
+
          _repository.observeAll().collect { result ->
             result
                // Update the UI state with the list of people when the repository operation succeeded.
@@ -141,6 +144,8 @@ class PeopleViewModel(
    // Removes a person through the image-aware use case.
    private fun remove(person: Person) {
       viewModelScope.launch {
+         delay(delayWrite)
+
          _personUcDelete(person)
             .onSuccess {
                val message = _stringProvider.getString(

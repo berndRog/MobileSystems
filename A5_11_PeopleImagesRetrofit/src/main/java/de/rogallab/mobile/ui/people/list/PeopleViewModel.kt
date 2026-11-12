@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -105,7 +107,8 @@ class PeopleViewModel(
             state.copy(isLoading = true)
          }
 
-         delay(1000)
+
+         delay(delayRead)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result
@@ -132,6 +135,8 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          // The use case preserves the ownership boundary for server image URLs.
+         delay(delayWrite)
+
          _personUcDelete(person)
             .onFailure { throwable ->
                val fallback =

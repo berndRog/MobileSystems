@@ -60,7 +60,7 @@ class AppNavigationTest {
       compose.onNodeWithText(context.getString(R.string.action_save), useUnmergedTree = true).performScrollTo().performClick()
 
       val message = context.getString(R.string.message_person_saved, "Ada Lovelace")
-      compose.waitUntil(5_000) {
+      compose.waitUntil(15_000) {
          compose.onAllNodesWithText(context.getString(R.string.people_list)).fetchSemanticsNodes().isNotEmpty() &&
             compose.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()
       }
@@ -80,14 +80,14 @@ class AppNavigationTest {
 
    private fun openCreate() {
       compose.onNodeWithText(context.getString(R.string.action_create), useUnmergedTree = true).performClick()
-      compose.waitUntil(5_000) {
+      compose.waitUntil(15_000) {
          compose.onAllNodesWithText(context.getString(R.string.person_create)).fetchSemanticsNodes().isNotEmpty()
       }
       compose.onNodeWithText(context.getString(R.string.person_create)).assertIsDisplayed()
    }
 
    private fun awaitList() {
-      compose.waitUntil(5_000) {
+      compose.waitUntil(15_000) {
          compose.onAllNodesWithText("Test Person").fetchSemanticsNodes().isNotEmpty()
       }
       compose.onNodeWithText(context.getString(R.string.people_list)).assertIsDisplayed()

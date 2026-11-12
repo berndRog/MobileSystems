@@ -37,3 +37,8 @@ dependencies {
    androidTestImplementation(libs.koin.test.junit4)
    androidTestImplementation(libs.koin.androidx.compose)
 }
+
+// Both modules use the same connected devices. Run their instrumentation tasks in order.
+tasks.matching { it.name == "connectedDebugAndroidTest" }.configureEach {
+   mustRunAfter(":Shared:connectedDebugAndroidTest")
+}

@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.article
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IArticleRepository
@@ -27,6 +29,8 @@ class ArticleViewModel(
    private fun save() {
       viewModelScope.launch {
          // Saving is one direct local repository operation.
+         delay(delayWrite)
+
          _articleRepository.save(article)
             .onSuccess {
                _effectDelegate.emit(

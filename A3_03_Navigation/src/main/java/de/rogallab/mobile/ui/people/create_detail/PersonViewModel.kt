@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
@@ -53,7 +55,7 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Keep the existing delay used to demonstrate loading.
-         delay(1000)
+         delay(delayRead)
 
          // load person by id from repository
          _repository.findById(id) // Result<Person?> is returned
@@ -181,6 +183,8 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
+         delay(delayWrite)
+
          // Create a new person or update the existing person
          val result =
             if (_stateFlow.value.isNew) _repository.create(person)
@@ -195,9 +199,9 @@ class PersonViewModel(
             }
             // Handle repository errors and emit a one-time effect for failure.
             .onFailure { throwable ->
-               Alog.e(TAG, "Save failed", throwable)
                val error = _stringProvider.getString(R.string.error_person_save)
                _effectDelegate.emit(PersonEffect.ShowError(error))
+               Alog.e(TAG, error, throwable)
             }
 
          // Reset the saving flag regardless of success or failure.

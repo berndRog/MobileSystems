@@ -1,9 +1,9 @@
 package de.rogallab.mobile.ui.cars.list
 
 import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
-import de.rogallab.mobile.Globals
-import de.rogallab.mobile.Globals.delay
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
@@ -75,6 +75,8 @@ class CarsViewModel(
          return
       }
       viewModelScope.launch {
+         delay(delayWrite)
+
          _repository.remove(car)
             .onFailure { throwable ->
                emitErrorNow(R.string.error_car_delete, throwable)
@@ -86,9 +88,10 @@ class CarsViewModel(
       _observeJob?.cancel()
       _observeJob = viewModelScope.launch {
 
-         delay(Globals.delay)
 
          _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
+         delay(delayRead)
+
          _repository.observeAll().collect { result: Result<List<Car>> ->
             result.onSuccess { cars ->
                _stateFlow.update { state: CarsUiState ->
@@ -104,7 +107,8 @@ class CarsViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
-         delay(Globals.delay)
+
+         delay(delayRead)
 
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->

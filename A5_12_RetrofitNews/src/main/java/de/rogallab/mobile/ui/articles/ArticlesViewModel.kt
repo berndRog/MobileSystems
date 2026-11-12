@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.articles
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.delay
+import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.Globals.delayWrite
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IArticleRepository
@@ -43,6 +46,8 @@ class ArticlesViewModel(
    private fun observeArticles() {
       viewModelScope.launch {
          // Room emits a new list after every successful save or remove operation.
+         delay(delayRead)
+
          _articleRepository.observeAll().collect { result ->
             result.onSuccess { articles ->
                _stateFlow.update { state: ArticlesUiState ->
@@ -78,6 +83,8 @@ class ArticlesViewModel(
    private fun remove(url: String) {
       viewModelScope.launch {
          // A confirmed delete is one direct repository operation.
+         delay(delayWrite)
+
          _articleRepository.remove(url)
             .onSuccess {
                _effectDelegate.emit(
