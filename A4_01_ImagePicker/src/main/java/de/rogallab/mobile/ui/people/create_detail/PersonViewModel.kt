@@ -110,7 +110,7 @@ class PersonViewModel(
          // Technical image errors are converted into the common error effect.
          is PersonIntent.ImageFailed -> showError(intent.message)
 
-         PersonIntent.RetryLoad ->
+         is PersonIntent.RetryLoad ->
             if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
                loadPerson(_personId!!)
@@ -166,7 +166,7 @@ class PersonViewModel(
    }
 
    // Camera images already arrive as internal paths.
-   private fun storeCameraImage(imagePath: String?) {
+   private fun storeCameraImage(imagePath: String) {
       viewModelScope.launch {
          replaceImage(imagePath)
       }

@@ -206,7 +206,7 @@ class PersonViewModel(
    }
 
    // Camera images already arrive as internal paths.
-   private fun storeCameraImage(imagePath: String?) {
+   private fun storeCameraImage(imagePath: String) {
       viewModelScope.launch {
          replaceImage(imagePath)
       }
