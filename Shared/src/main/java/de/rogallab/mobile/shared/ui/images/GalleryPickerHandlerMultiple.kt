@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 
-/** Ermöglicht die Auswahl von bis zu maxSelectionCount Bildern und gibt ihre Content-URIs weiter.
+/** Ermöglicht die Auswahl von bis zu maxSelectionCount Bildern und gibt ihre Content-Uris weiter.
  *  maxSelectionCount muss mindestens 2 sein; ein einzelnes ausgewähltes Bild ist zulässig.
  */
 @Composable
@@ -39,7 +39,7 @@ fun GalleryPickerHandlerMultiple(
 /*
  * Didaktik und Lernziele
  *
- * - PickMultipleVisualMedia liefert eine Liste von Content-URIs.
+ * - PickMultipleVisualMedia liefert eine Liste von Content-Uris.
  * - Der Aufrufer begrenzt die Auswahl auf die noch freien Bildplätze.
  * - Bei nur einem freien Platz wird GalleryPickerHandlerSingle verwendet.
  * - Das ViewModel kopiert die Bilder über IImageFileStorage.

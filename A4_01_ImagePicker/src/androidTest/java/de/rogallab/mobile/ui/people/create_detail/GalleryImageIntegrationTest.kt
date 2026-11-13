@@ -37,7 +37,7 @@ class GalleryImageIntegrationTest {
       val source = storage.createCameraImageFile().getOrThrow()
       var copiedPath: String? = null
       try {
-         // A real JPEG behind a controlled content URI; no gallery app is launched.
+         // A real JPEG behind a controlled content Uri; no gallery app is launched.
          val bitmap = Bitmap.createBitmap(3, 2, Bitmap.Config.ARGB_8888)
          bitmap.eraseColor(android.graphics.Color.BLUE)
          File(source.imagePath).outputStream().use { output ->

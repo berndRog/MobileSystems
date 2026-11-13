@@ -41,8 +41,8 @@ class ImageFileStorage(
    // Keep only the application context to avoid retaining an Activity or other UI context.
    private val appContext = context.applicationContext
 
-   // Copies an image from a readable content URI into private app storage.
-   // The URI may originate from the Photo Picker, MediaStore, another
+   // Copies an image from a readable content Uri into private app storage.
+   // The Uri may originate from the Photo Picker, MediaStore, another
    // ContentProvider or a FileProvider.
    override suspend fun copyImageToAppStorage(
       sourceUri: Uri
@@ -58,7 +58,7 @@ class ImageFileStorage(
             )
 
             try {
-               // Open the content URI and copy its bytes into private app storage.
+               // Open the content Uri and copy its bytes into private app storage.
                appContext.contentResolver
                   .openInputStream(sourceUri)
                   ?.use { inputStream ->
@@ -73,7 +73,7 @@ class ImageFileStorage(
                   "The copied image file is empty: ${targetFile.absolutePath}"
                }
 
-               // Room can store this absolute path without keeping URI permissions.
+               // Room can store this absolute path without keeping Uri permissions.
                targetFile.absolutePath
             }
             catch (throwable: Throwable) {
@@ -84,7 +84,7 @@ class ImageFileStorage(
          }
       }
 
-   // Creates an empty private JPEG file and its FileProvider URI for TakePicture.
+   // Creates an empty private JPEG file and its FileProvider Uri for TakePicture.
    override suspend fun createCameraImageFile(): Result<CameraImageFile> =
       withContext(ioDispatcher) {
          storageResult {
@@ -95,7 +95,7 @@ class ImageFileStorage(
             )
 
             try {
-               // Convert the private file into a content URI that can safely
+               // Convert the private file into a content Uri that can safely
                // be shared temporarily with an external camera application.
                val contentUri = FileProvider.getUriForFile(
                   appContext,
@@ -109,7 +109,7 @@ class ImageFileStorage(
                )
             }
             catch (throwable: Throwable) {
-               // Remove the provisional file if the URI cannot be created.
+               // Remove the provisional file if the Uri cannot be created.
                imageFile.delete()
                throw throwable
             }
@@ -252,7 +252,7 @@ class ImageFileStorage(
          }
       }
 
-   // Determines a useful file extension for content selected through a content URI.
+   // Determines a useful file extension for content selected through a content Uri.
    private fun determineSourceExtension(sourceUri: Uri): String {
 
       // Prefer the MIME type provided by the ContentResolver.
@@ -275,7 +275,7 @@ class ImageFileStorage(
       if (mimeExtension != null)
          return mimeExtension
 
-      // If no MIME extension is available, try to derive one from the URI path.
+      // If no MIME extension is available, try to derive one from the Uri path.
       val pathExtension = sourceUri.lastPathSegment
          ?.substringAfterLast(
             '.',
@@ -406,13 +406,13 @@ class ImageFileStorage(
  * - try/catch wird zusätzlich genutzt, um bei Fehlern bereits erzeugte oder
  *   teilweise beschriebene Dateien wieder zu entfernen.
  *
- * - Content-URIs und Dateipfade erfüllen unterschiedliche Aufgaben:
- *   Ein Content-URI wird zum kontrollierten Austausch mit anderen Android-Apps
+ * - Content-Uris und Dateipfade erfüllen unterschiedliche Aufgaben:
+ *   Ein Content-Uri wird zum kontrollierten Austausch mit anderen Android-Apps
  *   verwendet, während der absolute Pfad für private App-Dateien gespeichert
  *   werden kann.
  *
  * - FileProvider ermöglicht es, einer Kamera-App temporär Zugriff auf eine
- *   private Datei zu geben, ohne einen file://-URI offenzulegen.
+ *   private Datei zu geben, ohne einen file://-Uri offenzulegen.
  *
  * - canonicalFile und die Prüfung des Speicherverzeichnisses zeigen, dass
  *   Dateipfade vor ihrer Verwendung validiert werden sollten.

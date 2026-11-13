@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 
-// Selects one image and forwards its content URI.
+// Selects one image and forwards its content Uri.
 @Composable
 fun GalleryPickerHandlerSingle(
    onImageSelected: (Uri) -> Unit,

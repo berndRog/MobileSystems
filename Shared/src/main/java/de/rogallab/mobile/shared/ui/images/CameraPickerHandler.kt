@@ -19,9 +19,9 @@ import kotlinx.coroutines.launch
 /**
  * Encapsulates the TakePicture Activity Result contract.
  *
- * A camera application needs a destination URI before it is started.
+ * A camera application needs a destination Uri before it is started.
  * The handler creates a provisional private file through IImageFileStorage,
- * launches the camera with its FileProvider URI and confirms the file
+ * launches the camera with its FileProvider Uri and confirms the file
  * after a successful capture.
  *
  * Cancelled or failed captures remove the provisional file.
@@ -131,7 +131,7 @@ fun CameraPickerHandler(
                   pendingCameraImagePath = cameraImageFile.imagePath
 
                   try {
-                     // Start the external camera with its destination URI.
+                     // Start the external camera with its destination Uri.
                      cameraLauncher.launch(cameraImageFile.contentUri)
                   }
                   catch (throwable: Exception) {
@@ -187,7 +187,7 @@ fun CameraPickerHandler(
  * - CameraImageFile enthält zwei Referenzen auf dasselbe Bild:
  *
  *      contentUri
- *          FileProvider-URI für die externe Kamera-Anwendung.
+ *          FileProvider-Uri für die externe Kamera-Anwendung.
  *
  *      imagePath
  *          Interner Dateipfad für die weitere Verarbeitung.
@@ -246,7 +246,7 @@ fun CameraPickerHandler(
  * Lernziele:
  *
  * - ActivityResultContracts.TakePicture in Compose verwenden.
- * - FileProvider-URI und internen Dateipfad unterscheiden.
+ * - FileProvider-Uri und internen Dateipfad unterscheiden.
  * - Asynchrone Activity-Ergebnisse einer Datei zuordnen.
  * - remember und rememberSaveable gezielt einsetzen.
  * - Zusammengesetzte UI-Zustände ableiten statt doppelt speichern.

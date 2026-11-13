@@ -115,7 +115,7 @@ fun PersonAdapter(
          // Show person data
          val person = personUiState.person
 
-         // The gallery handler selects one image and returns its content URI.
+         // The gallery handler selects one image and returns its content Uri.
          GalleryPickerHandlerSingle(
             onImageSelected = { sourceUri ->
                viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))

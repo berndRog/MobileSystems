@@ -6,16 +6,16 @@ import android.net.Uri
  * Provides image operations for the app's private files directory.
  *
  * The interface intentionally returns absolute file paths. These paths can be
- * stored in Room without retaining access to the original content URI.
+ * stored in Room without retaining access to the original content Uri.
  */
 interface IImageFileStorage {
 
-   // Copies an image from a readable content URI into private app storage.
-   // The URI may originate from the Photo Picker, MediaStore, another
+   // Copies an image from a readable content Uri into private app storage.
+   // The Uri may originate from the Photo Picker, MediaStore, another
    // ContentProvider or a FileProvider.
    suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String>
 
-   // Creates an empty private JPEG file and its FileProvider URI for TakePicture.
+   // Creates an empty private JPEG file and its FileProvider Uri for TakePicture.
    suspend fun createCameraImageFile(): Result<CameraImageFile>
 
     // Verifies that a camera application wrote a non-empty private image file.

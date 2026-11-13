@@ -161,8 +161,8 @@ class CarViewModel(
       }
    }
 
-   // Copies Photo Picker URIs with the shared storage service. The UI never
-   // turns external URIs into persistent entity data itself.
+   // Copies Photo Picker Uris with the shared storage service. The UI never
+   // turns external Uris into persistent entity data itself.
    private fun storeGalleryImages(sourceUris: List<Uri>) {
       if (sourceUris.isEmpty()) return
 
@@ -324,7 +324,7 @@ class CarViewModel(
  *   vorherigen ImagePicker-Beispiele. Das Feature implementiert keine eigene
  *   Datei- oder Picker-Schicht.
  *
- * - GalleryPickerHandlerMultiple liefert Content-URIs. Erst das ViewModel kopiert diese
+ * - GalleryPickerHandlerMultiple liefert Content-Uris. Erst das ViewModel kopiert diese
  *   über IImageFileStorage in den privaten App-Speicher.
  *
  * - CameraPickerHandler liefert dagegen bereits einen bestätigten internen

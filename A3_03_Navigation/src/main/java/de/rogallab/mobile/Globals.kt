@@ -5,6 +5,6 @@ object Globals {
    const val databaseName = "people33.db"
    const val delayRead = 1000L
    const val delayWrite = 2000L
-   const val animationDuration = 3000
+   const val animationDuration = 5000
 
 }

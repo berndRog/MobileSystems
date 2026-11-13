@@ -84,7 +84,7 @@ class ImageMediaStore(
       withContext(ioDispatcher) {
          storageResult {
 
-            // Delete the MediaStore entry identified by its content URI.
+            // Delete the MediaStore entry identified by its content Uri.
             appContext.contentResolver.delete(
                imageUri,
                null,
@@ -136,7 +136,7 @@ class ImageMediaStore(
          )
       }
 
-      // Create an empty MediaStore entry and receive its content URI.
+      // Create an empty MediaStore entry and receive its content Uri.
       val imageUri = contentResolver.insert(
          collection,
          contentValues,
@@ -263,7 +263,7 @@ class ImageMediaStore(
       }
    }
 
-   // Copies a private source file into a target content URI.
+   // Copies a private source file into a target content Uri.
    private fun copyFileToUri(
       sourceFile: File,
       targetUri: Uri,
@@ -397,10 +397,10 @@ class ImageMediaStore(
  *   genutzten MediaStore übernimmt.
  *
  * - Ein MediaStore-Eintrag wird nicht über einen normalen Dateipfad,
- *   sondern über einen Content-URI angesprochen.
+ *   sondern über einen Content-Uri angesprochen.
  *
  * - ContentResolver bildet die zentrale Android-Schnittstelle zum Lesen,
- *   Schreiben, Einfügen, Ändern und Löschen von Content-URIs.
+ *   Schreiben, Einfügen, Ändern und Löschen von Content-Uris.
  *
  * - ContentValues beschreibt die Metadaten eines neuen MediaStore-Eintrags,
  *   beispielsweise Dateiname, MIME-Typ, Zielverzeichnis und Aufnahmezeit.

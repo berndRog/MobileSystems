@@ -3,7 +3,7 @@ package de.rogallab.mobile.shared.ui.common
 import android.net.Uri
 import java.io.File
 
-// Creates a Coil model for private paths, URI-based and web image references.
+// Creates a Coil model for private paths, Uri-based and web image references.
 fun String.toImageModel(): Any =
    when {
       startsWith("content://") ||
