@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -31,10 +32,13 @@ class AppNavigationTest {
 
    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
    private val repository = RecordingRepository()
-   private val testModule = module { single<IPersonRepository> { repository } }
+   private val testModule = module {
+      single<IPersonRepository> { repository }
+      single { AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10) }
+   }
 
    @org.junit.Before fun setUp() {
-      // Overrides only the data source consumed by the real navigation and ViewModels.
+      // Override the repository and demonstration timing before creating the UI.
       loadKoinModules(testModule)
       compose.setContent { AppTheme { AppNavigation() } }
       awaitList()

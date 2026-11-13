@@ -2,8 +2,7 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
@@ -27,6 +26,7 @@ class PersonViewModel(
    private val _stringProvider: IStringProvider,
    private val _validator: PersonValidator,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
    // A null or blank id means that a new person is created.
@@ -55,7 +55,7 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Keep the existing delay used to demonstrate loading.
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          // load person by id from repository
          _repository.findById(id) // Result<Person?> is returned
@@ -183,7 +183,7 @@ class PersonViewModel(
 
       viewModelScope.launch {
 
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          // Create a new person or update the existing person
          val result =

@@ -26,6 +26,8 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.rogallab.mobile.AppTiming
+import org.koin.compose.koinInject
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
@@ -35,7 +37,11 @@ import de.rogallab.mobile.ui.navigation.PopReason
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(timing: AppTiming = koinInject()) {
+
+   val navigationAnimations = remember(timing.animationDuration) {
+      NavigationAnimations(timing.animationDuration)
+   }
 
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
@@ -105,11 +111,11 @@ fun AppNavigation() {
          ),
 
          // Keeps the visible navigation animations from the previous project.
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         transitionSpec = navigationAnimations.enterTransitionSpec,
          popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
+            navigationAnimations.popTransitionSpec(currentPopReason),
          predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+            navigationAnimations.predictivePopTransitionSpec,
 
          entryProvider = navEntryProvider,
       )

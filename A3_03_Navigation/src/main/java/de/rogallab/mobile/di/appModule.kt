@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
@@ -22,6 +23,8 @@ import org.koin.dsl.module
 fun appModule(): Module = module {
 
     val tag = "<-appModule"
+
+    single { AppTiming() }
 
     Alog.i(tag, "single    -> Seed")
     single<Seed> {
@@ -61,6 +64,7 @@ fun appModule(): Module = module {
            _stringProvider = get(),
            _validator = get<PersonValidator>(),
            _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+           _timing = get(),
         )
     }
 
@@ -70,6 +74,7 @@ fun appModule(): Module = module {
            _repository = get<IPersonRepository>(),
            _stringProvider = get(),
            _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
+           _timing = get(),
         )
     }
 

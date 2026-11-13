@@ -2,8 +2,7 @@ package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -22,6 +21,7 @@ class PeopleViewModel(
    private val _repository: IPersonRepository,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
    // StateFlow PeopleUiState
@@ -49,7 +49,7 @@ class PeopleViewModel(
 
       _observeJob = viewModelScope.launch {
 
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          // Successful Room emissions keep the list current.
          // Result.failure ends this collector. Only RetryLoad starts a new observation.
@@ -100,7 +100,7 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
 
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          _repository.remove(person)
             .onSuccess {
