@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
    <string name="action_save">Speichern</string>
+   <string name="action_ok">OK</string>
    <string name="action_cancel">Abbrechen</string>
    <string name="action_select_photo">Foto auswählen</string>
    <string name="action_take_photo">Kamera starten</string>
    <string name="action_remove_photo">Foto entfernen</string>
-   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
+   <string name="action_enable_steps">Schrittzähler aktivieren</string>
+   <string name="action_open_settings">Öffne Einstellungen</string>
 
+   <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
    <string name="error_no_network_connection">Keine Netzwerkverbindung.</string>
    <string name="error_no_internet_connection">Keine Internetverbindung.</string>
    <string name="error_network_timeout">Der Server hat nicht rechtzeitig geantwortet.</string>
    <string name="error_server_unreachable">Der Server ist nicht erreichbar.</string>
    <string name="error_http_request">Anfrage fehlgeschlagen (HTTP %1$d).</string>
    <string name="error_network_request">Netzwerkkommunikation fehlgeschlagen.</string>
+
+   <string name="permission_camera_rationale">App braucht die Kamera, um ein Foto aufzunehmen. Ohne Zugriff können Sie weiterhin ein Foto aus der Galerie wählen.</string>
+   <string name="permission_camera_settings">Kamerazugriff wurde abgelehnt. Bitte erlauben Sie ihn in den App-Einstellungen.</string>
+
+
 </resources>

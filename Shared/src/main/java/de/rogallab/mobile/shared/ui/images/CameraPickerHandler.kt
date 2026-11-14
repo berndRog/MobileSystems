@@ -58,7 +58,7 @@ fun CameraPickerHandler(
       isProcessing
 
    // Register the TakePicture Activity Result contract.
-   val cameraLauncher = rememberLauncherForActivityResult(
+   val launcher = rememberLauncherForActivityResult(
       contract = ActivityResultContracts.TakePicture(),
    ) { success ->
 
@@ -131,7 +131,7 @@ fun CameraPickerHandler(
 
                   try {
                      // Start the external camera with its destination Uri.
-                     cameraLauncher.launch(cameraImageFile.contentUri)
+                     launcher.launch(cameraImageFile.contentUri)
                   }
                   catch (throwable: Exception) {
 
