@@ -26,7 +26,9 @@ fun GalleryPickerHandlerSingle(
       uri?.let { currentOnImageSelected.value(it) }
    }
    content(GalleryPickerActions(
-      selectFromGallery = { launcher.launch(imageRequest) },
+      selectFromGallery = {
+         launcher.launch(imageRequest)
+      },
    ))
 }
 

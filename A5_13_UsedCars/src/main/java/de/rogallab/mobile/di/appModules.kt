@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.data.remote.ICarWebservice
 import de.rogallab.mobile.data.remote.IPersonWebservice
 import de.rogallab.mobile.data.remote.ITDriveWebservice
@@ -37,6 +38,8 @@ import org.koin.dsl.module
 import retrofit2.Retrofit
 
 fun appModule(): Module = module {
+
+   single { AppTiming() }
    single<IPersonWebservice> { get<Retrofit>().create(IPersonWebservice::class.java) }
    single<ICarWebservice> { get<Retrofit>().create(ICarWebservice::class.java) }
    single<ITDriveWebservice> { get<Retrofit>().create(ITDriveWebservice::class.java) }
@@ -84,6 +87,7 @@ fun appModule(): Module = module {
          _validator = get<PersonValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
          _imageEdit = get<IImageEdit>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
    }
@@ -92,6 +96,7 @@ fun appModule(): Module = module {
       PeopleViewModel(
          _repository = get<IPersonRepository>(),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )
    }
@@ -105,6 +110,7 @@ fun appModule(): Module = module {
          _validator = get<CarValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
          _imageEdit = get<IImageEdit>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<CarEffect>>(carEffectQualifier),
       )
    }
@@ -114,6 +120,7 @@ fun appModule(): Module = module {
          _repository = get<ICarRepository>(),
          _personRepository = get<IPersonRepository>(),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<CarsEffect>>(carsEffectQualifier),
       )
    }
@@ -126,6 +133,7 @@ fun appModule(): Module = module {
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
          _validator = get<TDriveValidator>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<TDriveEffect>>(tDriveEffectQualifier),
       )
    }
@@ -136,6 +144,7 @@ fun appModule(): Module = module {
          _personRepository = get<IPersonRepository>(),
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<TDrivesEffect>>(tDrivesEffectQualifier),
       )
    }

@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import de.rogallab.mobile.AppTiming
+import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
@@ -33,7 +35,11 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(timing: AppTiming = koinInject()) {
+
+   val navigationAnimations = remember(timing.animationDuration) {
+      NavigationAnimations(timing.animationDuration)
+   }
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
@@ -104,11 +110,11 @@ fun AppNavigation() {
          ),
 
          // Keeps the visible navigation animations from the previous project.
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
+         transitionSpec = navigationAnimations.enterTransitionSpec,
          popTransitionSpec =
-            NavigationAnimations.popTransitionSpec(currentPopReason),
+            navigationAnimations.popTransitionSpec(currentPopReason),
          predictivePopTransitionSpec =
-            NavigationAnimations.predictivePopTransitionSpec,
+            navigationAnimations.predictivePopTransitionSpec,
 
          entryProvider = navEntryProvider,
       )

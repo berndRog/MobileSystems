@@ -1,8 +1,7 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -26,6 +25,7 @@ class PeopleViewModel(
    private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
@@ -108,7 +108,7 @@ class PeopleViewModel(
          }
 
 
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _repository.observeAll().collect { result: Result<List<Person>> ->
             result
@@ -135,7 +135,7 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          // The use case preserves the ownership boundary for server image URLs.
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          _personUcDelete(person)
             .onFailure { throwable ->

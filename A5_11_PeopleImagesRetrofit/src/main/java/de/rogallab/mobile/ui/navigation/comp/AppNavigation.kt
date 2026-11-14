@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import de.rogallab.mobile.AppTiming
+import org.koin.compose.koinInject
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +25,11 @@ import de.rogallab.mobile.ui.navigation.PopReason
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(timing: AppTiming = koinInject()) {
+
+   val navigationAnimations = remember(timing.animationDuration) {
+      NavigationAnimations(timing.animationDuration)
+   }
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
@@ -83,11 +89,11 @@ fun AppNavigation() {
       ),
 
       // Navigation behavior remains unchanged from chapter 3.
-      transitionSpec = NavigationAnimations.enterTransitionSpec,
+      transitionSpec = navigationAnimations.enterTransitionSpec,
       popTransitionSpec =
-         NavigationAnimations.popTransitionSpec(currentPopReason),
+         navigationAnimations.popTransitionSpec(currentPopReason),
       predictivePopTransitionSpec =
-         NavigationAnimations.predictivePopTransitionSpec,
+         navigationAnimations.predictivePopTransitionSpec,
 
       entryProvider = navEntryProvider,
    )

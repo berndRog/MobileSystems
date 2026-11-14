@@ -3,8 +3,7 @@ package de.rogallab.mobile.ui.cars.input_detail
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.delay
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -32,6 +31,7 @@ class CarViewModel(
    private val _imageFileStorage: IImageFileStorage,
    private val _imageEdit: IImageEdit,
    private val _effectDelegate: EffectDelegate<CarEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<CarEffect> by _effectDelegate {
 
    private val _carId = carId?.takeUnless(String::isBlank)
@@ -96,7 +96,7 @@ class CarViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _personRepository.observeAll().collect { result ->
             result
@@ -116,7 +116,7 @@ class CarViewModel(
 
    private fun loadCar(id: String) {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _carRepository.findById(id)
             .onSuccess { car ->
@@ -243,7 +243,7 @@ class CarViewModel(
       _isSaving = true
 
       viewModelScope.launch {
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          val result =
             if (_isNew) _carRepository.create(normalized)

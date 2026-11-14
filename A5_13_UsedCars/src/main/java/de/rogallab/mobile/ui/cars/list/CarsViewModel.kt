@@ -1,8 +1,7 @@
 package de.rogallab.mobile.ui.cars.list
 
 import androidx.lifecycle.ViewModel
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -26,6 +25,7 @@ class CarsViewModel(
    private val _personRepository: IPersonRepository,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<CarsEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<CarsEffect> by _effectDelegate {
 
    private val _stateFlow = MutableStateFlow(CarsUiState())
@@ -75,7 +75,7 @@ class CarsViewModel(
          return
       }
       viewModelScope.launch {
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          _repository.remove(car)
             .onFailure { throwable ->
@@ -90,7 +90,7 @@ class CarsViewModel(
 
 
          _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _repository.observeAll().collect { result: Result<List<Car>> ->
             result.onSuccess { cars ->
@@ -108,7 +108,7 @@ class CarsViewModel(
    private fun observePeople() {
       viewModelScope.launch {
 
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->

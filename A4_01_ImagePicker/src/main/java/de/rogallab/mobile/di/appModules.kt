@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
@@ -25,6 +26,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 fun appModule(): Module = module {
+
+   single { AppTiming() }
 
    val tag = "<-appModule"
 
@@ -94,6 +97,7 @@ fun appModule(): Module = module {
          _imageEdit = get<IImageEdit>(),                 // factory shared
          _personUcCreate = get<PersonUcCreate>(),        // factory
          _personUcUpdate = get<PersonUcUpdate>(),        // factory
+         _timing = get(),
          _effectDelegate =                               // factory
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -105,6 +109,7 @@ fun appModule(): Module = module {
          _repository = get<IPersonRepository>(),         // singleton
          _stringProvider = get<IStringProvider>(),       // singleton shared
          _personUcDelete = get<PersonUcDelete>(),        // factory
+         _timing = get(),
          _effectDelegate =                               // factory
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )

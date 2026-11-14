@@ -2,7 +2,7 @@ package de.rogallab.mobile.ui.article
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.delay
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IArticleRepository
@@ -17,6 +17,7 @@ class ArticleViewModel(
    private val _articleRepository: IArticleRepository,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<ArticleEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<ArticleEffect> by _effectDelegate {
 
    // Dispatches events from the article screen.
@@ -29,7 +30,7 @@ class ArticleViewModel(
    private fun save() {
       viewModelScope.launch {
          // Saving is one direct local repository operation.
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          _articleRepository.save(article)
             .onSuccess {

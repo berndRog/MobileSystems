@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
@@ -57,6 +58,7 @@ class GalleryImageIntegrationTest {
             _personUcCreate = PersonUcCreate(repository, imageEdit),
             _personUcUpdate = PersonUcUpdate(repository, imageEdit),
             _effectDelegate = EffectDelegate(),
+            _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
          )
 
          viewModel.onIntent(PersonIntent.GalleryImageSelected(source.contentUri))

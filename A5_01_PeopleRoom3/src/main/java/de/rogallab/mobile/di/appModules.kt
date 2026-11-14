@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import de.rogallab.mobile.Globals
@@ -31,6 +32,8 @@ import kotlin.coroutines.CoroutineContext
 fun appModule(
    queryCoroutineContext: CoroutineContext = Dispatchers.IO
 ): Module = module {
+
+   single { AppTiming() }
 
    val tag = "<-appModule"
 
@@ -96,6 +99,7 @@ fun appModule(
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -112,6 +116,7 @@ fun appModule(
             _imageFileStorage = get<IImageFileStorage>(),
          ),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )

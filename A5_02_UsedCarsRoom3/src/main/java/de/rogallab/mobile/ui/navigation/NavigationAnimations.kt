@@ -11,14 +11,13 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import de.rogallab.mobile.Globals.animationDuration
 
 // Provides deliberately slow transitions for visualizing Navigation 3.
 //
 // Forward navigation uses a horizontal push. Reverse navigation distinguishes
 // Save from Cancel so students can see that both operations pop the same back
 // stack while representing different user intentions.
-object NavigationAnimations {
+class NavigationAnimations(private val animationDuration: Int) {
 
    // Pushes the new destination in from the right and the current destination
    // out to the left.

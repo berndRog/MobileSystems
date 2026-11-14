@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import de.rogallab.mobile.BuildConfig
@@ -31,6 +32,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 fun appModule(): Module = module {
+
+   single { AppTiming() }
    // Local persistence -------------------------------------------------------
    single<AppDatabase> {
       Room.databaseBuilder<AppDatabase>(
@@ -79,6 +82,7 @@ fun appModule(): Module = module {
       NewsViewModel(
          _newsRepository = get<INewsRepository>(),
          _stringProvider = get<IStringProvider>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<NewsEffect>>(newsEffectQualifier),
       )
    }
@@ -86,6 +90,7 @@ fun appModule(): Module = module {
       ArticlesViewModel(
          _articleRepository = get<IArticleRepository>(),
          _stringProvider = get<IStringProvider>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<ArticlesEffect>>(articlesEffectQualifier),
       )
    }
@@ -94,6 +99,7 @@ fun appModule(): Module = module {
          article = parameters.get(),
          _articleRepository = get<IArticleRepository>(),
          _stringProvider = get<IStringProvider>(),
+         _timing = get(),
          _effectDelegate = get<EffectDelegate<ArticleEffect>>(articleEffectQualifier),
       )
    }

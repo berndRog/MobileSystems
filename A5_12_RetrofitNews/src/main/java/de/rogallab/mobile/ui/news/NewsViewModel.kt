@@ -2,7 +2,7 @@ package de.rogallab.mobile.ui.news
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.delay
-import de.rogallab.mobile.Globals.delayRead
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.INewsRepository
@@ -19,6 +19,7 @@ class NewsViewModel(
    private val _newsRepository: INewsRepository,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<NewsEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<NewsEffect> by _effectDelegate {
 
    // Mutable UI state remains private to the ViewModel.
@@ -52,7 +53,7 @@ class NewsViewModel(
       }
       viewModelScope.launch {
          // This simple read operation delegates directly to one repository.
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _newsRepository.search(searchText)
             .onSuccess { articles ->

@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import de.rogallab.mobile.Globals
@@ -45,6 +46,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 fun appModule(): Module = module {
+
+   single { AppTiming() }
    val tag = "<-appModule"
 
    Alog.i(tag, "single    -> AppDatabase")
@@ -99,6 +102,7 @@ fun appModule(): Module = module {
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -114,6 +118,7 @@ fun appModule(): Module = module {
             _imageFileStorage = get<IImageFileStorage>(),
          ),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )
@@ -128,6 +133,7 @@ fun appModule(): Module = module {
          _validator = get<CarValidator>(),
          _imageFileStorage = get<IImageFileStorage>(),
          _imageEdit = get<IImageEdit>(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<CarEffect>>(carEffectQualifier),
       )
@@ -138,6 +144,7 @@ fun appModule(): Module = module {
          _repository = get<ICarRepository>(),
          _personRepository = get<IPersonRepository>(),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<CarsEffect>>(carsEffectQualifier),
       )
@@ -151,6 +158,7 @@ fun appModule(): Module = module {
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
          _validator = get<TDriveValidator>(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<TDriveEffect>>(tDriveEffectQualifier),
       )
@@ -162,6 +170,7 @@ fun appModule(): Module = module {
          _personRepository = get<IPersonRepository>(),
          _carRepository = get<ICarRepository>(),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<TDrivesEffect>>(tDrivesEffectQualifier),
       )

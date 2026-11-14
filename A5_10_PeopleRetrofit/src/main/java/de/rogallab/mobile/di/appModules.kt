@@ -1,5 +1,6 @@
 package de.rogallab.mobile.di
 
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.data.remote.IPersonWebservice
 import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
@@ -25,6 +26,8 @@ import org.koin.dsl.module
 import retrofit2.Retrofit
 
 fun appModule(): Module = module {
+
+   single { AppTiming() }
 
    val tag = "<-appModule"
 
@@ -78,6 +81,7 @@ fun appModule(): Module = module {
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
@@ -94,6 +98,7 @@ fun appModule(): Module = module {
             _imageFileStorage = get<IImageFileStorage>(),
          ),
          _stringProvider = get(),
+         _timing = get(),
          _effectDelegate =
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )

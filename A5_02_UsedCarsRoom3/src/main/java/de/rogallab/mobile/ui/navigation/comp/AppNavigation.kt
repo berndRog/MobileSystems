@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.navigation.comp
 
+import de.rogallab.mobile.AppTiming
+import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -50,7 +52,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(timing: AppTiming = koinInject()) {
+
+   val navigationAnimations = remember(timing.animationDuration) {
+      NavigationAnimations(timing.animationDuration)
+   }
    val navigationState = rememberAppNavigationState()
    val navigator = remember(navigationState) { AppNavigator(navigationState) }
 
@@ -215,9 +221,9 @@ fun AppNavigation() {
             currentPopReason = PopReason.CANCEL
             navigator.remove()
          },
-         transitionSpec = NavigationAnimations.enterTransitionSpec,
-         popTransitionSpec = NavigationAnimations.popTransitionSpec(currentPopReason),
-         predictivePopTransitionSpec = NavigationAnimations.predictivePopTransitionSpec,
+         transitionSpec = navigationAnimations.enterTransitionSpec,
+         popTransitionSpec = navigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec = navigationAnimations.predictivePopTransitionSpec,
       )
    }
 }

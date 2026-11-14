@@ -1,8 +1,7 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.lifecycle.ViewModel
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -25,6 +24,7 @@ class PeopleViewModel(
    private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
    // StateFlow holds the persistent people list and load failure.
@@ -53,7 +53,7 @@ class PeopleViewModel(
       _observeJob = viewModelScope.launch {
          try {
             // A failed Result or a thrown Flow exception ends this observation.
-            delay(delayRead)
+            delay(_timing.delayRead)
 
             _repository.observeAll().collect { result ->
                val people = result.getOrThrow()
@@ -139,7 +139,7 @@ class PeopleViewModel(
    private fun remove(person: Person) {
       viewModelScope.launch {
          try {
-            delay(delayWrite)
+            delay(_timing.delayWrite)
 
             _personUcDelete(person).getOrThrow()
             val message = _stringProvider.getString(

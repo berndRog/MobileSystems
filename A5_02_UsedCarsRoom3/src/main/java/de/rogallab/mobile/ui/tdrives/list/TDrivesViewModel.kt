@@ -2,8 +2,7 @@ package de.rogallab.mobile.ui.tdrives.list
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.delay
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -25,6 +24,7 @@ class TDrivesViewModel(
    private val _carRepository: ICarRepository,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<TDrivesEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<TDrivesEffect> by _effectDelegate {
 
    private val _stateFlow = MutableStateFlow(TDrivesUiState())
@@ -66,7 +66,7 @@ class TDrivesViewModel(
          emitError(R.string.error_test_drive_not_found); return
       }
       viewModelScope.launch {
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          _tDriveRepository.remove(tDrive)
             .onFailure { emitErrorNow(R.string.error_test_drive_delete) }
@@ -76,7 +76,7 @@ class TDrivesViewModel(
    private fun observeTDrives() {
       viewModelScope.launch {
          _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = true) }
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _tDriveRepository.observeAll().collect { result: Result<List<TDrive>> ->
             result.onSuccess { drives ->
@@ -91,7 +91,7 @@ class TDrivesViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people ->
@@ -103,7 +103,7 @@ class TDrivesViewModel(
 
    private fun observeCars() {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars ->

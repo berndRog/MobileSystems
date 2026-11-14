@@ -2,8 +2,7 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.Globals
 import de.rogallab.mobile.R
@@ -41,6 +40,7 @@ class PersonViewModel(
    private val _personUcCreate: PersonUcCreate,
    private val _personUcUpdate: PersonUcUpdate,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
    // A null or blank id means that a new person is being created.
@@ -72,7 +72,7 @@ class PersonViewModel(
    private fun loadPerson(id: String) {
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _repository.findById(id)
             .onSuccess { person ->
@@ -164,7 +164,7 @@ class PersonViewModel(
       }
 
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _carRepository.findByPersonId(personId)
             .onSuccess { cars ->
@@ -296,7 +296,7 @@ class PersonViewModel(
       viewModelScope.launch {
 
          // Delegate the complete save operation to the matching use case.
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          val result =
             if (_isNew) _personUcCreate(person)

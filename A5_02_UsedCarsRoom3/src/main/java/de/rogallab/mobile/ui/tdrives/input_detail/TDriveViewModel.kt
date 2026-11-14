@@ -2,8 +2,7 @@ package de.rogallab.mobile.ui.tdrives.input_detail
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.delay
-import de.rogallab.mobile.Globals.delayRead
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.ICarRepository
@@ -36,6 +35,7 @@ class TDriveViewModel(
    private val _stringProvider: IStringProvider,
    private val _validator: TDriveValidator,
    private val _effectDelegate: EffectDelegate<TDriveEffect>,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<TDriveEffect> by _effectDelegate {
 
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
@@ -83,7 +83,7 @@ class TDriveViewModel(
 
    private fun observePeople() {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people -> _stateFlow.update { state: TDriveUiState -> state.copy(people = people) } }
@@ -93,7 +93,7 @@ class TDriveViewModel(
    }
    private fun observeCars() {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars -> _stateFlow.update { state: TDriveUiState -> state.copy(cars = cars) } }
@@ -103,7 +103,7 @@ class TDriveViewModel(
    }
    private fun loadTDrive(id: String) {
       viewModelScope.launch {
-         delay(delayRead)
+         delay(_timing.delayRead)
 
          _tDriveRepository.findById(id).onSuccess { tDrive ->
             if (tDrive == null) {
@@ -141,7 +141,7 @@ class TDriveViewModel(
       _stateFlow.update { current: TDriveUiState -> current.copy(tDrive = normalized) }
       _isSaving = true
       viewModelScope.launch {
-         delay(delayWrite)
+         delay(_timing.delayWrite)
 
          val result = if (_isNew) _tDriveRepository.create(normalized) else _tDriveRepository.update(normalized)
          result.onSuccess {
