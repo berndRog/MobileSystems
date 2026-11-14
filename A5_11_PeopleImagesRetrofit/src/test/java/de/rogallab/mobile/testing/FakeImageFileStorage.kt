@@ -2,8 +2,8 @@ package de.rogallab.mobile.testing
 
 import android.net.Uri
 import de.rogallab.mobile.shared.domain.io.CameraImageFile
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.io.ImageFileFormat
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.ImageFileFormat
 
 class FakeImageFileStorage : IImageFileStorage {
    val copiedUris = mutableListOf<Uri>()

@@ -3,7 +3,7 @@ package de.rogallab.mobile.shared.data.local.io
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import de.rogallab.mobile.shared.domain.io.ImageFileFormat
+import de.rogallab.mobile.shared.domain.images.ImageFileFormat
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers

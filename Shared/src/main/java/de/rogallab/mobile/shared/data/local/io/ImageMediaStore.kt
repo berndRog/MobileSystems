@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
-import de.rogallab.mobile.shared.domain.io.IImageMediaStore
+import de.rogallab.mobile.shared.domain.images.IImageMediaStore
 import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers

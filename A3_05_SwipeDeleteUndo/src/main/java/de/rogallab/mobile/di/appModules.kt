@@ -8,10 +8,10 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.removal.IVisualRemoval
+import de.rogallab.mobile.shared.domain.IVisualRemoval
 import de.rogallab.mobile.shared.ui.removal.VisualRemovalDelegate
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect

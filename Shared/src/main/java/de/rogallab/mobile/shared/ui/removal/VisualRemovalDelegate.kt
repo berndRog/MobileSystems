@@ -1,5 +1,7 @@
 package de.rogallab.mobile.shared.ui.removal
 
+import de.rogallab.mobile.shared.domain.IVisualRemoval
+
 /**
  * Stores the temporary removal state for one list feature.
  *

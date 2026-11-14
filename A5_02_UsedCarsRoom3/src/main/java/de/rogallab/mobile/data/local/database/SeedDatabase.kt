@@ -5,7 +5,7 @@ import de.rogallab.mobile.data.IPersonDao
 import de.rogallab.mobile.data.ITDriveDao
 import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.dtos.TDriveDto
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.runBlocking
 import java.util.Locale

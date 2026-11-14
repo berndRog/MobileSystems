@@ -1,9 +1,9 @@
 package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository

@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.domain.io
+package de.rogallab.mobile.shared.domain.images
 
 import android.app.Application
 import android.net.Uri

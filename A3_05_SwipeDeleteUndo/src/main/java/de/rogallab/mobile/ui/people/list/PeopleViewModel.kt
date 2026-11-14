@@ -9,8 +9,8 @@ import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.effects.IEffectSource
-import de.rogallab.mobile.shared.ui.removal.IVisualRemoval
+import de.rogallab.mobile.shared.domain.IEffectSource
+import de.rogallab.mobile.shared.domain.IVisualRemoval
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

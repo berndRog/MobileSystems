@@ -4,8 +4,8 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.data.remote.dtos.CarDto
 import de.rogallab.mobile.data.remote.dtos.PersonDto
 import de.rogallab.mobile.data.remote.dtos.TDriveDto
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.io.ImageFileFormat
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.ImageFileFormat
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import org.koin.core.component.KoinComponent

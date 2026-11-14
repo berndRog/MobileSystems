@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.R as SharedR
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.images.CameraPickerHandler

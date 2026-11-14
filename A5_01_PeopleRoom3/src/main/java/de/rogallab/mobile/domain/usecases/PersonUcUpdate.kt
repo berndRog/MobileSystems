@@ -3,7 +3,7 @@ package de.rogallab.mobile.domain.usecases
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcUpdate(

@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.domain.io
+package de.rogallab.mobile.shared.domain.images
 
 /**
  * File format used when a drawable resource is written to private app storage.

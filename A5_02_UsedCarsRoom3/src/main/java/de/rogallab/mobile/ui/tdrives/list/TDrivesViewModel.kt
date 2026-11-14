@@ -11,7 +11,7 @@ import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

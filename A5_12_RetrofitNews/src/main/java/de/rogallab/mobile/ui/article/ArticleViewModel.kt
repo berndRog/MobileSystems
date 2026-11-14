@@ -9,7 +9,7 @@ import de.rogallab.mobile.domain.IArticleRepository
 import de.rogallab.mobile.domain.entities.Article
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.launch
 
 class ArticleViewModel(

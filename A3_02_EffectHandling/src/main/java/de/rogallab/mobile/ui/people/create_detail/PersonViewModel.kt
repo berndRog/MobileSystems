@@ -9,7 +9,7 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput

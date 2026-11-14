@@ -13,7 +13,7 @@ import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.newUuid
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.effects.IEffectSource
+import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlin.time.Clock

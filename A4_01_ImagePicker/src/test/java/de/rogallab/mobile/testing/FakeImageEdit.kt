@@ -1,6 +1,6 @@
 package de.rogallab.mobile.testing
 
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 
 class FakeImageEdit : IImageEdit {
    var commitCount = 0

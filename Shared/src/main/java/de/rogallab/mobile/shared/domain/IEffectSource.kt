@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.ui.effects
+package de.rogallab.mobile.shared.domain
 
 import kotlinx.coroutines.flow.Flow
 

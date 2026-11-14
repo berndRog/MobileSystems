@@ -7,7 +7,7 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.data.local.IPersonDao
 import de.rogallab.mobile.shared.data.local.database.AppDatabasePerson
 import de.rogallab.mobile.shared.domain.IStringProvider
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel

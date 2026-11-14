@@ -20,10 +20,10 @@ import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
 import de.rogallab.mobile.ui.cars.input_detail.CarViewModel

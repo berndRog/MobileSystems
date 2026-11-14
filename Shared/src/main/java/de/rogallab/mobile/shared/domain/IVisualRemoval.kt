@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.ui.removal
+package de.rogallab.mobile.shared.domain
 
 /**
  * Manages items that are temporarily hidden from a visible list while an

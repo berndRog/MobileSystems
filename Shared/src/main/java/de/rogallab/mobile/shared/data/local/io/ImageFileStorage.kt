@@ -10,9 +10,9 @@ import android.os.Build
 import android.webkit.MimeTypeMap
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import de.rogallab.mobile.shared.domain.io.CameraImageFile
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.io.ImageFileFormat
+import de.rogallab.mobile.shared.domain.images.CameraImageFile
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.ImageFileFormat
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID

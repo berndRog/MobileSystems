@@ -3,10 +3,10 @@ package de.rogallab.mobile.shared.di
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import de.rogallab.mobile.shared.domain.IStringProvider
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.io.IImageMediaStore
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageMediaStore
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import org.junit.After
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame

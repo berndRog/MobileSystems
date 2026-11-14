@@ -13,9 +13,9 @@ import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
 import de.rogallab.mobile.ui.cars.input_detail.CarViewModel

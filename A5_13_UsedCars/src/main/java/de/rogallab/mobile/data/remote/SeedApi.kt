@@ -1,6 +1,6 @@
 package de.rogallab.mobile.data.remote
 
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlin.coroutines.cancellation.CancellationException
 

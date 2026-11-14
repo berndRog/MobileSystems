@@ -1,4 +1,4 @@
-package de.rogallab.mobile.shared.ui.images
+package de.rogallab.mobile.shared.domain.images
 
 interface IImageEdit {
 

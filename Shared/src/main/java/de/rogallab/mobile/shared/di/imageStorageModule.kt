@@ -2,10 +2,10 @@ package de.rogallab.mobile.shared.di
 
 import de.rogallab.mobile.shared.data.local.io.ImageFileStorage
 import de.rogallab.mobile.shared.data.local.io.ImageMediaStore
-import de.rogallab.mobile.shared.domain.io.IImageFileStorage
-import de.rogallab.mobile.shared.domain.io.IImageMediaStore
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.IImageMediaStore
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import de.rogallab.mobile.shared.ui.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.shared.ui.images.ImageEdit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers

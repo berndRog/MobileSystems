@@ -1,6 +1,7 @@
 package de.rogallab.mobile.shared.ui.effects
 
 import app.cash.turbine.test
+import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
