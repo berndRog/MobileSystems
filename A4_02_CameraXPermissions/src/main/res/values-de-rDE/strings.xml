@@ -1,0 +1,15 @@
+<resources>
+  <string name="app_name">CameraXwithAudio</string>
+  <string name="permission_camera_rationale_preview">Die App braucht die Kamera für den Sucher sowie für Foto- und Videoaufnahmen.</string>
+  <string name="action_grant_permission">Zugriff erlauben</string>
+  <string name="action_open_settings">Einstellungen öffnen</string>
+  <string name="action_take_photo">Foto</string>
+  <string name="action_start_video">Video aufnehmen</string>
+  <string name="action_stop_video">Stopp</string>
+  <string name="camera_recording">● REC</string>
+  <string name="camera_no_audio_hint">Mikrofon nicht erlaubt: Das Video wird ohne Ton aufgenommen.</string>
+  <string name="camera_photo_saved">Foto gespeichert</string>
+  <string name="camera_video_saved">Video gespeichert</string>
+  <string name="camera_photo_failed">Foto konnte nicht gespeichert werden</string>
+  <string name="camera_video_failed">Video konnte nicht gespeichert werden</string>
+</resources>

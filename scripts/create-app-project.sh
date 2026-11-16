@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-   printf 'Aufruf: %s A6_01_Sensors\n' "${0##*/}" >&2
+   printf 'Aufruf: %s A4_02_CameraXPermissions\n' "${0##*/}" >&2
    exit 2
 }
 

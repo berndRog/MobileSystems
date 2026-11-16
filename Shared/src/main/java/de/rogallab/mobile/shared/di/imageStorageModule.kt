@@ -2,10 +2,12 @@ package de.rogallab.mobile.shared.di
 
 import de.rogallab.mobile.shared.data.local.io.ImageFileStorage
 import de.rogallab.mobile.shared.data.local.io.ImageMediaStore
+import de.rogallab.mobile.shared.data.local.io.VideoMediaStore
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.images.IImageMediaStore
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.IVideoMediaStore
 import de.rogallab.mobile.shared.ui.images.ImageEdit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,11 @@ fun imageStorageModule(
          context = androidContext(),
          ioDispatcher = ioDispatcher,
       )
+   }
+
+   Alog.i(tag,"single    -> VideoMediaStore: IVideoMediaStore")
+   single<IVideoMediaStore> {
+      VideoMediaStore(context = androidContext())
    }
 
    Alog.i(tag,"factory   -> ImageEdit: IImageEdit")

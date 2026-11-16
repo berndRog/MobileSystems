@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+   <!-- The app accesses the camera hardware itself (CameraX), so it needs the permissions. -->
+   <uses-permission android:name="android.permission.CAMERA" />
+   <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+   <!-- Saving into MediaStore needs no permission from API 29 on. -->
+   <uses-permission
+     android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+     android:maxSdkVersion="28" />
+
+   <!-- Camera is optional for installation, Play Store does not filter devices out. -->
+   <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+   <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
    <application
-      android:label="A4_02_CameraXPermissions"
-      android:theme="@android:style/Theme.Material.Light.NoActionBar">
+     android:name=".MainApplication"
+     android:allowBackup="true"
+     android:icon="@mipmap/ic_launcher"
+     android:label="@string/app_name"
+     android:theme="@style/Theme.MobileSystems">
+
       <activity
-         android:name=".ui.MainActivity"
-         android:exported="true">
+        android:name=".ui.MainActivity"
+        android:exported="true">
          <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

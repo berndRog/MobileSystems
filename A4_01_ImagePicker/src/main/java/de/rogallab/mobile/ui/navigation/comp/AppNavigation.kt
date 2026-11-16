@@ -37,7 +37,9 @@ import de.rogallab.mobile.ui.navigation.PopReason
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation(timing: AppTiming = koinInject()) {
+fun AppNavigation(
+   timing: AppTiming = koinInject()
+) {
 
    val navigationAnimations = remember(timing.animationDuration) {
       NavigationAnimations(timing.animationDuration)

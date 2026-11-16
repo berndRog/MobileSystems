@@ -22,6 +22,7 @@ kotlinxDatetime = "0.8.0"
 kotlinxSerializationJson = "1.11.0"
 
 # Data, dependency injection, images, networking, and device services
+camerax = "1.6.2"
 coil = "3.6.3"
 googleJson = "2.15.0"
 errorProneAnnotations = "2.50.0"
@@ -30,8 +31,10 @@ koin = "4.2.2"
 ksp = "2.3.10"
 retrofit = "3.0.0"
 retrofitLogging = "5.5.1"
+roomKtx = "2.8.5"
 room3 = "3.0.3"
 sqliteBundled = "2.7.1"
+
 
 # Testing
 androidTestCore = "1.7.0"
@@ -45,6 +48,7 @@ mockitoKotlin = "6.4.0"
 robolectric = "4.16.1"
 truth = "1.7.0"
 turbine = "1.2.1"
+
 
 [libraries]
 # Kotlin coroutines, date/time, and serialization
@@ -83,6 +87,7 @@ androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", vers
 androidx-room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
 androidx-room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqliteBundled" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 
 # Koin dependency injection
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -92,6 +97,14 @@ koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", versi
 # Coil image loading and network support
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
+# Camera
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-compose = { group = "androidx.camera", name = "camera-compose", version.ref = "camerax" }
+
 
 # Retrofit, JSON converters, and HTTP logging
 gson-json = { module = "com.google.code.gson:gson", version.ref = "googleJson" }
