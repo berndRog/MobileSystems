@@ -5,7 +5,11 @@
   <string name="action_open_settings">Einstellungen öffnen</string>
   <string name="action_take_photo">Foto</string>
   <string name="action_start_video">Video aufnehmen</string>
+  <string name="action_open_videos">Video öffnen</string>
   <string name="action_stop_video">Stopp</string>
+  <string name="action_select_video">Video auswählen</string>
+  <string name="action_back_to_camera">Zurück zur Kamera</string>
+
   <string name="camera_recording">● REC</string>
   <string name="camera_no_audio_hint">Mikrofon nicht erlaubt: Das Video wird ohne Ton aufgenommen.</string>
   <string name="camera_photo_saved">Foto gespeichert</string>

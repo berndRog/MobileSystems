@@ -12,8 +12,10 @@ dependencies {
    implementation(libs.androidx.camera.video)
    implementation(libs.androidx.camera.compose)
 
+
    // Material icons: https://developer.android.com/jetpack/androidx/releases/compose-material
    implementation(libs.androidx.material.icons.extended)
+   implementation(libs.androidx.navigation3.ui)
    implementation(libs.androidx.room.ktx)
 
    // Koin dependency injection: https://insert-koin.io/docs/reference/koin-android/start/
@@ -24,4 +26,6 @@ dependencies {
    // Coil image loading: https://coil-kt.github.io/coil/
    implementation(libs.coil.compose)
    implementation(libs.coil.network.okhttp)
+
+   implementation(libs.androidx.navigation3.runtime)
 }

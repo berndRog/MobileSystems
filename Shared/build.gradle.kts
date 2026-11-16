@@ -5,6 +5,8 @@ plugins {
 dependencies {
    // Compose Activity integration: https://developer.android.com/jetpack/androidx/releases/activity
    implementation(libs.androidx.activity.compose)
+   implementation(libs.androidx.media3.common.ktx)
+   implementation(libs.androidx.media3.exoplayer)
 
    // Navigation 3: https://developer.android.com/jetpack/androidx/releases/navigation3
    implementation(libs.androidx.navigation3.runtime)
@@ -24,6 +26,10 @@ dependencies {
    // Coil image loading: https://coil-kt.github.io/coil/
    implementation(libs.coil.compose)
    implementation(libs.coil.network.okhttp)
+
+   // Videoplayer
+   implementation(libs.androidx.media3.exoplayer)
+   implementation(libs.androidx.media3.ui.compose)
 
    // Retrofit, JSON converters, and HTTP logging: https://square.github.io/retrofit/
    implementation(libs.retrofit2.core)

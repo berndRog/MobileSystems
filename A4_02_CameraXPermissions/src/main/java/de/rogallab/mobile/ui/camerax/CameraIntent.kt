@@ -4,4 +4,6 @@ package de.rogallab.mobile.ui.camerax
 sealed interface CameraIntent {
    data object TakePhoto : CameraIntent
    data class ToggleRecording(val audioGranted: Boolean) : CameraIntent
+   data object PlayVideo : CameraIntent
+   data object ClosePlayer : CameraIntent
 }

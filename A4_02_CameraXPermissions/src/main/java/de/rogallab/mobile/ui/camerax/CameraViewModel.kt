@@ -48,7 +48,6 @@ import kotlinx.coroutines.launch
 class CameraViewModel(
    application: Application,
    private val _imageFileStorage: IImageFileStorage,
-   private val _imageMediaStore: IImageMediaStore,
    private val _videoMediaStore: IVideoMediaStore,
    private val _photoUcSave: PhotoUcSave,
    private val _videoUcFinish: VideoUcFinish,
@@ -89,6 +88,8 @@ class CameraViewModel(
       when (intent) {
          CameraIntent.TakePhoto -> takePhoto()
          is CameraIntent.ToggleRecording -> toggleRecording(intent.audioGranted)
+         CameraIntent.PlayVideo -> _stateFlow.update { it.copy(isPlayerVisible = it.lastVideoUri != null) }
+         CameraIntent.ClosePlayer -> _stateFlow.update { it.copy(isPlayerVisible = false) }
       }
    }
 

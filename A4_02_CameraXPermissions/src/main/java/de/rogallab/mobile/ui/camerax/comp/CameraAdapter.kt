@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
+import de.rogallab.mobile.shared.ui.images.VideoPlayer
 import de.rogallab.mobile.ui.camerax.CameraAndAudioPermissionsHandler
 import de.rogallab.mobile.ui.camerax.CameraEffect
 import de.rogallab.mobile.ui.camerax.CameraIntent
@@ -22,6 +23,7 @@ fun CameraAdapter(
    viewModel: CameraViewModel = koinViewModel(),
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
+   onOpenViewer: (String?) -> Unit,
    modifier: Modifier = Modifier
 ) {
    val lifecycleOwner = LocalLifecycleOwner.current
@@ -31,8 +33,6 @@ fun CameraAdapter(
    val snackbarController = rememberSnackbarController(
       snackbarHostState = snackbarHostState,
    )
-   val onMessage = snackbarController::showMessage
-   val onError = snackbarController::showError
 
    // Handle one-time effects separately from the persistent UI state.
    EffectHandler(viewModel.effects) { cameraEffect ->
@@ -55,10 +55,16 @@ fun CameraAdapter(
          isRecording = cameraUiState.isRecording,
          audioGranted = audioGranted,
          // Events go to the ViewModel as intents.
-         onTakePhoto = { viewModel.onIntent(CameraIntent.TakePhoto) },
+         onTakePhoto = {
+            viewModel.onIntent(CameraIntent.TakePhoto)
+         },
          onToggleRecording = {
             viewModel.onIntent(CameraIntent.ToggleRecording(audioGranted))
-         }
+         },
+         // last recording if there is one, otherwise the viewer opens its picker
+         onOpenViewer = {
+            onOpenViewer(cameraUiState.lastVideoUri?.toString())
+         },
       )
    }
 }

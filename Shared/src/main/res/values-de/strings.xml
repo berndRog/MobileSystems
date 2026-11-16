@@ -8,6 +8,10 @@
    <string name="action_remove_photo">Foto entfernen</string>
    <string name="action_enable_steps">Schrittzähler aktivieren</string>
    <string name="action_open_settings">Öffne Einstellungen</string>
+   <string name="action_play">Abspielen</string>
+   <string name="action_pause">Pause</string>
+   <string name="action_close">Schließen</string>
+   <string name="action_select_other_video">Anderes Video auswählen</string>
 
    <string name="error_image_save">Foto konnte nicht lokal gespeichert werden.</string>
    <string name="error_no_network_connection">Keine Netzwerkverbindung.</string>

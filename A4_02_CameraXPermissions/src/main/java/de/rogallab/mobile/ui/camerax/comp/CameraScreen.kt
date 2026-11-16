@@ -19,6 +19,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
 import androidx.camera.compose.CameraXViewfinder
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
+import androidx.compose.material3.TextButton
 
 // Stateless: only renders state and reports events.
 @Composable
@@ -28,6 +36,7 @@ fun CameraScreen(
    audioGranted: Boolean,
    onTakePhoto: () -> Unit,
    onToggleRecording: () -> Unit,
+   onOpenViewer: () -> Unit,
    modifier: Modifier = Modifier,
 ) {
    Box(modifier = modifier.fillMaxSize()) {
@@ -65,23 +74,34 @@ fun CameraScreen(
             )
          }
          Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(
+            IconButton(
                onClick = onTakePhoto,
                enabled = !isRecording
             ) {
-               Text(stringResource(R.string.action_take_photo))
+               Icon(
+                  imageVector = Icons.Filled.PhotoCamera,
+                  contentDescription = stringResource(R.string.action_take_photo),
+                  tint = Color.White
+               )
             }
-            Button(
-               onClick = onToggleRecording,
-               colors =
-                  if (isRecording)
-                     ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error)
-                  else
-                     ButtonDefaults.buttonColors(),
+            IconButton(onClick = onToggleRecording) {
+               Icon(
+                  imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
+                  contentDescription = stringResource(
+                     if (isRecording) R.string.action_stop_video else R.string.action_start_video),
+                  tint = if (isRecording) Color.White else MaterialTheme.colorScheme.error,
+               )
+            }
+
+            // onOpenViewer: () -> Unit
+            TextButton(
+               onClick = onOpenViewer,
+               enabled = !isRecording,           // leaving the screen would unbind the camera
+               modifier = Modifier
+                  .align(Alignment.CenterVertically)
+                  .padding(8.dp),
             ) {
-               Text(stringResource(
-                  if (isRecording) R.string.action_stop_video else R.string.action_start_video))
+               Text(stringResource(R.string.action_open_videos))
             }
          }
       }
