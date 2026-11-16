@@ -19,14 +19,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
 import androidx.camera.compose.CameraXViewfinder
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clip
 
 // Stateless: only renders state and reports events.
 @Composable
@@ -55,7 +60,9 @@ fun CameraScreen(
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier
                .align(Alignment.TopStart)
-               .padding(16.dp),
+               .clip(RoundedCornerShape(50))
+               .background(Color.White.copy(alpha = 0.4f))
+               .padding(16.dp)
          )
       }
 
@@ -73,7 +80,14 @@ fun CameraScreen(
                color = Color.White,
             )
          }
-         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+         Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+               .clip(RoundedCornerShape(50))
+               .background(Color.Gray.copy(alpha = 0.4f))
+               .padding(horizontal = 12.dp, vertical = 4.dp)
+         ) {
             IconButton(
                onClick = onTakePhoto,
                enabled = !isRecording
@@ -81,7 +95,8 @@ fun CameraScreen(
                Icon(
                   imageVector = Icons.Filled.PhotoCamera,
                   contentDescription = stringResource(R.string.action_take_photo),
-                  tint = Color.White
+                  tint = Color.White,
+                  modifier = Modifier.size(36.dp)
                )
             }
             IconButton(onClick = onToggleRecording) {
@@ -89,19 +104,21 @@ fun CameraScreen(
                   imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
                   contentDescription = stringResource(
                      if (isRecording) R.string.action_stop_video else R.string.action_start_video),
-                  tint = if (isRecording) Color.White else MaterialTheme.colorScheme.error,
+                  tint = if (isRecording) MaterialTheme.colorScheme.error else Color.White ,
+                  modifier = Modifier.size(36.dp)
                )
             }
 
-            // onOpenViewer: () -> Unit
-            TextButton(
+            IconButton(
                onClick = onOpenViewer,
-               enabled = !isRecording,           // leaving the screen would unbind the camera
-               modifier = Modifier
-                  .align(Alignment.CenterVertically)
-                  .padding(8.dp),
+               enabled = !isRecording
             ) {
-               Text(stringResource(R.string.action_open_videos))
+               Icon(
+                  imageVector = Icons.Filled.PlayCircle,
+                  contentDescription = stringResource(R.string.action_open_videos),
+                  tint = Color.White,
+                  modifier = Modifier.size(36.dp)
+               )
             }
          }
       }

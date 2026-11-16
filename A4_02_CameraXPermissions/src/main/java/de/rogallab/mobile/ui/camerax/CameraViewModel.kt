@@ -64,19 +64,21 @@ class CameraViewModel(
    // asynchronously, and the photo or video must still be published or discarded.
    private val finishScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-   // CameraX use cases
+   // CameraX
    private val preview = Preview.Builder().build().apply {
       setSurfaceProvider { request ->
          _stateFlow.update { it.copy(surfaceRequest = request) }
       }
    }
+
    private val imageCapture = ImageCapture.Builder().build()
+
    private val recorder = Recorder.Builder()
-      .setQualitySelector(
-         QualitySelector.from(
+      .setQualitySelector(QualitySelector.from(
             Quality.HD,
             FallbackStrategy.lowerQualityOrHigherThan(Quality.HD)))
       .build()
+
    private val videoCapture = VideoCapture.withOutput(recorder)
 
    private var activeRecording: Recording? = null

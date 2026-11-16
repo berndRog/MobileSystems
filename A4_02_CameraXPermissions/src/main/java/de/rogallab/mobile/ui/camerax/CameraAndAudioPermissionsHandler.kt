@@ -38,6 +38,7 @@ fun CameraAndAudioPermissionsHandler(
 
    var cameraGranted by remember { mutableStateOf(isGranted(Manifest.permission.CAMERA)) }
    var audioGranted by remember { mutableStateOf(isGranted(Manifest.permission.RECORD_AUDIO)) }
+
    // false after a permanent denial: the system shows no dialog anymore
    var canAskAgain by rememberSaveable { mutableStateOf(true) }
 
