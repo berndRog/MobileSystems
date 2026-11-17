@@ -1,7 +1,7 @@
 package de.rogallab.mobile.testing
 
 import android.net.Uri
-import de.rogallab.mobile.shared.domain.io.CameraImageFile
+import de.rogallab.mobile.shared.domain.images.CameraImageFile
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.images.ImageFileFormat
 
@@ -21,6 +21,9 @@ class FakeImageFileStorage : IImageFileStorage {
    }
 
    override suspend fun createCameraImageFile(): Result<CameraImageFile> =
+      Result.failure(UnsupportedOperationException("not needed by this test"))
+
+   override suspend fun createPrivateImageFile(): Result<String> =
       Result.failure(UnsupportedOperationException("not needed by this test"))
 
    override suspend fun confirmCameraImageFile(

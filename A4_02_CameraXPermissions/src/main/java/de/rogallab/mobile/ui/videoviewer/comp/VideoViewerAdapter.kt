@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.videoviewer.comp
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,11 @@ import de.rogallab.mobile.shared.ui.images.VideoPlayer
 import de.rogallab.mobile.ui.videoviewer.VideoViewerIntent
 import de.rogallab.mobile.ui.videoviewer.VideoViewerViewModel
 
+// Stateful: connects the ViewModel with the picker and the stateless player.
+//
+// Two states:
+//   videoUri == null  -> selection: "Select video" / "Back to camera"
+//   videoUri != null  -> player:    "Close" returns to the selection state
 @Composable
 fun VideoViewerAdapter(
    viewModel: VideoViewerViewModel,
@@ -30,11 +36,18 @@ fun VideoViewerAdapter(
    val uiState by viewModel.stateFlow.collectAsStateWithLifecycle()
    val videoUri = uiState.videoUri
 
+   // While a video is shown, Back returns to the selection state first.
+   // Without a video the handler is disabled and NavDisplay.onBack leaves the screen.
+   BackHandler(enabled = videoUri != null) {
+      viewModel.onIntent(VideoViewerIntent.ClearVideo)
+   }
+
    VideoPickerHandlerSingle(
       onVideoSelected = { viewModel.onIntent(VideoViewerIntent.VideoSelected(it)) },
    ) { pickerActions ->
 
       if (videoUri == null) {
+         // Selection state: pick a video or go back to the camera.
          Column(
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
@@ -51,10 +64,12 @@ fun VideoViewerAdapter(
             }
          }
       } else {
+         // Player state: leaving the composition releases the ExoPlayer (onDispose).
          VideoPlayer(
             uri = videoUri,
             onSelectOther = pickerActions.selectVideo,
-            onClose = onNavigateBack,
+            // Closing the player returns to the selection state, not to the camera.
+            onClose = { viewModel.onIntent(VideoViewerIntent.ClearVideo) },
             modifier = modifier,
          )
       }

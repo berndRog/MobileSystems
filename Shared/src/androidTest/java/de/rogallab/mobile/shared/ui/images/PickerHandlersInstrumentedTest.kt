@@ -104,6 +104,9 @@ class PickerHandlersInstrumentedTest {
       override suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String> =
          Result.failure(UnsupportedOperationException())
 
+      override suspend fun createPrivateImageFile(): Result<String> =
+         error("Private capture must not be used by this test")
+
       override suspend fun createCameraImageFile(): Result<CameraImageFile> =
          Result.failure(failure)
 

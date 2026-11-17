@@ -122,13 +122,12 @@ class CameraViewModel(
 
       viewModelScope.launch {
          // 1. Create an empty private JPEG file as the target of the capture.
-         val imagePath = _imageFileStorage.createCameraImageFile()
+         val imagePath = _imageFileStorage.createPrivateImageFile()
             .getOrElse { throwable ->
                Alog.e(TAG, "createCameraImageFile failed: ${throwable.message}")
                emitError(R.string.camera_photo_failed)
                return@launch
             }
-            .imagePath
 
          // 2. CameraX writes the JPEG directly into the private file.
          val output = ImageCapture.OutputFileOptions.Builder(File(imagePath)).build()

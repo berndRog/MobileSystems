@@ -32,6 +32,46 @@ class ImageFileStorageInstrumentedTest {
       )
 
    @Test
+   fun createPrivateImageFile_createsEmptyPrivateJpegWithoutFileProvider() = runTest {
+      val directoryName = newDirectoryName()
+      val directory = File(context.filesDir, directoryName)
+      val storage = ImageFileStorage(
+         context = context,
+         directoryName = directoryName,
+         fileProviderAuthority = "unregistered.test.fileprovider",
+      )
+
+      try {
+         val path = storage.createPrivateImageFile().getOrThrow()
+         val file = File(path)
+
+         assertTrue(file.isAbsolute)
+         assertTrue(file.isFile)
+         assertEquals(directory.canonicalFile, file.canonicalFile.parentFile)
+         assertEquals("jpg", file.extension)
+         assertEquals(0L, file.length())
+      } finally {
+         directory.deleteRecursively()
+      }
+   }
+
+   @Test
+   fun createPrivateImageFile_blockedDirectory_returnsFailure() = runTest {
+      val directoryName = newDirectoryName()
+      val blocker = File(context.filesDir, directoryName).apply {
+         writeBytes(byteArrayOf(1))
+      }
+      try {
+         val result = newStorage(directoryName).createPrivateImageFile()
+
+         assertTrue(result.isFailure)
+         assertTrue(result.exceptionOrNull() is java.io.IOException)
+      } finally {
+         blocker.delete()
+      }
+   }
+
+   @Test
    fun createCameraImageFile_createsPrivateFileAndContentUri() = runTest {
       val directoryName = newDirectoryName()
       val storage = newStorage(directoryName)

@@ -82,7 +82,7 @@ fun CameraAndAudioPermissionsHandler(
       // Request permissions
       else {
          Column(
-            modifier = modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
          ) {

@@ -23,6 +23,9 @@ class FakeImageFileStorage : IImageFileStorage {
    override suspend fun createCameraImageFile(): Result<CameraImageFile> =
       Result.failure(UnsupportedOperationException("not needed by this test"))
 
+   override suspend fun createPrivateImageFile(): Result<String> =
+      Result.failure(UnsupportedOperationException("not needed by this test"))
+
    override suspend fun confirmCameraImageFile(
       imagePath: String,
    ): Result<String> =

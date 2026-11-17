@@ -116,6 +116,12 @@ class ImageFileStorage(
          }
       }
 
+   // Creates an empty private JPEG file, e.g. as the target of CameraX ImageCapture.
+   override suspend fun createPrivateImageFile(): Result<String> =
+      withContext(ioDispatcher) {
+         storageResult { createImageFile(extension = JPEG_EXTENSION).absolutePath }
+      }
+
 
    // Verifies that a camera application wrote a non-empty private image file.
    // The verified absolute path is returned unchanged.

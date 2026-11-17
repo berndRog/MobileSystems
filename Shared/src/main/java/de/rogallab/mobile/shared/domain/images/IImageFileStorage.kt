@@ -18,6 +18,9 @@ interface IImageFileStorage {
    // Creates an empty private JPEG file and its FileProvider Uri for TakePicture.
    suspend fun createCameraImageFile(): Result<CameraImageFile>
 
+   // Creates an empty private JPEG file, e.g. as the target of CameraX ImageCapture.
+   suspend fun createPrivateImageFile(): Result<String>
+
     // Verifies that a camera application wrote a non-empty private image file.
     // The verified absolute path is returned unchanged.
    suspend fun confirmCameraImageFile(imagePath: String): Result<String>
