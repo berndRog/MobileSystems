@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.SnackbarController
 import de.rogallab.mobile.ui.camerax.comp.CameraAdapter
 import de.rogallab.mobile.ui.videoviewer.comp.VideoViewerAdapter
@@ -14,7 +15,7 @@ import org.koin.core.parameter.parametersOf
 fun AppNavigation(
    snackbarController: SnackbarController
 ) {
-   val backStack = rememberNavBackStack(CameraRoute)
+   val backStack = rememberNavBackStack(CameraKey)
 
    NavDisplay(
       backStack = backStack,
@@ -22,15 +23,18 @@ fun AppNavigation(
       // entryDecorators: take them over from your existing AppNavigation
       entryProvider = entryProvider {
 
-         entry<CameraRoute> {
+         entry<CameraKey> {
             CameraAdapter(
                onMessage = snackbarController::showMessage,
                onError = snackbarController::showError,
-               onOpenViewer = { videoUri -> backStack.add(VideoViewerRoute(videoUri)) },
+               onOpenViewer = { videoUri ->
+                  Alog.v("<-AppNavigation", "open viewer, videoUri = $videoUri")
+                  backStack.add(VideoViewerKey(videoUri))
+               },
             )
          }
 
-         entry<VideoViewerRoute> { route ->
+         entry<VideoViewerKey> { route ->
             VideoViewerAdapter(
                viewModel = koinViewModel { parametersOf(route.videoUri) },
                onNavigateBack = { backStack.removeLastOrNull() },

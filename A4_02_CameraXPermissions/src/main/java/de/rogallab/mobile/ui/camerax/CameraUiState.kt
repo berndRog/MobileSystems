@@ -7,6 +7,5 @@ import androidx.camera.core.SurfaceRequest
 data class CameraUiState(
    val surfaceRequest: SurfaceRequest? = null,   // image source for the viewfinder
    val isRecording: Boolean = false,
-   val lastVideoUri: Uri? = null,
-   val isPlayerVisible: Boolean = false,
+   val lastVideoUri: Uri? = null                 // last published video, opened by the viewer
 )

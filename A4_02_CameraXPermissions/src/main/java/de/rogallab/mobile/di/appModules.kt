@@ -55,7 +55,9 @@ fun appModule(): Module = module {
       )
    }
    Alog.i(tag, "viewModel -> VideoViewerViewModel")
-   viewModel {
-      VideoViewerViewModel()
+   viewModel { parameters ->
+      VideoViewerViewModel(
+         initialVideoUri = parameters.getOrNull<String>(),
+      )
    }
 }
