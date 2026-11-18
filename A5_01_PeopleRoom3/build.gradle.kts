@@ -34,6 +34,9 @@ dependencies {
    implementation(libs.kotlinx.serialization.json)
 
    // Koin testing: https://insert-koin.io/docs/reference/koin-test/testing/
+   // Use Robolectric's Android SQLite support for local Room DAO tests.
+   testImplementation("androidx.sqlite:sqlite-framework:${libs.versions.sqliteBundled.get()}")
+
    testImplementation(libs.koin.test)
    testImplementation(libs.koin.test.junit4)
    androidTestImplementation(libs.koin.test)
