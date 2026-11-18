@@ -3,7 +3,63 @@ package de.rogallab.mobile.domain.usecases
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 
+import kotlinx.coroutines.CancellationException
+
+class PersonUcUpdate(
+   private val _repository: IPersonRepository,
+   private val _imageEdit: IImageEdit,
+) {
+
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            // First update the person in the repository.
+            _repository.update(person).getOrThrow()
+
+            // Commit the replacement image only after successful persistence.
+            _imageEdit.commit()
+         },
+         onFinally = {}
+      )
+}
+
+/*
+class PersonUcUpdate(
+   private val _repository: IPersonRepository,
+   private val _imageEdit: IImageEdit,
+) {
+   suspend operator fun invoke(person: Person): Result<Unit> {
+      try {
+         // First update the person in the repository.
+         val result = _repository.update(person)
+
+         // Commit the replacement image only after successful persistence.
+         if (result.isSuccess) {
+            _imageEdit.commit()
+         }
+
+         return result
+
+      } catch (e: CancellationException) {
+         // Coroutine cancellation must be propagated.
+         throw e
+
+      } catch (e: Exception) {
+         // Convert unexpected exceptions to Result.failure.
+         return Result.failure(e)
+
+      } finally {
+         // Always executed, even on return or exception.
+         // Do not discard the image edit session here:
+         // it may still be needed for a retry.
+      }
+   }
+}
+*/
+
+/*
 class PersonUcUpdate(
    private val _repository: IPersonRepository,
    private val _imageEdit: IImageEdit,
@@ -23,6 +79,7 @@ class PersonUcUpdate(
       return result
    }
 }
+*/
 
 /*
  * Didaktik und Lernziele

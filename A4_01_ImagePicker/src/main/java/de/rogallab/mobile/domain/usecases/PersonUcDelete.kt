@@ -4,8 +4,100 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.domain.utilities.resultOf
+import kotlinx.coroutines.CancellationException
 
 class PersonUcDelete(
+   private val _repository: IPersonRepository,
+   private val _imageFileStorage: IImageFileStorage,
+) {
+
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            // First delete the person from the repository.
+            _repository.remove(person).getOrThrow()
+
+            // Image cleanup is best effort because the person
+            // has already been deleted from the repository.
+            try {
+               _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) {
+                        throw throwable
+                     }
+                     Alog.e(TAG, "delete person image failed: ${throwable.message}")
+                  }
+
+            } catch (e: CancellationException) {
+               throw e
+
+            } catch (e: Exception) {
+               // Log unexpected errors without failing the deletion.
+               Alog.e(TAG, "delete person image failed: ${e.message}")
+            }
+            Unit
+         },
+         onFinally = {}
+      )
+
+   companion object {
+      private const val TAG = "<-PersonUcDelete"
+   }
+}
+
+/*
+class PersonUcDelete(
+   private val _repository: IPersonRepository,
+   private val _imageFileStorage: IImageFileStorage,
+) {
+
+   suspend operator fun invoke(person: Person): Result<Unit> {
+      try {
+         // First delete the person from the repository.
+         val result = _repository.remove(person)
+
+         if (result.isSuccess) {
+            // Image cleanup is best effort.
+            // Do not fail the use case if image deletion fails.
+            try {
+               _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
+                  .onFailure { throwable ->
+                     Alog.e(TAG, "delete person image failed: ${throwable.message}")
+                  }
+
+            } catch (e: CancellationException) {
+               throw e
+
+            } catch (e: Exception) {
+               // Log unexpected errors without failing the deletion.
+               Alog.e(TAG, "delete person image failed: ${e.message}")
+            }
+         }
+
+         return result
+
+      } catch (e: CancellationException) {
+         // Coroutine cancellation must be propagated.
+         throw e
+
+      } catch (e: Exception) {
+         // Convert unexpected repository exceptions to Result.failure.
+         return Result.failure(e)
+
+      } finally {
+         // Always executed, including return and exception.
+         // No additional cleanup required here.
+      }
+   }
+
+   companion object {
+      private const val TAG = "<-PersonUcDelete"
+   }
+}
+ */
+
+/*class PersonUcDelete(
    private val _repository: IPersonRepository,
    private val _imageFileStorage: IImageFileStorage,
 ) {
@@ -30,7 +122,7 @@ class PersonUcDelete(
    companion object {
       private const val TAG = "<-PersonUcDelete"
    }
-}
+}*/
 
 /*
  * Didaktik und Lernziele

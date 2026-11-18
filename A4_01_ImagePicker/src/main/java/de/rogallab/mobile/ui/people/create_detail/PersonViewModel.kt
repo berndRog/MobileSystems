@@ -251,7 +251,7 @@ class PersonViewModel(
 
          val result =
             if (_stateFlow.value.isNew) _personUcCreate(person)
-            else                        _personUcUpdate(person)
+            else _personUcUpdate(person)
 
          result
             .onSuccess {
