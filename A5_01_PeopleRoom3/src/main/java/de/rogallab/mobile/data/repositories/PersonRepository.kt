@@ -6,6 +6,9 @@ import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.data.local.checkDeleted
+import de.rogallab.mobile.shared.data.local.checkInserted
+import de.rogallab.mobile.shared.data.local.checkUpdated
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlinx.coroutines.flow.Flow
@@ -70,22 +73,25 @@ class PersonRepository(
    override suspend fun create(person: Person): Result<Unit> =
       resultOf(
          block = {
-            _personDao.insert(person.toPersonDto())
+            val rowId = _personDao.insert(person.toPersonDto())
+            checkInserted(rowId)
          }
       )
 
    override suspend fun update(person: Person): Result<Unit> =
       resultOf(
          block = {
-            _personDao.update(person.toPersonDto())
-         }
+            val rowsAffected = _personDao.update(person.toPersonDto())
+            checkUpdated(rowsAffected)
+         },
       )
 
    override suspend fun remove(person: Person): Result<Unit> =
       resultOf(
          block = {
-            _personDao.delete(person.toPersonDto())
-         }
+            val rowsAffected = _personDao.delete(person.toPersonDto())
+            checkDeleted(rowsAffected)
+         },
       )
 
    companion object {
