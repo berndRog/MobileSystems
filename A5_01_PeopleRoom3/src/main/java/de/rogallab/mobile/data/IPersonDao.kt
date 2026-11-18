@@ -34,16 +34,16 @@ interface IPersonDao {
    suspend fun count(): Int
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(personDto: PersonDto)
+   suspend fun insert(personDto: PersonDto): Long     // internal SQLite-Row-ID
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(personDtos: List<PersonDto>)
-
+   
    @Update
-   suspend fun update(personDto: PersonDto)
+   suspend fun update(personDto: PersonDto): Int    // number of updated  data rows
 
    @Delete
-   suspend fun delete(personDto: PersonDto)
+   suspend fun delete(personDto: PersonDto): Int     // numer of deleted data rows
 }
 
 /*

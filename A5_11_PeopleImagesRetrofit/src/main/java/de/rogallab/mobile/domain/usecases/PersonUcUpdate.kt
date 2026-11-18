@@ -2,6 +2,8 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
+import kotlin.coroutines.cancellation.CancellationException
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
@@ -10,27 +12,31 @@ class PersonUcUpdate(
    private val _imageFileStorage: IImageFileStorage,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> {
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.update(person).getOrThrow()
 
-      // The repository completes JSON and image requests before cleanup starts.
-      val result = _repository.update(person)
-
-      if (result.isSuccess) {
-         // Delete only a local replacement; remote URLs belong to the server.
-         deleteLocalImageQuietly(person.imagePath)
-      }
-      // A failed update keeps a local replacement available for retry.
-
-      return result
-   }
+            // Remove local transport state only after all server requests succeed.
+            deleteLocalImageQuietly(person.imagePath)
+         },
+         onFinally = {}
+      )
 
    private suspend fun deleteLocalImageQuietly(imagePath: String?) {
       if (!imagePath.isLocalImagePath()) return
 
-      _imageFileStorage.deleteImageFromAppStorage(imagePath)
-         .onFailure { throwable ->
-            Alog.e(TAG, "delete temporary image failed: ${throwable.message}")
-         }
+      try {
+         _imageFileStorage.deleteImageFromAppStorage(imagePath)
+            .onFailure { throwable ->
+               if (throwable is CancellationException) throw throwable
+               Alog.e(TAG, "delete temporary image failed: ${throwable.message}")
+            }
+      } catch (e: CancellationException) {
+         throw e
+      } catch (e: Exception) {
+         Alog.e(TAG, "delete temporary image failed: ${e.message}")
+      }
    }
 
    companion object {

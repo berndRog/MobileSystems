@@ -2,6 +2,8 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
+import kotlin.coroutines.cancellation.CancellationException
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
@@ -12,19 +14,27 @@ class PersonUcDelete(
 
    // Deletes the database entry before removing its image file.
    // This order prevents a failed repository call from leaving a broken image reference.
-   suspend operator fun invoke(person: Person): Result<Unit> {
-      val result = _repository.remove(person)
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.remove(person).getOrThrow()
 
-      if (result.isSuccess) {
-         // Image cleanup is best effort because the person has already been deleted.
-         _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
-            .onFailure { throwable ->
-               Alog.e(TAG, "delete person image failed: ${throwable.message}")
+            // Cleanup must not turn a successful repository deletion into a failure.
+            try {
+               _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) throw throwable
+                     Alog.e(TAG, "delete person image failed: ${throwable.message}")
+                  }
+            } catch (e: CancellationException) {
+               throw e
+            } catch (e: Exception) {
+               Alog.e(TAG, "delete person image failed: ${e.message}")
             }
-      }
-
-      return result
-   }
+            Unit
+         },
+         onFinally = {}
+      )
 
    companion object {
       private const val TAG = "<-PersonUcDelete"

@@ -7,6 +7,7 @@ import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -35,6 +36,14 @@ class PersonRepository(
          }
    }
 
+   override suspend fun findById(id: String): Result<Person?> =
+      resultOf(
+         block = {
+              _personDao.findById(id)?.toPerson()
+         }
+      )
+
+/*
    override suspend fun findById(id: String): Result<Person?> {
 //      _counterFindById++
 //      Alog.d(TAG,"findById(), counter=$_counterFindById")
@@ -57,42 +66,27 @@ class PersonRepository(
          Result.failure(e)
       }
    }
-
+*/
    override suspend fun create(person: Person): Result<Unit> =
-      try {
-         //throw RuntimeException("Test exception in create()")
-         Result.success(_personDao.insert(person.toPersonDto()))
-      }
-      catch (e: CancellationException) {
-         throw e
-      }
-      catch (e: Throwable) {
-         Result.failure(e)
-      }
+      resultOf(
+         block = {
+            _personDao.insert(person.toPersonDto())
+         }
+      )
 
    override suspend fun update(person: Person): Result<Unit> =
-      try {
-         //throw RuntimeException("Test exception in update()")
-         Result.success(_personDao.update(person.toPersonDto()))
-      }
-      catch (e: CancellationException) {
-         throw e
-      }
-      catch (e: Throwable) {
-         Result.failure(e)
-      }
+      resultOf(
+         block = {
+            _personDao.update(person.toPersonDto())
+         }
+      )
 
    override suspend fun remove(person: Person): Result<Unit> =
-      try {
-         //throw RuntimeException("Test exception in remove()")
-         Result.success(_personDao.delete(person.toPersonDto()))
-      }
-      catch (e: CancellationException) {
-         throw e
-      }
-      catch (e: Throwable) {
-         Result.failure(e)
-      }
+      resultOf(
+         block = {
+            _personDao.delete(person.toPersonDto())
+         }
+      )
 
    companion object {
       private const val TAG = "<-PersonRepository"
@@ -204,16 +198,6 @@ private val _personDao: IPersonDao,
          )
       }
 
-   private suspend fun <T> resultOf(
-      block: suspend () -> T,
-   ): Result<T> =
-      try {
-         Result.success(block())
-      } catch (exception: CancellationException) {
-         throw exception
-      } catch (throwable: Throwable) {
-         Result.failure(throwable)
-      }
 
    companion object {
       private const val TAG = "<-PersonRepository"

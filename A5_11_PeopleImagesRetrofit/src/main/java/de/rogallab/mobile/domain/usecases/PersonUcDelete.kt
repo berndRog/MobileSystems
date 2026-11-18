@@ -2,6 +2,8 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
+import kotlin.coroutines.cancellation.CancellationException
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
@@ -10,21 +12,30 @@ class PersonUcDelete(
    private val _imageFileStorage: IImageFileStorage,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> {
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.remove(person).getOrThrow()
 
-      // The server deletes the person and its associated server-side image.
-      val result = _repository.remove(person)
-
-      if (result.isSuccess && person.imagePath.isLocalImagePath()) {
-         // Local cleanup is best effort; a remote URL must never be deleted here.
-         _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
-            .onFailure { throwable ->
-               Alog.e(TAG, "delete local person image failed: ${throwable.message}")
+            // Remote URLs belong to the server; only clean up local files.
+            if (person.imagePath.isLocalImagePath()) {
+               // Cleanup must not turn a successful repository deletion into a failure.
+               try {
+                  _imageFileStorage.deleteImageFromAppStorage(person.imagePath)
+                     .onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                        Alog.e(TAG, "delete local person image failed: ${throwable.message}")
+                     }
+               } catch (e: CancellationException) {
+                  throw e
+               } catch (e: Exception) {
+                  Alog.e(TAG, "delete local person image failed: ${e.message}")
+               }
             }
-      }
-
-      return result
-   }
+            Unit
+         },
+         onFinally = {}
+      )
 
    companion object {
       private const val TAG = "<-PersonUcDelete"

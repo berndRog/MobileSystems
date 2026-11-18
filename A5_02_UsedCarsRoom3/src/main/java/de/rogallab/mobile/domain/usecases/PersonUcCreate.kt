@@ -2,6 +2,7 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 
 class PersonUcCreate(
@@ -9,19 +10,16 @@ class PersonUcCreate(
    private val _imageEdit: IImageEdit,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> {
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.create(person).getOrThrow()
 
-      // Creates the person before committing the image edit session.
-      val result = _repository.create(person)
-
-      if (result.isSuccess) {
-         // Commit the image edit session only after a successful repository write.
-         _imageEdit.commit()
-      }
-      // A failed repository write keeps the selected image available for retry.
-
-      return result
-   }
+            // Commit the image edit session only after successful persistence.
+            _imageEdit.commit()
+         },
+         onFinally = {}
+      )
 }
 
 /*

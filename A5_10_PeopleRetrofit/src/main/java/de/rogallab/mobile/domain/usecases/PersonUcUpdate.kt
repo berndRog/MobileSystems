@@ -2,6 +2,7 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 
 class PersonUcUpdate(
@@ -9,19 +10,16 @@ class PersonUcUpdate(
    private val _imageEdit: IImageEdit,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> {
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.update(person).getOrThrow()
 
-      // Updates the person before committing the replacement image.
-      val result = _repository.update(person)
-
-      if (result.isSuccess) {
-         // Commit the image edit session only after a successful repository write.
-         _imageEdit.commit()
-      }
-      // Persisted original images remain untouched when the update fails.
-
-      return result
-   }
+            // Commit the image edit session only after successful persistence.
+            _imageEdit.commit()
+         },
+         onFinally = {}
+      )
 }
 
 /*

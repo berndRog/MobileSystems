@@ -1,5 +1,10 @@
 package de.rogallab.mobile.domain.usecases
 
+import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import kotlin.coroutines.cancellation.CancellationException
+import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -155,6 +160,137 @@ class PersonUseCasesTest {
 
       assertTrue(result.isSuccess)
       assertFalse(storage.deletedPaths.isEmpty())
+   }
+
+   @Test
+   fun repositoryExceptions_becomeFailuresWithoutImageChanges() = runTest {
+      for (operation in operations) {
+         val failure = IllegalStateException("$operation threw")
+         val repository = repositoryWithWrite { throw failure }
+         val storage = FakeImageFileStorage()
+
+         assertSame(failure, invokeFor(operation, repository, storage).exceptionOrNull())
+         assertTrue(storage.deletedPaths.isEmpty())
+      }
+   }
+
+   @Test
+   fun repositoryResultFailures_preserveCauseWithoutImageChanges() = runTest {
+      for (operation in operations) {
+         val failure = IllegalStateException("$operation failed")
+         val repository = repositoryWithWrite { Result.failure(failure) }
+         val storage = FakeImageFileStorage()
+
+         assertSame(failure, invokeFor(operation, repository, storage).exceptionOrNull())
+         assertTrue(storage.deletedPaths.isEmpty())
+      }
+   }
+
+   @Test
+   fun repositoryCancellation_propagatesWhetherThrownOrReturned() = runTest {
+      for (operation in operations) {
+         for (throwDirectly in listOf(false, true)) {
+            val cancellation = CancellationException("$operation cancelled")
+            val repository = repositoryWithWrite {
+               if (throwDirectly) throw cancellation
+               Result.failure(cancellation)
+            }
+            val storage = FakeImageFileStorage()
+
+            assertCancellation(cancellation) { invokeFor(operation, repository, storage) }
+            assertTrue(storage.deletedPaths.isEmpty())
+         }
+      }
+   }
+
+   @Test
+   fun imageCleanupExceptions_keepSuccessfulPersistence() = runTest {
+      for (operation in operations) {
+         val repository = FakePersonRepository()
+         val failure = IllegalStateException("cleanup threw")
+         val storage = object : IImageFileStorage by FakeImageFileStorage() {
+            override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
+               throw failure
+         }
+         assertTrue(invokeFor(operation, repository, storage).isSuccess)
+         assertWriteRecorded(operation, repository)
+      }
+   }
+
+   @Test
+   fun imageCleanupCancellation_propagatesWhetherThrownOrReturned() = runTest {
+      for (operation in operations) {
+         for (throwDirectly in listOf(false, true)) {
+            val repository = FakePersonRepository()
+            val cancellation = CancellationException("cleanup cancelled")
+            val storage = object : IImageFileStorage by FakeImageFileStorage() {
+               override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> {
+                  if (throwDirectly) throw cancellation
+                  return Result.failure(cancellation)
+               }
+            }
+            assertCancellation(cancellation) {
+               invokeFor(operation, repository, storage)
+            }
+            assertWriteRecorded(operation, repository)
+         }
+      }
+   }
+
+   @Test
+   fun imageCleanupResultFailures_keepSuccessfulPersistenceForAllWrites() = runTest {
+      for (operation in operations) {
+         val repository = FakePersonRepository()
+         val storage = FakeImageFileStorage().apply {
+            deleteResult = Result.failure(IllegalStateException("cleanup failed"))
+         }
+         assertTrue(invokeFor(operation, repository, storage).isSuccess)
+         assertWriteRecorded(operation, repository)
+         assertEquals(listOf(localPerson.imagePath), storage.deletedPaths)
+      }
+   }
+
+   private val operations = listOf("create", "update", "delete")
+
+   private fun repositoryWithWrite(
+      write: suspend () -> Result<Unit>,
+   ): IPersonRepository = object : IPersonRepository by FakePersonRepository() {
+      override suspend fun create(person: Person): Result<Unit> = write()
+      override suspend fun update(person: Person): Result<Unit> = write()
+      override suspend fun remove(person: Person): Result<Unit> = write()
+   }
+
+   private suspend fun invokeFor(
+      operation: String,
+      repository: IPersonRepository,
+      storage: IImageFileStorage,
+   ): Result<Unit> = when (operation) {
+      "create" -> PersonUcCreate(repository, storage)(localPerson)
+      "update" -> PersonUcUpdate(repository, storage)(localPerson)
+      "delete" -> PersonUcDelete(repository, storage)(localPerson)
+      else -> error("Unknown operation: $operation")
+   }
+
+   private fun assertWriteRecorded(operation: String, repository: FakePersonRepository) {
+      val writes = when (operation) {
+         "create" -> repository.created
+         "update" -> repository.updated
+         "delete" -> repository.removed
+         else -> error("Unknown operation: $operation")
+      }
+      assertEquals(listOf(localPerson), writes)
+   }
+
+   private suspend fun assertCancellation(
+      expected: CancellationException,
+      block: suspend () -> Unit,
+   ) {
+      try {
+         block()
+         fail("Expected cancellation")
+      } catch (actual: CancellationException) {
+         assertSame(expected, actual)
+      }
    }
 }
 

@@ -2,6 +2,7 @@ package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import kotlin.coroutines.cancellation.CancellationException
@@ -11,26 +12,22 @@ class PersonUcUpdate(
    private val _imageEdit: IImageEdit,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> {
+   suspend operator fun invoke(person: Person): Result<Unit> =
+      resultOf(
+         block = {
+            _repository.update(person).getOrThrow()
 
-      // Updates the person before committing the replacement image.
-      val result = _repository.update(person)
-
-      if (result.isSuccess) {
-         try {
-            // Commit the image edit session only after a successful repository write.
-            _imageEdit.commit()
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Throwable) {
-            // Cleanup cannot turn an already persisted person into a failed Save.
-            Alog.e(TAG, "commit person image failed: ${e.message}")
-         }
-      }
-      // Persisted original images remain untouched when the update fails.
-
-      return result
-   }
+            try {
+               // Preserve the existing best-effort commit after persistence.
+               _imageEdit.commit()
+            } catch (e: CancellationException) {
+               throw e
+            } catch (e: Throwable) {
+               Alog.e(TAG, "commit person image failed: ${e.message}")
+            }
+         },
+         onFinally = {}
+      )
 
    companion object {
       private const val TAG = "<-PersonUcUpdate"
