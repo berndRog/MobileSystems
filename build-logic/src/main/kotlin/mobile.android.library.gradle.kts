@@ -21,7 +21,7 @@ extensions.configure<LibraryExtension>("android") {
         consumerProguardFiles("consumer-rules.keep")
     }
     testOptions {
-        animationsDisabled = true
+        animationsDisabled = false
         unitTests.isIncludeAndroidResources = true
     }
     compileOptions {

@@ -16,6 +16,7 @@ dependencies {
    // Material icons: https://developer.android.com/jetpack/androidx/releases/compose-material
    implementation(libs.androidx.material.icons.extended)
    implementation(libs.androidx.navigation3.ui)
+   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
    implementation(libs.androidx.room.ktx)
 
    // Koin dependency injection: https://insert-koin.io/docs/reference/koin-android/start/

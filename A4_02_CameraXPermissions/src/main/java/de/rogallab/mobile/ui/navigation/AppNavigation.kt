@@ -1,12 +1,17 @@
 package de.rogallab.mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.SnackbarController
+import de.rogallab.mobile.ui.camerax.CameraViewModel
 import de.rogallab.mobile.ui.camerax.comp.CameraAdapter
+import de.rogallab.mobile.ui.videoviewer.VideoViewerViewModel
 import de.rogallab.mobile.ui.videoviewer.comp.VideoViewerAdapter
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -20,11 +25,18 @@ fun AppNavigation(
    NavDisplay(
       backStack = backStack,
       onBack = { backStack.removeLastOrNull() },
-      // entryDecorators: take them over from your existing AppNavigation
+      // Preserves saveable Compose state and ViewModels per NavEntry.
+      entryDecorators = listOf(
+         rememberSaveableStateHolderNavEntryDecorator(
+            rememberSaveableStateHolder()
+         ),
+         rememberViewModelStoreNavEntryDecorator(),
+      ),
       entryProvider = entryProvider {
 
          entry<CameraKey> {
             CameraAdapter(
+               viewModel = koinViewModel<CameraViewModel>(),
                onMessage = snackbarController::showMessage,
                onError = snackbarController::showError,
                onOpenViewer = { videoUri ->
@@ -36,7 +48,7 @@ fun AppNavigation(
 
          entry<VideoViewerKey> { route ->
             VideoViewerAdapter(
-               viewModel = koinViewModel { parametersOf(route.videoUri) },
+               viewModel = koinViewModel<VideoViewerViewModel> { parametersOf(route.videoUri) },
                onNavigateBack = { backStack.removeLastOrNull() },
             )
          }

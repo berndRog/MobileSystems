@@ -16,7 +16,7 @@ import org.koin.androidx.compose.koinViewModel
 // Stateful: connects ViewModel, lifecycle and permissions with the stateless screen.
 @Composable
 fun CameraAdapter(
-   viewModel: CameraViewModel = koinViewModel(),
+   viewModel: CameraViewModel,
    onMessage: (String) -> Unit,
    onError: (String) -> Unit,
    onOpenViewer: (String?) -> Unit,

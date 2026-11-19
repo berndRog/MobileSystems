@@ -25,7 +25,7 @@ extensions.configure<ApplicationExtension>("android") {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     testOptions {
-        animationsDisabled = true
+        animationsDisabled = false
         unitTests.isIncludeAndroidResources = true
     }
     buildTypes {
