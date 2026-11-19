@@ -6,6 +6,10 @@ import de.rogallab.mobile.data.mapping.toTestDrive
 import de.rogallab.mobile.data.mapping.toTestDriveDto
 import de.rogallab.mobile.domain.ITDriveRepository
 import de.rogallab.mobile.domain.entities.TDrive
+import de.rogallab.mobile.shared.data.local.checkInserted
+import de.rogallab.mobile.shared.data.local.checkUpdated
+import de.rogallab.mobile.shared.data.local.checkDeleted
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -20,17 +24,37 @@ class TDriveRepository(private val _tDriveDao: ITDriveDao) : ITDriveRepository {
             if (throwable is CancellationException) throw throwable
             emit(Result.failure(throwable))
          }
-   override suspend fun findById(id: String): Result<TDrive?> = resultOf { _tDriveDao.findById(id)?.toTestDrive() }
-   override suspend fun create(tDrive: TDrive): Result<Unit> = write("create", tDrive) { _tDriveDao.insert(tDrive.toTestDriveDto()) }
-   override suspend fun update(tDrive: TDrive): Result<Unit> = write("update", tDrive) { _tDriveDao.update(tDrive.toTestDriveDto()) }
-   override suspend fun remove(tDrive: TDrive): Result<Unit> = write("remove", tDrive) { _tDriveDao.delete(tDrive.toTestDriveDto()) }
-   private suspend fun write(operation: String, tDrive: TDrive, block: suspend () -> Unit): Result<Unit> =
-      try { block(); Alog.d(TAG, "$operation: $tDrive"); Result.success(Unit) }
-      catch (exception: CancellationException) { throw exception }
-      catch (throwable: Throwable) { Result.failure(throwable) }
-   private suspend fun <T> resultOf(block: suspend () -> T): Result<T> =
-      try { Result.success(block()) }
-      catch (exception: CancellationException) { throw exception }
-      catch (throwable: Throwable) { Result.failure(throwable) }
+   override suspend fun findById(id: String): Result<TDrive?> =
+      resultOf(
+         block = { _tDriveDao.findById(id)?.toTestDrive() }
+      )
+
+   override suspend fun create(tDrive: TDrive): Result<Unit> =
+      resultOf(
+         block = {
+            val rowId = _tDriveDao.insert(tDrive.toTestDriveDto())
+            checkInserted(rowId)
+            Alog.d(TAG, "create: $tDrive")
+         }
+      )
+
+   override suspend fun update(tDrive: TDrive): Result<Unit> =
+      resultOf(
+         block = {
+            val rowsAffected = _tDriveDao.update(tDrive.toTestDriveDto())
+            checkUpdated(rowsAffected)
+            Alog.d(TAG, "update: $tDrive")
+         }
+      )
+
+   override suspend fun remove(tDrive: TDrive): Result<Unit> =
+      resultOf(
+         block = {
+            val rowsAffected = _tDriveDao.delete(tDrive.toTestDriveDto())
+            checkDeleted(rowsAffected)
+            Alog.d(TAG, "remove: $tDrive")
+         }
+      )
+
    companion object { private const val TAG = "<-TDriveRepository" }
 }

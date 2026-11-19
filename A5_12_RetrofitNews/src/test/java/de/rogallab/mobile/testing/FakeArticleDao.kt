@@ -16,6 +16,7 @@ class FakeArticleDao(
    var saveFailure: Throwable? = null
    var removeFailure: Throwable? = null
 
+   private var nextRowId = 1L
    val saved = mutableListOf<ArticleDto>()
    val removedUrls = mutableListOf<String>()
 
@@ -24,11 +25,12 @@ class FakeArticleDao(
       emitAll(articlesFlow)
    }
 
-   override suspend fun save(articleDto: ArticleDto) {
+   override suspend fun save(articleDto: ArticleDto): Long {
       saveFailure?.let { throwable -> throw throwable }
       saved += articleDto
       articlesFlow.value =
          articlesFlow.value.filterNot { it.url == articleDto.url } + articleDto
+      return nextRowId++
    }
 
    override suspend fun remove(url: String): Int {

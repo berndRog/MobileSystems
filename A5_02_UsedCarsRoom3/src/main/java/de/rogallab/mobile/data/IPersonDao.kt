@@ -50,11 +50,11 @@ interface IPersonDao {
    @Query("SELECT COUNT(*) FROM Person")
    suspend fun count(): Int
    @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(personDto: PersonDto)
+   suspend fun insert(personDto: PersonDto): Long
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(personDtos: List<PersonDto>)
    @Update
-   suspend fun update(personDto: PersonDto)
+   suspend fun update(personDto: PersonDto): Int
    @Delete
-   suspend fun delete(personDto: PersonDto)
+   suspend fun delete(personDto: PersonDto): Int
 }

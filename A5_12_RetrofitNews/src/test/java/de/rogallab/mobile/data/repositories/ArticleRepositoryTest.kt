@@ -1,5 +1,7 @@
 package de.rogallab.mobile.data.repositories
 
+import de.rogallab.mobile.data.local.IArticleDao
+import kotlinx.coroutines.flow.flow
 import de.rogallab.mobile.data.local.dtos.ArticleDto
 import de.rogallab.mobile.domain.entities.Article
 import de.rogallab.mobile.testing.FakeArticleDao
@@ -7,6 +9,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertSame
+import org.junit.Assert.fail
+import kotlin.coroutines.cancellation.CancellationException
 import org.junit.Test
 
 class ArticleRepositoryTest {
@@ -58,7 +63,7 @@ class ArticleRepositoryTest {
 
       val result = ArticleRepository(dao).save(article)
 
-      assertTrue(result.isSuccess)
+      assertEquals(Unit, result.getOrThrow())
       assertEquals(article.url, dao.saved.single().url)
       assertEquals(article.title, dao.saved.single().title)
    }
@@ -78,9 +83,11 @@ class ArticleRepositoryTest {
    fun remove_delegatesUrlToDao() = runTest {
       val dao = FakeArticleDao()
 
-      val result = ArticleRepository(dao).remove(article.url)
+      val repository = ArticleRepository(dao)
+      repository.save(article).getOrThrow()
+      val result = repository.remove(article.url)
 
-      assertTrue(result.isSuccess)
+      assertEquals(Unit, result.getOrThrow())
       assertEquals(listOf(article.url), dao.removedUrls)
    }
 
@@ -93,6 +100,69 @@ class ArticleRepositoryTest {
 
       assertTrue(result.isFailure)
       assertEquals(failure, result.exceptionOrNull())
+   }
+
+   @Test
+   fun saveAndRemove_rethrowCancellation() = runTest {
+      val cancellation = CancellationException("write cancelled")
+      val dao = FakeArticleDao().apply {
+         saveFailure = cancellation
+         removeFailure = cancellation
+      }
+      val repository = ArticleRepository(dao)
+      val operations: List<suspend () -> Result<Unit>> = listOf(
+         { repository.save(article) },
+         { repository.remove(article.url) },
+      )
+      for (operation in operations) {
+         try {
+            operation()
+            fail("CancellationException must propagate")
+         } catch (actual: CancellationException) {
+            assertSame(cancellation, actual)
+         }
+      }
+   }
+
+   @Test
+   fun save_invalidRowId_returnsFailure() = runTest {
+      val dao = object : IArticleDao by FakeArticleDao() {
+         override suspend fun save(articleDto: ArticleDto): Long = -1L
+      }
+      assertTrue(ArticleRepository(dao).save(article).exceptionOrNull() is IllegalStateException)
+   }
+
+   @Test
+   fun remove_unexpectedRowCounts_returnFailures() = runTest {
+      for (rows in listOf(-1, 0, 2)) {
+         val dao = object : IArticleDao by FakeArticleDao() {
+            override suspend fun remove(url: String): Int = rows
+         }
+         assertTrue(ArticleRepository(dao).remove(article.url).exceptionOrNull() is IllegalStateException)
+      }
+   }
+
+   @Test
+   fun save_replacesExistingArticleSuccessfully() = runTest {
+      val dao = FakeArticleDao()
+      val repository = ArticleRepository(dao)
+      repository.save(article).getOrThrow()
+      repository.save(article.copy(title = "Updated")).getOrThrow()
+      assertEquals(listOf(article.copy(title = "Updated")), repository.observeAll().first().getOrThrow())
+   }
+
+   @Test
+   fun observeAll_rethrowsCancellation() = runTest {
+      val cancellation = CancellationException("observe cancelled")
+      val dao = object : IArticleDao by FakeArticleDao() {
+         override fun observeAll() = flow<List<ArticleDto>> { throw cancellation }
+      }
+      try {
+         ArticleRepository(dao).observeAll().first()
+         fail("CancellationException must propagate")
+      } catch (actual: CancellationException) {
+         assertSame(cancellation, actual)
+      }
    }
 }
 

@@ -39,14 +39,14 @@ interface ICarDao {
    suspend fun count(): Int
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(carDto: CarDto)
+   suspend fun insert(carDto: CarDto): Long
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(carDtos: List<CarDto>)
 
    @Update
-   suspend fun update(carDto: CarDto)
+   suspend fun update(carDto: CarDto): Int
 
    @Delete
-   suspend fun delete(carDto: CarDto)
+   suspend fun delete(carDto: CarDto): Int
 }

@@ -6,6 +6,10 @@ import de.rogallab.mobile.data.mapping.toCar
 import de.rogallab.mobile.data.mapping.toCarDto
 import de.rogallab.mobile.domain.ICarRepository
 import de.rogallab.mobile.domain.entities.Car
+import de.rogallab.mobile.shared.data.local.checkInserted
+import de.rogallab.mobile.shared.data.local.checkUpdated
+import de.rogallab.mobile.shared.data.local.checkDeleted
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -21,19 +25,41 @@ class CarRepository(private val _carDao: ICarDao) : ICarRepository {
             emit(Result.failure(throwable))
          }
    override suspend fun findById(id: String): Result<Car?> =
-      resultOf { _carDao.findById(id)?.toCar() }
+      resultOf(
+         block = { _carDao.findById(id)?.toCar() }
+      )
+
    override suspend fun findByPersonId(personId: String): Result<List<Car>> =
-      resultOf { _carDao.findByPersonId(personId).map(CarDto::toCar) }
-   override suspend fun create(car: Car): Result<Unit> = write("create", car) { _carDao.insert(car.toCarDto()) }
-   override suspend fun update(car: Car): Result<Unit> = write("update", car) { _carDao.update(car.toCarDto()) }
-   override suspend fun remove(car: Car): Result<Unit> = write("remove", car) { _carDao.delete(car.toCarDto()) }
-   private suspend fun write(operation: String, car: Car, block: suspend () -> Unit): Result<Unit> =
-      try { block(); Alog.d(TAG, "$operation: $car"); Result.success(Unit) }
-      catch (exception: CancellationException) { throw exception }
-      catch (throwable: Throwable) { Result.failure(throwable) }
-   private suspend fun <T> resultOf(block: suspend () -> T): Result<T> =
-      try { Result.success(block()) }
-      catch (exception: CancellationException) { throw exception }
-      catch (throwable: Throwable) { Result.failure(throwable) }
+      resultOf(
+         block = { _carDao.findByPersonId(personId).map(CarDto::toCar) }
+      )
+
+   override suspend fun create(car: Car): Result<Unit> =
+      resultOf(
+         block = {
+            val rowId = _carDao.insert(car.toCarDto())
+            checkInserted(rowId)
+            Alog.d(TAG, "create: $car")
+         }
+      )
+
+   override suspend fun update(car: Car): Result<Unit> =
+      resultOf(
+         block = {
+            val rowsAffected = _carDao.update(car.toCarDto())
+            checkUpdated(rowsAffected)
+            Alog.d(TAG, "update: $car")
+         }
+      )
+
+   override suspend fun remove(car: Car): Result<Unit> =
+      resultOf(
+         block = {
+            val rowsAffected = _carDao.delete(car.toCarDto())
+            checkDeleted(rowsAffected)
+            Alog.d(TAG, "remove: $car")
+         }
+      )
+
    companion object { private const val TAG = "<-CarRepository" }
 }

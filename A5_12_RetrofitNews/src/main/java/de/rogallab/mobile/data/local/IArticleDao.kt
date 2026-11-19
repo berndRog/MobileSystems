@@ -15,7 +15,7 @@ interface IArticleDao {
 
    // Replacing on conflict makes saving the same article idempotent.
    @Insert(onConflict = OnConflictStrategy.REPLACE)
-   suspend fun save(articleDto: ArticleDto)
+   suspend fun save(articleDto: ArticleDto): Long
 
    // The URL is the primary key and therefore identifies the row to delete.
    @Query("DELETE FROM Article WHERE url = :url")

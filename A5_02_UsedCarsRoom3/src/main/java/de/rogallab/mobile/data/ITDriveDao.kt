@@ -18,11 +18,11 @@ interface ITDriveDao {
    @Query("SELECT COUNT(*) FROM TDrive")
    suspend fun count(): Int
    @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(tDriveDto: TDriveDto)
+   suspend fun insert(tDriveDto: TDriveDto): Long
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(tDriveDtos: List<TDriveDto>)
    @Update
-   suspend fun update(tDriveDto: TDriveDto)
+   suspend fun update(tDriveDto: TDriveDto): Int
    @Delete
-   suspend fun delete(tDriveDto: TDriveDto)
+   suspend fun delete(tDriveDto: TDriveDto): Int
 }

@@ -5,6 +5,9 @@ import de.rogallab.mobile.data.mapping.toDomain
 import de.rogallab.mobile.data.mapping.toDto
 import de.rogallab.mobile.domain.IArticleRepository
 import de.rogallab.mobile.domain.entities.Article
+import de.rogallab.mobile.shared.data.local.checkInserted
+import de.rogallab.mobile.shared.data.local.checkDeleted
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -26,26 +29,22 @@ class ArticleRepository(
          }
 
    override suspend fun save(article: Article): Result<Unit> =
-      try {
-         // Room receives only its own persistence DTO.
-         _articleDao.save(article.toDto())
-         Result.success(Unit)
-      } catch (exception: CancellationException) {
-         throw exception
-      } catch (throwable: Throwable) {
-         Result.failure(throwable)
-      }
+      resultOf(
+         block = {
+            // Room receives only its own persistence DTO.
+            val rowId = _articleDao.save(article.toDto())
+            checkInserted(rowId)
+         }
+      )
 
    override suspend fun remove(url: String): Result<Unit> =
-      try {
-         // The article URL is the primary key used by the DAO.
-         _articleDao.remove(url)
-         Result.success(Unit)
-      } catch (exception: CancellationException) {
-         throw exception
-      } catch (throwable: Throwable) {
-         Result.failure(throwable)
-      }
+      resultOf(
+         block = {
+            // The article URL is the primary key used by the DAO.
+            val rowsAffected = _articleDao.remove(url)
+            checkDeleted(rowsAffected)
+         }
+      )
 }
 
 /*
