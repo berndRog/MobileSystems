@@ -85,15 +85,21 @@ class PersonRepositoryTest {
    }
 
    @Test
-   fun updateAndRemove_withNoMatchingRows_returnUnitWithoutRowCountCheck() = runTest {
+   fun updateAndRemove_withNoMatchingRows_returnFailures() = runTest {
       val dao = FakeDao()
       dao.updatedRows = 0
       dao.deletedRows = 0
       val repository = PersonRepository(dao)
 
-      // The current repository discards row counts and does not reject zero rows.
-      assertEquals(Unit, repository.update(person).getOrThrow())
-      assertEquals(Unit, repository.remove(person).getOrThrow())
+      val updateResult = repository.update(person)
+      val removeResult = repository.remove(person)
+
+      assertTrue(updateResult.isFailure)
+      assertTrue(removeResult.isFailure)
+      assertTrue(updateResult.exceptionOrNull() is IllegalStateException)
+      assertTrue(removeResult.exceptionOrNull() is IllegalStateException)
+      assertEquals("Update failed: Expected 1 row, got 0", updateResult.exceptionOrNull()?.message)
+      assertEquals("Delete failed: Expected 1 row, got 0", removeResult.exceptionOrNull()?.message)
       assertEquals(1, dao.updateCount)
       assertEquals(1, dao.deleteCount)
    }
