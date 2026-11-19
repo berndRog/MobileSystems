@@ -11,12 +11,11 @@ sealed interface PersonIntent {
    data class GalleryImageSelected(val sourceUri: Uri) : PersonIntent
    data class CameraImageTaken(val imagePath: String) : PersonIntent
    data class RemoveImage(val imagePath: String?) : PersonIntent
-
    data class ImageFailed(val message: String) : PersonIntent
 
-   data object RetryLoad : PersonIntent
    data object Save : PersonIntent
    data object Cancel : PersonIntent
+   data object RetryLoad : PersonIntent
 }
 
 /*

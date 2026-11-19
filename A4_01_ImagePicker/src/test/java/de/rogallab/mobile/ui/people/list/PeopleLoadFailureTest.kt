@@ -1,5 +1,6 @@
 package de.rogallab.mobile.ui.people.list
 
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -31,6 +32,7 @@ class PeopleLoadFailureTest {
       _personUcDelete = PersonUcDelete(repository, FakeImageFileStorage()),
       _stringProvider = strings,
       _effectDelegate = EffectDelegate(),
+      _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
    )
 
    @Test

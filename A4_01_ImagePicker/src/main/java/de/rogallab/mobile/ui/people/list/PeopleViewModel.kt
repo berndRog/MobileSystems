@@ -23,7 +23,7 @@ class PeopleViewModel(
    private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
-   private val _timing: AppTiming = AppTiming(),
+   private val _timing: AppTiming,
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
    // StateFlow holds the persistent people list and load failure.
@@ -51,7 +51,6 @@ class PeopleViewModel(
 
       _observeJob = viewModelScope.launch {
 
-
          // Successful repository emissions keep the list current.
          // Result.failure ends this collector. Only RetryLoad starts a new observation.
          delay(_timing.delayRead)
@@ -72,6 +71,9 @@ class PeopleViewModel(
                   _stateFlow.update { state ->
                      state.copy(isLoading = false, loadFailure = error)
                   }
+
+                  // Stop Collector.
+                  // RetryLoad starts a new oberservation.
                   _observeJob?.cancel()
                }
          }

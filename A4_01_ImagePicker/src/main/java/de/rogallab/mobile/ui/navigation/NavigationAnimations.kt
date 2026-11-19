@@ -13,7 +13,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
-class NavigationAnimations(private val animationDuration: Int) {
+class NavigationAnimations(
+   private val animationDuration: Int
+) {
 
    // Forward navigation:
    // - The new screen enters from the right.

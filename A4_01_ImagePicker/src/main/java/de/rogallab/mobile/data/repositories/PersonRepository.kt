@@ -2,10 +2,10 @@ package de.rogallab.mobile.data.repositories
 
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.data.local.IPersonDao
-import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.shared.data.local.dtos.PersonDto
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -48,12 +48,9 @@ class PersonRepository(
 //         else
          Result.success(_personDao.findById(id)?.toPerson())
       }
-      // don't handle CancellationException, let it propagate to the caller
-      // viewModelScope will catch it and cancel the coroutine
       catch (e: CancellationException) {
          throw e
       }
-      // handle other exceptions and return a failure result
       catch (e: Throwable) {
          Result.failure(e)
       }

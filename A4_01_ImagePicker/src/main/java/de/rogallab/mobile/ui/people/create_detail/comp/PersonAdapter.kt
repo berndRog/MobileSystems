@@ -5,8 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -17,10 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -45,7 +45,6 @@ import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
 import de.rogallab.mobile.ui.people.create_detail.PersonLoadFailure
-import de.rogallab.mobile.ui.people.create_detail.PersonUiState
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import org.koin.compose.koinInject
 import de.rogallab.mobile.shared.R as SharedR
@@ -65,8 +64,7 @@ fun PersonAdapter(
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
    // Observe PersonUiState
-   val personUiState: PersonUiState
-      by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val personUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
 
    // Person data
    val person = personUiState.person
@@ -153,8 +151,7 @@ fun PersonAdapter(
       else {
          Box(
             modifier = Modifier
-               .fillMaxSize()
-               .padding(innerPadding),
+               .fillMaxSize().padding(innerPadding),
          ) {
 
             // The gallery handler selects one image and returns its content Uri.
@@ -202,10 +199,8 @@ fun PersonAdapter(
                      onCancel = { viewModel.onIntent(PersonIntent.Cancel) },
 
                      modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState())
-                        .imePadding()
+                        .fillMaxSize().padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState()).imePadding()
                   )
                }
             }

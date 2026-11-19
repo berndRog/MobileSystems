@@ -35,8 +35,8 @@ class PersonViewModel(
    private val _imageEdit: IImageEdit,
    private val _personUcCreate: PersonUcCreate,
    private val _personUcUpdate: PersonUcUpdate,
+   private val _timing: AppTiming,
    private val _effectDelegate: EffectDelegate<PersonEffect>,
-   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
    // A null or blank id means that a new person is being created.
@@ -110,14 +110,14 @@ class PersonViewModel(
          // Technical image errors are converted into the common error effect.
          is PersonIntent.ImageFailed -> showError(intent.message)
 
+         PersonIntent.Save -> save()
+         PersonIntent.Cancel -> cancel()
+
          is PersonIntent.RetryLoad ->
             if (!_stateFlow.value.isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
                loadPerson(_personId!!)
             }
-
-         PersonIntent.Save -> save()
-         PersonIntent.Cancel -> cancel()
       }
    }
 

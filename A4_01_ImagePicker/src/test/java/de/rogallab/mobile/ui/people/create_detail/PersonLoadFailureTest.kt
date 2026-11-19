@@ -3,6 +3,7 @@ package de.rogallab.mobile.ui.people.create_detail
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -49,6 +50,7 @@ class PersonLoadFailureTest {
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
          _effectDelegate = EffectDelegate(),
       )
    }

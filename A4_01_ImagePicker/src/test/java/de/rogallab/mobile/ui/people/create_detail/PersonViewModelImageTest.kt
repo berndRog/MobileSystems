@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
@@ -56,6 +57,7 @@ class PersonViewModelImageTest {
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
          _effectDelegate = EffectDelegate(),
       )
    }

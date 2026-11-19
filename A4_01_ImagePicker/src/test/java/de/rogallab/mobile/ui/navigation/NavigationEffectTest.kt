@@ -1,6 +1,7 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -36,6 +37,7 @@ class NavigationEffectTest {
          ),
          _stringProvider = FakeStringProvider(),
          _effectDelegate = EffectDelegate(),
+         _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
       )
    }
 

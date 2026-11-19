@@ -1,7 +1,5 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import de.rogallab.mobile.AppTiming
-import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,11 +26,13 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
 import de.rogallab.mobile.ui.navigation.PeopleKey
 import de.rogallab.mobile.ui.navigation.PopReason
+import org.koin.compose.koinInject
 
 private const val TAG = "<-AppNavigation"
 

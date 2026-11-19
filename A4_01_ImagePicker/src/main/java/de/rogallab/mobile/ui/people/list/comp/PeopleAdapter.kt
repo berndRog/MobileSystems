@@ -74,9 +74,7 @@ fun PeopleAdapter(
    val activity = LocalActivity.current
 
    Scaffold(
-      modifier = modifier
-         .fillMaxSize()
-         .padding(horizontal = 16.dp),
+      modifier = modifier.fillMaxSize(),
       topBar = {
          TopAppBar(
             navigationIcon = {

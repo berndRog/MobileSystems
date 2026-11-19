@@ -3,7 +3,7 @@ package de.rogallab.mobile.ui.navigation
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
-import de.rogallab.mobile.Globals.delayWrite
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -47,6 +47,7 @@ class PersonBackEffectTest {
    val mainDispatcherRule = MainDispatcherRule()
 
    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+   private val timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10)
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
@@ -62,6 +63,7 @@ class PersonBackEffectTest {
          _imageEdit = imageEdit,
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
+         _timing = timing,
          _effectDelegate = EffectDelegate(),
       )
    }
@@ -120,7 +122,7 @@ class PersonBackEffectTest {
             viewModel.onIntent(PersonIntent.Save)
             viewModel.onIntent(PersonIntent.Cancel)
             assertTrue(viewModel.stateFlow.value.isSaving)
-            advanceTimeBy(delayWrite)
+            advanceTimeBy(timing.delayWrite)
             runCurrent()
             assertEquals(1, createCalls)
             expectNoEvents()

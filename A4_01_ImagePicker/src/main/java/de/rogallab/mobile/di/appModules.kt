@@ -23,13 +23,14 @@ import de.rogallab.mobile.ui.people.list.PeopleViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
 fun appModule(): Module = module {
-
-   single { AppTiming() }
-
    val tag = "<-appModule"
+
+   Alog.i(tag, "single    -> AppTiming")
+   single { AppTiming() }
 
    Alog.i(tag, "single    -> Seed")
    single<Seed> {
@@ -62,19 +63,17 @@ fun appModule(): Module = module {
    }
 
 
-   Alog.i(tag, "factory   -> PersonUcCreate")
-   factory<PersonUcCreate> {
+   factory<PersonUcCreate> { parameters ->
       PersonUcCreate(
          _repository = get<IPersonRepository>(),
-         _imageEdit = get<IImageEdit>()
+         _imageEdit = parameters.get<IImageEdit>(),
       )
    }
 
-   Alog.i(tag, "factory   -> PersonUcUpdate")
-   factory<PersonUcUpdate> {
+   factory<PersonUcUpdate> { parameters ->
       PersonUcUpdate(
          _repository = get<IPersonRepository>(),
-         _imageEdit = get<IImageEdit>()
+         _imageEdit = parameters.get<IImageEdit>(),
       )
    }
 
@@ -88,17 +87,23 @@ fun appModule(): Module = module {
 
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
+      val imageEdit = get<IImageEdit>()
+
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = get<IPersonRepository>(),         // singleton
-         _stringProvider = get<IStringProvider>(),       // singleton shared
-         _validator = get<PersonValidator>(),            // singleton
-         _imageFileStorage = get<IImageFileStorage>(),   // singleton shared
-         _imageEdit = get<IImageEdit>(),                 // factory shared
-         _personUcCreate = get<PersonUcCreate>(),        // factory
-         _personUcUpdate = get<PersonUcUpdate>(),        // factory
-         _timing = get(),
-         _effectDelegate =                               // factory
+         _repository = get<IPersonRepository>(),
+         _stringProvider = get<IStringProvider>(),
+         _validator = get<PersonValidator>(),
+         _imageFileStorage = get<IImageFileStorage>(),
+         _imageEdit = imageEdit,
+         _personUcCreate = get<PersonUcCreate> {
+            parametersOf(imageEdit)
+         },
+         _personUcUpdate = get<PersonUcUpdate> {
+            parametersOf(imageEdit)
+         },
+         _timing = get<AppTiming>(),
+         _effectDelegate =
             get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
    }
@@ -109,7 +114,7 @@ fun appModule(): Module = module {
          _repository = get<IPersonRepository>(),         // singleton
          _stringProvider = get<IStringProvider>(),       // singleton shared
          _personUcDelete = get<PersonUcDelete>(),        // factory
-         _timing = get(),
+         _timing = get<AppTiming>(),
          _effectDelegate =                               // factory
             get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )

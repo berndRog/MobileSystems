@@ -1,6 +1,7 @@
 package de.rogallab.mobile.ui.people.list
 
 import app.cash.turbine.test
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
@@ -43,6 +44,7 @@ class PeopleViewModelSwipeTest {
          _personUcDelete = PersonUcDelete(repository, imageFileStorage),
          _stringProvider = stringProvider,
          _effectDelegate = EffectDelegate(),
+         _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
       )
 
    @Test
@@ -58,7 +60,8 @@ class PeopleViewModelSwipeTest {
          }
       }
       val viewModel = PeopleViewModel(
-         repository, PersonUcDelete(repository, imageFileStorage), stringProvider, EffectDelegate()
+         repository, PersonUcDelete(repository, imageFileStorage), stringProvider, EffectDelegate(),
+         AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
       )
       advanceUntilIdle()
 
