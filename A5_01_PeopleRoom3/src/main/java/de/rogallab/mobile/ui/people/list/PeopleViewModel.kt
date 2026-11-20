@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -55,22 +56,33 @@ class PeopleViewModel(
             // A failed Result or a thrown Flow exception ends this observation.
             delay(_timing.delayRead)
 
-            _repository.observeAll().collect { result ->
+            _repository.observeAll()
+               .collect { result ->
                val people = result.getOrThrow()
                _stateFlow.update { state ->
                   state.copy(people = people, isLoading = false, loadFailure = null)
                }
             }
-         } catch (e: CancellationException) {
+         }
+
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+
+         catch (e: Throwable) {
             // Keep the failure visible until RetryLoad starts a new collector.
             val error = _stringProvider.getString(R.string.error_people_observe)
             Alog.e(TAG, error, e)
             _stateFlow.update { state -> state.copy(loadFailure = error) }
-         } finally {
-            // Release the spinner even if the Flow fails or is cancelled.
-            _stateFlow.update { state -> state.copy(isLoading = false) }
+         }
+
+         finally {
+            // Only the current observation may change the loading state.
+            if (_observeJob == coroutineContext.job) {
+               // Release the spinner even if the Flow fails or is cancelled.
+               _stateFlow.update { state -> state.copy(isLoading = false) }
+            }
+
          }
       }
    }

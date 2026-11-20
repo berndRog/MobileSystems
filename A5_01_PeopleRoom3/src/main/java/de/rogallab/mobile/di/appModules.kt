@@ -22,20 +22,34 @@ import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 
 fun appModule(
-   queryCoroutineContext: CoroutineContext = Dispatchers.IO
+   dispatcherIo: CoroutineContext = Dispatchers.IO
 ): Module = module {
+
+   val tag = "<-appModule"
 
    single { AppTiming() }
 
-   val tag = "<-appModule"
+   Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
+   single<CoroutineContext>(named("dispatcherIo")) {
+      dispatcherIo
+   }
+   single<CoroutineDispatcher>(named("dispatcherIo")) {
+      // Keep the full context for Room and reuse its dispatcher for flowOn.
+      requireNotNull(
+         get<CoroutineContext>(named("dispatcherIo"))[ContinuationInterceptor] as? CoroutineDispatcher
+      ) { "dispatcherIo must contain a CoroutineDispatcher" }
+   }
 
    // Room-3 infrastructure belongs to A5_01 itself.
    Alog.i(tag, "single    -> AppDatabase")
@@ -45,7 +59,7 @@ fun appModule(
          name = Globals.databaseName,
       )
       .setDriver(BundledSQLiteDriver())
-      .setQueryCoroutineContext(queryCoroutineContext)
+      .setQueryCoroutineContext(dispatcherIo)
       .build()
    }
 
@@ -74,6 +88,7 @@ fun appModule(
    single<IPersonRepository> {
       PersonRepository(
          _personDao = get<IPersonDao>(),
+         _dispatcherIo = get(named("dispatcherIo")),
       )
    }
 
