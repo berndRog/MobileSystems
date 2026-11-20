@@ -35,7 +35,7 @@ class PersonViewModel(
       if (_personId == null) PersonUiState(isNew = true,  isLoading = false)
       else                   PersonUiState(isNew = false, isLoading = true)
 
-   // StateFloe PersonUiState
+   // StateFlow PersonUiState
    private val _stateFlow = MutableStateFlow(_initialState)
    val stateFlow = _stateFlow.asStateFlow()
 

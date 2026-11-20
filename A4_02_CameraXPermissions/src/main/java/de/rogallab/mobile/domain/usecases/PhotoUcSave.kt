@@ -22,8 +22,9 @@ class PhotoUcSave(
    ): Result<Uri> {
       try {
          // A cancelled or failed capture may leave an empty file: verify first.
-         val confirmedPath = _imageFileStorage.confirmCameraImageFile(imagePath)
-            .getOrElse { return Result.failure(it) }
+         val confirmedPath =
+            _imageFileStorage.confirmCameraImageFile(imagePath)
+               .getOrElse { return Result.failure(it) }
 
          return _imageMediaStore.exportImageToMediaStore(
             imagePath = confirmedPath,
