@@ -36,7 +36,6 @@ import androidx.media3.ui.compose.state.rememberPresentationState
 import de.rogallab.mobile.shared.R
 
 @androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(
    uri: Uri,
