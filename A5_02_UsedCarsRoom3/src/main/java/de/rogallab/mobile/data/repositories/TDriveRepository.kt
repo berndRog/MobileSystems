@@ -11,15 +11,21 @@ import de.rogallab.mobile.shared.data.local.checkUpdated
 import de.rogallab.mobile.shared.data.local.checkDeleted
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.cancellation.CancellationException
 
-class TDriveRepository(private val _tDriveDao: ITDriveDao) : ITDriveRepository {
+class TDriveRepository(
+   private val _tDriveDao: ITDriveDao,
+   private val _dispatcherIo: CoroutineDispatcher,
+) : ITDriveRepository {
    override fun observeAll(): Flow<Result<List<TDrive>>> =
       _tDriveDao.observeAll()
          .map { dtos -> Result.success(dtos.map(TDriveDto::toTestDrive)) }
+         .flowOn(_dispatcherIo)
          .catch { throwable ->
             if (throwable is CancellationException) throw throwable
             emit(Result.failure(throwable))

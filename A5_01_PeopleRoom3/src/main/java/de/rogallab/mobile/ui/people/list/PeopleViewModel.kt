@@ -58,31 +58,35 @@ class PeopleViewModel(
 
             _repository.observeAll()
                .collect { result ->
-               val people = result.getOrThrow()
-               _stateFlow.update { state ->
-                  state.copy(people = people, isLoading = false, loadFailure = null)
+                  result
+                     .onSuccess { people ->
+                        _stateFlow.update { state ->
+                           state.copy(people = people, isLoading = false, loadFailure = null)
+                        }
+                     }
+                     .onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                        val error = _stringProvider.getString(R.string.error_people_observe)
+                        Alog.e(TAG, error, throwable)
+                        _stateFlow.update { state ->
+                           state.copy(isLoading = false, loadFailure = error)
+                        }
+                     }
                }
-            }
          }
-
          catch (e: CancellationException) {
             throw e
          }
-
          catch (e: Throwable) {
-            // Keep the failure visible until RetryLoad starts a new collector.
             val error = _stringProvider.getString(R.string.error_people_observe)
             Alog.e(TAG, error, e)
+
             _stateFlow.update { state -> state.copy(loadFailure = error) }
          }
-
          finally {
-            // Only the current observation may change the loading state.
             if (_observeJob == coroutineContext.job) {
-               // Release the spinner even if the Flow fails or is cancelled.
                _stateFlow.update { state -> state.copy(isLoading = false) }
             }
-
          }
       }
    }
@@ -157,9 +161,11 @@ class PeopleViewModel(
             val message = _stringProvider.getString(
                R.string.message_person_removed, person.fullName)
             _effectDelegate.emit(PeopleEffect.ShowMessage(message))
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             // Convert unexpected delete failures into the existing error effect.
             val error = _stringProvider.getString(R.string.error_person_remove)
             _effectDelegate.emit(PeopleEffect.ShowError(error))

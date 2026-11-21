@@ -39,16 +39,33 @@ import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveViewModel
 import de.rogallab.mobile.ui.tdrives.list.TDrivesEffect
 import de.rogallab.mobile.ui.tdrives.list.TDrivesViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.ContinuationInterceptor
+import kotlin.coroutines.CoroutineContext
+import org.koin.core.qualifier.named
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-fun appModule(): Module = module {
+fun appModule(
+   dispatcherIo: CoroutineContext = Dispatchers.IO
+): Module = module {
 
    single { AppTiming() }
    val tag = "<-appModule"
+
+   Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
+   single<CoroutineContext>(named("dispatcherIo")) {
+      dispatcherIo
+   }
+   single<CoroutineDispatcher>(named("dispatcherIo")) {
+      // Keep the full context for Room and reuse its dispatcher for flowOn.
+      requireNotNull(
+         get<CoroutineContext>(named("dispatcherIo"))[ContinuationInterceptor] as? CoroutineDispatcher
+      ) { "dispatcherIo must contain a CoroutineDispatcher" }
+   }
 
    Alog.i(tag, "single    -> AppDatabase")
    single<AppDatabase> {
@@ -57,7 +74,7 @@ fun appModule(): Module = module {
          name = Globals.databaseName,
       )
          .setDriver(BundledSQLiteDriver())
-         .setQueryCoroutineContext(Dispatchers.IO)
+         .setQueryCoroutineContext(dispatcherIo)
          .addMigrations(migration1To2)
          .build()
    }
@@ -66,9 +83,15 @@ fun appModule(): Module = module {
    single<ICarDao> { get<AppDatabase>().createCarDao() }
    single<ITDriveDao> { get<AppDatabase>().createTDriveDao() }
 
-   single<IPersonRepository> { PersonRepository(get()) }
-   single<ICarRepository> { CarRepository(get()) }
-   single<ITDriveRepository> { TDriveRepository(get()) }
+   single<IPersonRepository> {
+      PersonRepository(get(), get<CoroutineDispatcher>(named("dispatcherIo")))
+   }
+   single<ICarRepository> {
+      CarRepository(get(), get<CoroutineDispatcher>(named("dispatcherIo")))
+   }
+   single<ITDriveRepository> {
+      TDriveRepository(get(), get<CoroutineDispatcher>(named("dispatcherIo")))
+   }
 
    single { PersonValidator(context = androidContext()) }
    single { CarValidator(context = androidContext()) }
