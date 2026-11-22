@@ -58,20 +58,10 @@ class PeopleViewModel(
 
             _repository.observeAll()
                .collect { result ->
-                  result
-                     .onSuccess { people ->
-                        _stateFlow.update { state ->
-                           state.copy(people = people, isLoading = false, loadFailure = null)
-                        }
-                     }
-                     .onFailure { throwable ->
-                        if (throwable is CancellationException) throw throwable
-                        val error = _stringProvider.getString(R.string.error_people_observe)
-                        Alog.e(TAG, error, throwable)
-                        _stateFlow.update { state ->
-                           state.copy(isLoading = false, loadFailure = error)
-                        }
-                     }
+                  val people = result.getOrThrow()
+                  _stateFlow.update { state ->
+                     state.copy(people = people, isLoading = false, loadFailure = null)
+                  }
                }
          }
          catch (e: CancellationException) {
@@ -80,7 +70,6 @@ class PeopleViewModel(
          catch (e: Throwable) {
             val error = _stringProvider.getString(R.string.error_people_observe)
             Alog.e(TAG, error, e)
-
             _stateFlow.update { state -> state.copy(loadFailure = error) }
          }
          finally {

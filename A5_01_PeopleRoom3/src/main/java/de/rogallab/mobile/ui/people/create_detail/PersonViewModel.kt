@@ -66,18 +66,28 @@ class PersonViewModel(
          try {
             delay(_timing.delayRead)
 
-            val person = _repository.findById(id).getOrThrow()
-            if (person == null) {
-               val error = _stringProvider.getString(R.string.error_person_not_found)
-               _stateFlow.update { state ->
-                  state.copy(loadFailure = PersonLoadFailure.NotFound(error))
+            _repository.findById(id)
+               .onSuccess { person ->
+                  if (person == null) {
+                     val error = _stringProvider.getString(R.string.error_person_not_found)
+                     _stateFlow.update { state ->
+                        state.copy(loadFailure = PersonLoadFailure.NotFound(error))
+                     }
+                  } else {
+                     _imageEdit.start(listOfNotNull(person.imagePath))
+                     _stateFlow.update { state ->
+                        state.copy(person = person, loadFailure = null)
+                     }
+                  }
                }
-            } else {
-               _imageEdit.start(listOfNotNull(person.imagePath))
-               _stateFlow.update { state ->
-                  state.copy(person = person, loadFailure = null)
+               .onFailure { throwable ->
+                  if (throwable is CancellationException) throw throwable
+                  val error = _stringProvider.getString(R.string.error_person_load)
+                  _stateFlow.update { state ->
+                     state.copy(loadFailure = PersonLoadFailure.Failed(error))
+                  }
                }
-            }
+
          } catch (e: CancellationException) {
             throw e
          } catch (e: Throwable) {
