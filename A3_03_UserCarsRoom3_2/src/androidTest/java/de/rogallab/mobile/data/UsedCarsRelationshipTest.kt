@@ -1,0 +1,96 @@
+package de.rogallab.mobile.data
+
+import androidx.room3.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import de.rogallab.mobile.data.local.database.AppDatabase
+import de.rogallab.mobile.data.local.dtos.CarDto
+import de.rogallab.mobile.data.local.dtos.PersonDto
+import de.rogallab.mobile.data.local.dtos.TDriveDto
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import kotlin.time.Instant
+
+@RunWith(AndroidJUnit4::class)
+class UsedCarsRelationshipTest {
+   private lateinit var database: AppDatabase
+   private lateinit var personDao: IPersonDao
+   private lateinit var carDao: ICarDao
+   private lateinit var tDriveDao: ITDriveDao
+
+   @Before fun setup() {
+      database = Room.inMemoryDatabaseBuilder(
+         ApplicationProvider.getApplicationContext(), AppDatabase::class.java,
+      ).setDriver(BundledSQLiteDriver()).allowMainThreadQueries().build()
+      personDao = database.createPersonDao()
+      carDao = database.createCarDao()
+      tDriveDao = database.createTDriveDao()
+   }
+   @After fun tearDown() { database.close() }
+
+   @Test fun findByPersonId_returnsCarsOfSellerOnly() = runTest {
+      val seller = person("seller", "Anna", "Schulz")
+      val otherSeller = person("other", "Berta", "Bauer")
+      val first = car("car-1", seller.id, "Golf")
+      val second = car("car-2", seller.id, "Passat")
+      val other = car("car-3", otherSeller.id, "Polo")
+      personDao.insert(listOf(seller, otherSeller))
+      carDao.insert(listOf(first, second, other))
+
+      val cars = carDao.findByPersonId(seller.id)
+
+      assertEquals(
+         listOf(first.id, second.id),
+         cars.map(CarDto::id),
+      )
+   }
+
+   @Test fun findWithCars_returnsOneToManyMultimap() = runTest {
+      val seller = person("seller", "Anna", "Schulz")
+      val first = car("car-1", seller.id, "Golf")
+      val second = car("car-2", seller.id, "Passat")
+      personDao.insert(seller)
+      carDao.insert(listOf(first, second))
+
+      val relation = personDao.findByIdWithCars(seller.id)
+
+      assertEquals(setOf(seller), relation.keys)
+      assertEquals(
+         setOf(first.id, second.id),
+         relation[seller]?.map(CarDto::id)?.toSet(),
+      )
+   }
+
+   @Test fun findWithTestDriveCars_returnsManyToManyMultimap() = runTest {
+      val seller = person("seller", "Anna", "Schulz")
+      val interested = person("interested", "Clara", "Neumann")
+      val first = car("car-1", seller.id, "Golf")
+      val second = car("car-2", seller.id, "Passat")
+      personDao.insert(listOf(seller, interested))
+      carDao.insert(listOf(first, second))
+      tDriveDao.insert(listOf(
+         drive("td-1", interested.id, first.id, Instant.parse("2026-08-04T12:00:00Z")),
+         drive("td-2", interested.id, second.id, Instant.parse("2026-08-05T13:00:00Z")),
+      ))
+
+      val relation = personDao.findWithTestDriveCars(interested.id)
+
+      assertEquals(setOf(interested), relation.keys)
+      assertEquals(
+         setOf(first.id, second.id),
+         relation[interested]?.map(CarDto::id)?.toSet(),
+      )
+   }
+
+   private fun person(id: String, first: String, last: String) =
+      PersonDto(id, first, last, null, null, null)
+   private fun car(id: String, personId: String, model: String) =
+      CarDto(id, "Volkswagen", model, 42500, emptyList(), personId)
+   private fun drive(id: String, personId: String, carId: String, start: Instant) =
+      TDriveDto(id, personId, carId, start, false)
+}
