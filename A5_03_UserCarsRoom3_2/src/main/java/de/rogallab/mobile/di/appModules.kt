@@ -32,12 +32,15 @@ import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.domain.usecases.TDriveUcDelete
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
 import de.rogallab.mobile.ui.cars.input_detail.CarViewModel
+import de.rogallab.mobile.ui.cars.input_detail.MAX_CAR_IMAGE_COUNT
 import de.rogallab.mobile.ui.cars.list.CarsEffect
 import de.rogallab.mobile.ui.cars.list.CarsViewModel
 import de.rogallab.mobile.ui.people.create_detail.PersonValidator
@@ -232,8 +235,10 @@ fun appModule(
          _personReadModel = get<IPersonReadModel>(),
          _stringProvider = get(),
          _validator = get<CarValidator>(),
-         _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(
+            session = imageEdit, storage = get<IImageFileStorage>(),
+            mode = ImageSelectionMode.APPEND, maxImages = MAX_CAR_IMAGE_COUNT,
+         ),
          _carUcCreate = CarUcCreate(get(), imageEdit),
          _carUcUpdate = CarUcUpdate(get(), imageEdit),
          _timing = get<AppTiming>(),

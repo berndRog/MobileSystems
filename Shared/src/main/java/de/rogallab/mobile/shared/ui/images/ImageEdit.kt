@@ -3,6 +3,7 @@ package de.rogallab.mobile.shared.ui.images
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 
 /**
  * Manages image files that belong to one edit session.
@@ -68,7 +69,8 @@ class ImageEdit(
 
    private suspend fun deleteImages(imagePaths: List<String>, message: String) {
       imagePaths.forEach { imagePath ->
-         _imageFileStorage.deleteImageFromAppStorage(imagePath)
+         // Cleanup errors must not hide an already changed selection from the caller.
+         resultOf(block = { _imageFileStorage.deleteImageFromAppStorage(imagePath).getOrThrow() })
             .onFailure { throwable ->
                Alog.e(TAG, "$message: ${throwable.message}")
             }

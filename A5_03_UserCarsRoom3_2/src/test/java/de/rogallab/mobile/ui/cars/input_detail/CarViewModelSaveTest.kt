@@ -13,6 +13,8 @@ import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.readmodels.PersonSelectItem
 import de.rogallab.mobile.domain.usecases.CarUcCreate
 import de.rogallab.mobile.domain.usecases.CarUcUpdate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.*
 import de.rogallab.mobile.ui.people.create_detail.BackReason
@@ -69,8 +71,7 @@ class CarViewModelSaveTest {
          carId = id,
          _carRepository = repository,
          _personReadModel = people,
-         _imageFileStorage = FakeImageFileStorage(),
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, FakeImageFileStorage(), ImageSelectionMode.APPEND, MAX_CAR_IMAGE_COUNT),
          _carUcCreate = CarUcCreate(repository, imageEdit),
          _carUcUpdate = CarUcUpdate(repository, imageEdit),
          _validator = CarValidator(context),

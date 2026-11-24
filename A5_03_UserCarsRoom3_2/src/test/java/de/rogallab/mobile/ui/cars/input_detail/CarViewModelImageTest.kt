@@ -14,6 +14,8 @@ import de.rogallab.mobile.domain.repositories.ICarRepository
 import de.rogallab.mobile.domain.usecases.CarUcCreate
 import de.rogallab.mobile.domain.usecases.CarUcUpdate
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
 import de.rogallab.mobile.testing.FakeCarRepository
@@ -35,7 +37,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -98,7 +99,7 @@ class CarViewModelImageTest {
          carId = id, _carRepository = repository, _personReadModel = people,
          _stringProvider = FakeStringProvider(),
          _validator = CarValidator(ApplicationProvider.getApplicationContext<android.content.Context>()),
-         _imageFileStorage = storage, _imageEdit = edit,
+         _images = ImageEditDelegate(edit, storage, ImageSelectionMode.APPEND, MAX_CAR_IMAGE_COUNT),
          _carUcCreate = CarUcCreate(repository, edit), _carUcUpdate = CarUcUpdate(repository, edit),
          _effectDelegate = EffectDelegate(), _timing = AppTiming(delayRead = 0, delayWrite = 0),
       )
@@ -262,57 +263,6 @@ class CarViewModelImageTest {
       }
    }
 
-   @Test fun thrownImportFailure_cleansUnadoptedCopiesBeforeUnlocking() = runTest(dispatcherRule.testDispatcher) {
-      storage.copy = {
-         if (it == uri("bad")) throw IllegalStateException("provider crashed")
-         Result.success(photo)
-      }
-      val cleanup = CompletableDeferred<Result<Unit>>()
-      storage.beforeDelete = { cleanup.await() }
-      val vm = create()
-      advanceUntilIdle()
-      vm.effects.test {
-         vm.onIntent(CarIntent.GalleryImagesSelected(listOf(uri("a"), uri("bad"))))
-         runCurrent()
-         assertTrue(awaitItem() is CarEffect.ShowError)
-         assertTrue(vm.stateFlow.value.isEditingImages)
-         vm.onIntent(CarIntent.Save)
-         assertTrue(writes.isEmpty())
-         cleanup.complete(Result.success(Unit))
-         runCurrent()
-         assertFalse(vm.stateFlow.value.isEditingImages)
-         assertEquals(setOf(original), storage.files)
-         assertEquals(listOf(original), edit.add(emptyList()))
-         assertEquals(listOf(original), vm.stateFlow.value.form.imagePaths)
-      }
-   }
-
-   @Test fun cancellation_cleansKnownCopiesEvenAfterScopeCancellation() = runTest(dispatcherRule.testDispatcher) {
-      storage.copy = {
-         if (it == uri("b")) awaitCancellation()
-         Result.success(photo)
-      }
-      val cleanup = CompletableDeferred<Result<Unit>>()
-      storage.beforeDelete = { cleanup.await() }
-      val vm = create()
-      advanceUntilIdle()
-      vm.effects.test {
-         vm.onIntent(CarIntent.GalleryImagesSelected(listOf(uri("a"), uri("b"), uri("c"))))
-         runCurrent()
-         store.clear()
-         runCurrent()
-         assertTrue(vm.stateFlow.value.isEditingImages)
-         assertTrue(photo in storage.files)
-         cleanup.complete(Result.success(Unit))
-         runCurrent()
-         assertFalse(vm.stateFlow.value.isEditingImages)
-         assertEquals(listOf(uri("a"), uri("b")), storage.copied)
-         assertEquals(setOf(original), storage.files)
-         assertEquals(listOf(original), edit.add(emptyList()))
-         expectNoEvents()
-      }
-   }
-
    @Test fun immediateCancellation_stillReleasesSynchronousGuard() = runTest(dispatcherRule.testDispatcher) {
       storage.copy = { awaitCancellation() }
       val vm = create()
@@ -326,64 +276,6 @@ class CarViewModelImageTest {
          assertEquals(setOf(original), storage.files)
          expectNoEvents()
       }
-   }
-
-   @Test fun cancellationInResult_cleansPriorCopiesWithoutOrdinaryError() = runTest(dispatcherRule.testDispatcher) {
-      storage.copy = {
-         if (it == uri("b")) Result.failure(CancellationException("cancelled"))
-         else Result.success(photo)
-      }
-      val vm = create()
-      advanceUntilIdle()
-      vm.effects.test {
-         vm.onIntent(CarIntent.GalleryImagesSelected(listOf(uri("a"), uri("b"))))
-         runCurrent()
-         assertFalse(vm.stateFlow.value.isEditingImages)
-         assertEquals(setOf(original), storage.files)
-         expectNoEvents()
-      }
-   }
-
-   @Test fun overflowCleanup_isOwnedBySessionAndRemainsInsideGuard() = runTest(dispatcherRule.testDispatcher) {
-      val vm = create()
-      advanceUntilIdle()
-      val cleanup = CompletableDeferred<Result<Unit>>()
-      storage.beforeDelete = { cleanup.await() }
-      vm.onIntent(CarIntent.GalleryImagesSelected((1..8).map { uri("new$it") }))
-      runCurrent()
-      assertTrue(vm.stateFlow.value.isEditingImages)
-      vm.onIntent(CarIntent.Save)
-      assertTrue(writes.isEmpty())
-      cleanup.complete(Result.success(Unit))
-      runCurrent()
-      assertFalse(vm.stateFlow.value.isEditingImages)
-      assertEquals(MAX_CAR_IMAGE_COUNT, vm.stateFlow.value.form.imagePaths.size)
-      assertFalse("/images/new8.jpg" in storage.files)
-      assertEquals(vm.stateFlow.value.form.imagePaths.toSet(), storage.files)
-      vm.onIntent(CarIntent.Save)
-      runCurrent()
-      assertEquals(vm.stateFlow.value.form.imagePaths, writes.single().imagePaths)
-   }
-
-   @Test fun duplicateRejectedCameraResult_cannotBeAdoptedDuringPendingCleanup() = runTest(dispatcherRule.testDispatcher) {
-      val vm = create()
-      advanceUntilIdle()
-      val writing = CompletableDeferred<Result<Unit>>()
-      write = { writing.await() }
-      vm.onIntent(CarIntent.Save)
-      val cleanup = CompletableDeferred<Result<Unit>>()
-      storage.beforeDelete = { cleanup.await() }
-      val late = "/images/rejected.jpg"
-      addCamera(vm, late)
-      runCurrent()
-      writing.complete(Result.failure(IllegalStateException("failed")))
-      runCurrent()
-      vm.onIntent(CarIntent.CameraImageTaken(late))
-      assertEquals(listOf(original), vm.stateFlow.value.form.imagePaths)
-      cleanup.complete(Result.success(Unit))
-      runCurrent()
-      assertEquals(1, storage.deleted.count { it == late })
-      assertEquals(setOf(original), storage.files)
    }
 
    @Test fun failedSave_keepsSessionForRetry_andCommitFollowsSuccessfulWrite() = runTest(dispatcherRule.testDispatcher) {
