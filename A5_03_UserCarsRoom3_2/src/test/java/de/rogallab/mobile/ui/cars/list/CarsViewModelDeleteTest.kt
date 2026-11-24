@@ -5,7 +5,10 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Car
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeCarRepository
-import de.rogallab.mobile.testing.FakePersonRepository
+import de.rogallab.mobile.domain.readmodels.CarListItem
+import de.rogallab.mobile.domain.usecases.CarUcDelete
+import de.rogallab.mobile.testing.FakeCarReadModel
+import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,9 +24,11 @@ class CarsViewModelDeleteTest {
    private val golf = Car(manufacturer = "VW", model = "Golf", id = "c1")
    private val strings = FakeStringProvider()
 
-   private fun create(repository: FakeCarRepository) = CarsViewModel(
-      _repository = repository,
-      _personRepository = FakePersonRepository(),
+   private val golfItem = CarListItem("c1", "VW Golf", null, null, null)
+
+   private fun create(repository: FakeCarRepository, readModel: FakeCarReadModel) = CarsViewModel(
+      _readModel = readModel,
+      _carUcDelete = CarUcDelete(repository, FakeImageFileStorage()),
       _stringProvider = strings,
       _effectDelegate = EffectDelegate(),
    )
@@ -31,7 +36,8 @@ class CarsViewModelDeleteTest {
    @Test
    fun requestRemove_emitsConfirmationWithoutDeleting() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakeCarRepository(listOf(golf))
-      val viewModel = create(repository)
+      val readModel = FakeCarReadModel(listOf(golfItem))
+      val viewModel = create(repository, readModel)
       advanceUntilIdle()
       viewModel.effects.test {
          viewModel.onIntent(CarsIntent.RequestRemove(golf.id))
@@ -47,11 +53,16 @@ class CarsViewModelDeleteTest {
    @Test
    fun confirmRemove_deletesCar() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakeCarRepository(listOf(golf))
-      val viewModel = create(repository)
+      val readModel = FakeCarReadModel(listOf(golfItem))
+      val viewModel = create(repository, readModel)
       advanceUntilIdle()
       viewModel.onIntent(CarsIntent.ConfirmRemove(golf.id))
       advanceUntilIdle()
       assertEquals(listOf(golf), repository.removed)
-      assertEquals(emptyList<Car>(), viewModel.stateFlow.value.cars)
+      // The repository write does not replace the read model's projection.
+      assertEquals(listOf(golfItem), viewModel.stateFlow.value.cars)
+      readModel.itemsFlow.value = Result.success(emptyList())
+      advanceUntilIdle()
+      assertEquals(emptyList<CarListItem>(), viewModel.stateFlow.value.cars)
    }
 }

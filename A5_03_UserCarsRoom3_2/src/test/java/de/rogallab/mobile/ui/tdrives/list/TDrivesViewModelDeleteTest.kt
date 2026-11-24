@@ -3,8 +3,9 @@ package de.rogallab.mobile.ui.tdrives.list
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.testing.FakeCarRepository
-import de.rogallab.mobile.testing.FakePersonRepository
+import de.rogallab.mobile.domain.readmodels.TDriveListItem
+import de.rogallab.mobile.domain.usecases.TDriveUcDelete
+import de.rogallab.mobile.testing.FakeTDriveReadModel
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.FakeTDriveRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -25,12 +26,14 @@ class TDrivesViewModelDeleteTest {
       personId = "p1",
       carId = "c1",
       start = Instant.parse("2026-08-30T12:00:00Z"),
+      isCompleted = false,
    )
 
-   private fun create(repository: FakeTDriveRepository) = TDrivesViewModel(
-      _tDriveRepository = repository,
-      _personRepository = FakePersonRepository(),
-      _carRepository = FakeCarRepository(),
+   private val driveItem = TDriveListItem("t1", "Ada Lovelace", "VW Golf", drive.start, false)
+
+   private fun create(repository: FakeTDriveRepository, readModel: FakeTDriveReadModel) = TDrivesViewModel(
+      _readModel = readModel,
+      _tDriveUcDelete = TDriveUcDelete(repository),
       _stringProvider = FakeStringProvider(),
       _effectDelegate = EffectDelegate(),
    )
@@ -38,7 +41,8 @@ class TDrivesViewModelDeleteTest {
    @Test
    fun requestRemove_emitsConfirmationWithoutDeleting() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakeTDriveRepository(listOf(drive))
-      val viewModel = create(repository)
+      val readModel = FakeTDriveReadModel(listOf(driveItem))
+      val viewModel = create(repository, readModel)
       advanceUntilIdle()
 
       viewModel.effects.test {
@@ -55,13 +59,18 @@ class TDrivesViewModelDeleteTest {
    @Test
    fun confirmRemove_deletesTestDrive() = runTest(mainDispatcherRule.testDispatcher) {
       val repository = FakeTDriveRepository(listOf(drive))
-      val viewModel = create(repository)
+      val readModel = FakeTDriveReadModel(listOf(driveItem))
+      val viewModel = create(repository, readModel)
       advanceUntilIdle()
 
       viewModel.onIntent(TDrivesIntent.ConfirmRemove(drive.id))
       advanceUntilIdle()
 
       assertEquals(listOf(drive), repository.removed)
-      assertEquals(emptyList<TDrive>(), viewModel.stateFlow.value.tDrives)
+      // The list changes only when the read model emits the new projection.
+      assertEquals(listOf(driveItem), viewModel.stateFlow.value.tDrives)
+      readModel.itemsFlow.value = Result.success(emptyList())
+      advanceUntilIdle()
+      assertEquals(emptyList<TDriveListItem>(), viewModel.stateFlow.value.tDrives)
    }
 }

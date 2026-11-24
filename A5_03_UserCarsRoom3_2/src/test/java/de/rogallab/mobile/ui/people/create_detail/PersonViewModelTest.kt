@@ -7,7 +7,7 @@ import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.testing.FakeCarRepository
+import de.rogallab.mobile.testing.FakeCarReadModel
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
@@ -39,7 +39,7 @@ class PersonViewModelTest {
    private fun viewModel(id: String? = null) = PersonViewModel(
       personId = id,
       _repository = repository,
-      _carRepository = FakeCarRepository(),
+      _carReadModel = FakeCarReadModel(),
       _stringProvider = FakeStringProvider(),
       _validator = PersonValidator(context),
       _imageFileStorage = storage,
@@ -60,7 +60,10 @@ class PersonViewModelTest {
       vm.onIntent(PersonIntent.RetryLoad)
       advanceUntilIdle()
       assertNull(vm.stateFlow.value.loadFailure)
-      assertEquals(person, vm.stateFlow.value.form)
+      assertEquals(
+         PersonForm(id = "p1", firstName = "Ada", lastName = "Lovelace"),
+         vm.stateFlow.value.form,
+      )
    }
 
    @Test fun missingPerson_hasPersistentNotFound() = runTest(dispatcherRule.testDispatcher) {

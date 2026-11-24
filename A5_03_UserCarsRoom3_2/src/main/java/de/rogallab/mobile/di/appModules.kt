@@ -275,31 +275,6 @@ fun appModule(
       )
    }
 
-   viewModel { parameters ->
-      TDriveViewModel(
-         tDriveId = parameters.getOrNull<String>(),
-         _tDriveRepository = get<ITDriveRepository>(),
-         _personReadModel = get<IPersonReadModel>(),
-         _carReadModel = get<ICarReadModel>(),
-         _stringProvider = get(),
-         _validator = get<TDriveValidator>(),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<TDriveEffect>>(tDriveEffectQualifier),
-      )
-   }
-
-   viewModel {
-      TDrivesViewModel(
-         _readModel = get<ITDriveReadModel>(),
-         _tDriveUcDelete = get(),
-         _stringProvider = get(),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<TDrivesEffect>>(tDrivesEffectQualifier),
-      )
-   }
-
 }
 
 /*
