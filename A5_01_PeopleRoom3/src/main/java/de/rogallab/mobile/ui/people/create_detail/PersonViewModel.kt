@@ -46,11 +46,11 @@ class PersonViewModel(
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
       if (_personId == null) PersonUiState(isNew = true, isLoading = false)
-      else                   PersonUiState(isNew = false, isLoading = true)
+      else PersonUiState(isNew = false, isLoading = true)
 
    // StateFlow PersonUiState
    private val _stateFlow = MutableStateFlow(_initialState)
-    val stateFlow = _stateFlow.asStateFlow()
+   val stateFlow = _stateFlow.asStateFlow()
 
    // Load the existing person when the ViewModel is detail mode.
    init {
@@ -63,40 +63,36 @@ class PersonViewModel(
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
 
       viewModelScope.launch {
+
          try {
             delay(_timing.delayRead)
 
-            _repository.findById(id)
-               .onSuccess { person ->
-                  if (person == null) {
-                     val error = _stringProvider.getString(R.string.error_person_not_found)
-                     _stateFlow.update { state ->
-                        state.copy(loadFailure = PersonLoadFailure.NotFound(error))
-                     }
-                  } else {
-                     _imageEdit.start(listOfNotNull(person.imagePath))
-                     _stateFlow.update { state ->
-                        state.copy(person = person, loadFailure = null)
-                     }
-                  }
-               }
-               .onFailure { throwable ->
-                  if (throwable is CancellationException) throw throwable
-                  val error = _stringProvider.getString(R.string.error_person_load)
-                  _stateFlow.update { state ->
-                     state.copy(loadFailure = PersonLoadFailure.Failed(error))
-                  }
-               }
+            val person = _repository.findById(id).getOrThrow()
 
-         } catch (e: CancellationException) {
+            if (person == null) {
+               val error = _stringProvider.getString(R.string.error_person_not_found)
+               _stateFlow.update { state ->
+                  state.copy(loadFailure = PersonLoadFailure.NotFound(error))
+               }
+            } else {
+               _imageEdit.start(listOfNotNull(person.imagePath))
+               _stateFlow.update { state ->
+                  state.copy(person = person, loadFailure = null)
+               }
+            }
+
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             // Convert unexpected load failures into the existing retryable state.
             val error = _stringProvider.getString(R.string.error_person_load)
             _stateFlow.update { state ->
                state.copy(loadFailure = PersonLoadFailure.Failed(error))
             }
-         } finally {
+         }
+         finally {
             // Always release the loading state, including on cancellation.
             _stateFlow.update { state -> state.copy(isLoading = false) }
          }
@@ -106,7 +102,7 @@ class PersonViewModel(
    // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
       when (intent) {
-         is PersonIntent.FirstNameChange ->changeFirstName(intent.firstName)
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
          is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
          is PersonIntent.EmailChange -> changeEmail(intent.email)
          is PersonIntent.PhoneChange -> changePhone(intent.phone)
@@ -126,6 +122,7 @@ class PersonViewModel(
             ) {
                loadPerson(_personId!!)
             }
+
          PersonIntent.Save -> save()
          PersonIntent.Cancel -> cancel()
       }
@@ -146,7 +143,7 @@ class PersonViewModel(
    // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
       var emailNullable: String? = email.toNullableInput()
-      _stateFlow.update { state  ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(email = emailNullable))
       }
    }
@@ -168,9 +165,11 @@ class PersonViewModel(
             val imagePath = _imageFileStorage.copyImageToAppStorage(sourceUri).getOrThrow()
             // From this point on the feature works only with an internal path.
             replaceImage(imagePath)
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             // Keep a failed image operation from terminating the UI coroutine.
             _effectDelegate.emit(PersonEffect.ShowError(
                _stringProvider.getString(SharedR.string.error_image_save)
@@ -184,9 +183,11 @@ class PersonViewModel(
       viewModelScope.launch {
          try {
             replaceImage(imagePath)
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             _effectDelegate.emit(PersonEffect.ShowError(
                _stringProvider.getString(SharedR.string.error_image_save)
             ))
@@ -199,9 +200,11 @@ class PersonViewModel(
       viewModelScope.launch {
          try {
             replaceImage(imagePath)
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             _effectDelegate.emit(PersonEffect.ShowError(
                _stringProvider.getString(R.string.error_image_cleanup)
             ))
@@ -217,7 +220,7 @@ class PersonViewModel(
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
-      _stateFlow.update { state  ->
+      _stateFlow.update { state ->
          state.copy(person = state.person.copy(imagePath = images.firstOrNull()))
       }
    }
@@ -280,18 +283,21 @@ class PersonViewModel(
             delay(_timing.delayWrite)
 
             if (_stateFlow.value.isNew) _personUcCreate(person).getOrThrow()
-            else                        _personUcUpdate(person).getOrThrow()
+            else _personUcUpdate(person).getOrThrow()
 
             val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
             _effectDelegate.emit(PersonEffect.ShowMessage(message))
             _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             // A failed write leaves the image session available for retry or Cancel.
             val error = _stringProvider.getString(R.string.error_person_save)
             _effectDelegate.emit(PersonEffect.ShowError(error))
-         } finally {
+         }
+         finally {
             // Never leave Save and Back disabled after failure or cancellation.
             _stateFlow.update { state -> state.copy(isSaving = false) }
          }
@@ -308,9 +314,11 @@ class PersonViewModel(
             _imageEdit.discard()
             // Navigate only after temporary image cleanup succeeds.
             _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
-         } catch (e: CancellationException) {
+         }
+         catch (e: CancellationException) {
             throw e
-         } catch (e: Throwable) {
+         }
+         catch (e: Throwable) {
             // Stay on the form so Cancel can retry incomplete cleanup.
             _effectDelegate.emit(PersonEffect.ShowError(
                _stringProvider.getString(R.string.error_image_cleanup)

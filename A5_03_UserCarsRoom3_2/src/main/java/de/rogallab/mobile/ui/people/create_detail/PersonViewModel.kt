@@ -1,0 +1,498 @@
+package de.rogallab.mobile.ui.people.create_detail
+
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import de.rogallab.mobile.AppTiming
+import androidx.lifecycle.viewModelScope
+import de.rogallab.mobile.R
+import de.rogallab.mobile.domain.repositories.ICarRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
+import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.readmodels.ICarReadModel
+import de.rogallab.mobile.domain.readmodels.SellerCarItem
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
+import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.domain.IEffectSource
+import de.rogallab.mobile.shared.domain.images.IImageEdit
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
+import de.rogallab.mobile.shared.R as SharedR
+
+class PersonViewModel(
+   val personId: String?,
+   private val _repository: IPersonRepository,
+   private val _carReadModel: ICarReadModel,
+   private val _stringProvider: IStringProvider,
+   private val _validator: PersonValidator,
+   private val _imageFileStorage: IImageFileStorage,
+   private val _imageEdit: IImageEdit,
+   private val _personUcCreate: PersonUcCreate,
+   private val _personUcUpdate: PersonUcUpdate,
+   private val _effectDelegate: EffectDelegate<PersonEffect>,
+   private val _timing: AppTiming = AppTiming(),
+) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
+
+   // A null or blank id means that a new person is being created.
+   private val _personId = personId?.toNullableInput()
+   private val _isNew = _personId == null
+
+   // Prevent duplicate repository writes while a Save operation is running.
+   // This is internal processing state and therefore not part of PersonUiState.
+   private var _isSaving = false
+
+   // The initial state depends on whether a person is created or edited.
+   private val _initialState =
+      if (_isNew) PersonUiState(isNew = true, isLoading = false)
+      else PersonUiState(isNew = false, isLoading = true)
+
+   // Mutable PersonUiState is kept private inside the ViewModel.
+   private val _stateFlow: MutableStateFlow<PersonUiState> =
+      MutableStateFlow(_initialState)
+   // Exposes the PersonUiState as a read-only StateFlow to the UI.
+   val stateFlow: StateFlow<PersonUiState> =
+      _stateFlow.asStateFlow()
+
+   // Load the existing person when the ViewModel is detail mode.
+   init {
+      if (!_isNew) loadPerson(_personId!!)
+   }
+
+   // Load failures remain visible until a successful retry or cancellation.
+   private fun loadPerson(id: String) {
+
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+
+      viewModelScope.launch {
+
+         try {
+            delay(_timing.delayRead)
+
+            val person = _repository.findById(id).getOrThrow()
+
+            if (person == null) {
+               val error = _stringProvider.getString(R.string.error_person_not_found)
+               _stateFlow.update {
+                  it.copy(loadFailure = PersonLoadFailure.NotFound(error))
+               }
+            } else {
+               _imageEdit.start(listOfNotNull(person.imagePath))
+               val form = person.toPersonForm()
+               _stateFlow.update { it.copy(form = form, loadFailure = null) }
+            }
+         }
+         catch (e: CancellationException) {
+            throw e
+         }
+         catch (e: Exception) {
+            val error = _stringProvider.getString(R.string.error_person_load)
+            _stateFlow.update {
+               it.copy(loadFailure = PersonLoadFailure.Failed(error))
+            }
+         }
+         finally {
+            _stateFlow.update { it.copy(isLoading = false) }
+         }
+      }
+   }
+
+   // Dispatcher: Single public entry point for all events coming from the UI layer.
+   fun onIntent(intent: PersonIntent) {
+      Alog.d(TAG, "intent: $intent")
+
+      when (intent) {
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
+         is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
+         is PersonIntent.EmailChange -> changeEmail(intent.email)
+         is PersonIntent.PhoneChange -> changePhone(intent.phone)
+
+         // Gallery selection must be copied from media store to app storage.
+         is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
+         // Camera images already arrive as confirmed internal file paths.
+         is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
+         // The same intent is also used when an image is removed with null.
+         is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
+         // Technical image errors are converted into the common error effect.
+         is PersonIntent.ImageFailed -> showError(intent.message)
+
+         PersonIntent.RetryLoad ->
+            if (!_isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
+               loadPerson(_personId!!)
+            }
+
+         PersonIntent.CarsRequested -> loadCars()
+         PersonIntent.Save -> save()
+         PersonIntent.Cancel -> cancel()
+      }
+   }
+
+   // Update only the first name while keeping all other state values.
+   private fun changeFirstName(firstName: String) =
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(form = state.form.copy(firstName = firstName))
+      }
+
+   // Update only the last name while keeping all other state values.
+   private fun changeLastName(lastName: String) =
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(form = state.form.copy(lastName = lastName))
+      }
+
+   // Updates the optional email address while keeping all other state values.
+   private fun changeEmail(email: String) {
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(form = state.form.copy(email = email))
+      }
+   }
+
+   // Updates the optional phone number while keeping all other state values.
+   private fun changePhone(phone: String) {
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(form = state.form.copy(phone = phone))
+      }
+   }
+
+   // Loads the cars offered by this person only when the UI requests them.
+   private fun loadCars() {
+      val personId = _personId ?: return
+      if (_stateFlow.value.isCarsLoading) return
+
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(isCarsLoading = true)
+      }
+
+      viewModelScope.launch {
+         try {
+            delay(_timing.delayRead)
+
+            // Read side: only ICar... types access the Car table.
+            val cars: List<SellerCarItem> =
+               _carReadModel.findBySellerId(personId).getOrThrow()
+
+            _stateFlow.update { state: PersonUiState -> state.copy(cars = cars) }
+
+            // Open the bottom sheet only after the relation data is available.
+            _effectDelegate.emit(PersonEffect.ShowCars)
+         }
+         catch (e: CancellationException) {
+            throw e
+         }
+         catch (e: Exception) {
+            val error = _stringProvider.getString(R.string.error_cars_load)
+            _effectDelegate.emit(PersonEffect.ShowError(error))
+         }
+         finally {
+            _stateFlow.update { state: PersonUiState -> state.copy(isCarsLoading = false) }
+         }
+      }
+   }
+
+   // A gallery image initially belongs to the external Photo Picker.
+   // Copy it into private app storage before using it in the edit session.
+   private fun storeGalleryImage(sourceUri: Uri) {
+      viewModelScope.launch {
+         // IImageFileStorage performs the technical Uri-to-file operation.
+         val imagePath = _imageFileStorage
+            .copyImageToAppStorage(sourceUri)
+            .getOrElse {
+               // The gallery image could not be stored, therefore the current
+               // edit-session image remains unchanged.
+               showError(_stringProvider.getString(SharedR.string.error_image_save))
+               return@launch
+            }
+         // From this point on the feature works only with an internal path.
+         replaceImage(imagePath)
+      }
+   }
+
+   // Camera images already arrive as internal paths.
+   private fun storeCameraImage(imagePath: String) {
+      viewModelScope.launch {
+         replaceImage(imagePath)
+      }
+   }
+
+   // Passing null removes the image from the current edit-session selection.
+   private fun removeImage(imagePath: String?) {
+      viewModelScope.launch {
+         replaceImage(imagePath)
+      }
+   }
+
+   // Delegate image lifecycle management to IImageEdit.
+   //
+   // The ViewModel only provides the desired selection. The delegate decides
+   // which temporary images may already be deleted and which persisted originals
+   // must remain until Save has completed successfully.
+   private suspend fun replaceImage(imagePath: String?) {
+
+      // Person currently supports one image, while IImageEdit deliberately
+      // uses List<String> so that it can also support multi-image entities.
+      val images = _imageEdit.replace(listOfNotNull(imagePath))
+
+      // Reflect the resulting edit-session selection in PersonUiState.
+      _stateFlow.update { state: PersonUiState ->
+         state.copy(form = state.form.copy(imagePath = images.firstOrNull()))
+      }
+   }
+
+   // Send an error as a one-time effect instead of storing it in PersonUiState.
+   private fun showError(message: String) {
+      viewModelScope.launch {
+         _effectDelegate.emit(PersonEffect.ShowError(message))
+      }
+   }
+
+   // Validate and persist the current person.
+   private fun save() {
+
+      // Prevent multiple concurrent save operations.
+      if (_isSaving || _stateFlow.value.isLoading ||
+         _stateFlow.value.loadFailure != null) return
+
+      // Normalize all form values before validation and persistence.
+      var form: PersonForm = _stateFlow.value.form.normalized()
+
+      // Show the normalized values in the UI as well.
+      _stateFlow.update { state -> state.copy(form = form) }
+
+      // Validate the complete entity before accessing the repository.
+      val error = _validator.validatePerson(form)
+      if (error != null) {
+         showError(error)
+         return
+      }
+
+      // Only a valid form becomes a domain person.
+      val person: Person = form.toPerson()
+
+      // Update: save operation is in progress.
+      _isSaving = true
+      _stateFlow.update { it.copy(isSaving = true) }
+
+      viewModelScope.launch {
+
+         // Delegate the complete save operation to the matching use case.
+         delay(_timing.delayWrite)
+
+         val result =
+            if (_isNew) _personUcCreate(person)
+            else _personUcUpdate(person)
+
+         result
+            .onSuccess {
+               // First show the success message...
+               val message = _stringProvider.getString(
+                  R.string.message_person_saved,
+                  person.fullName,
+               )
+               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+
+               // ...and then request reverse navigation with Save semantics.
+               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+            }
+            .onFailure {
+               // A failed repository write must not commit the image session.
+               // The original and replacement images therefore remain available
+               // so that the user can retry or cancel the edit operation.
+               val error = _stringProvider.getString(R.string.error_person_save)
+               _effectDelegate.emit(PersonEffect.ShowError(error))
+            }
+
+         // Update: save operation is finished
+         _isSaving = false
+         _stateFlow.update { it.copy(isSaving = false) }
+      }
+   }
+
+   // Discard the current edit session and navigate back without saving.
+   private fun cancel() {
+      if (_isSaving) return
+      viewModelScope.launch {
+
+         // Remove only images created during the current edit session.
+         // Persisted original images remain untouched.
+         _imageEdit.discard()
+
+         // Navigation is emitted only after image cleanup has completed.
+         _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
+      }
+   }
+
+   companion object {
+      private const val TAG = "<-PersonViewModel"
+   }
+}
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - PersonViewModel bleibt der zentrale Zustands- und Intent-Verarbeiter für
+ *   die Personenbearbeitung. Der Screen beobachtet weiterhin genau einen
+ *   StateFlow<PersonUiState>, während einmalige Meldungen und Navigationen
+ *   getrennt über PersonEffect ausgegeben werden.
+ *
+ * - Die angebotenen Fahrzeuge werden bewusst nicht zusammen mit der Person
+ *   geladen. Erst PersonIntent.CarsRequested startet die relationale Abfrage.
+ *   PersonUiState hält die geladene List<Car> getrennt von der Domain-Person.
+ *   Nach erfolgreichem Laden löst PersonEffect.ShowCars einmalig das Öffnen
+ *   des Bottom Sheets aus.
+ *
+ * - Alle UI-Ereignisse werden über die öffentliche Methode onIntent(...)
+ *   verarbeitet. Die eigentliche Logik bleibt in privaten ViewModel-Funktionen.
+ *   Dadurch besitzt das ViewModel weiterhin genau einen klaren Einstiegspunkt
+ *   für Events aus der UI.
+ *
+ * - Die Bildbearbeitung ergänzt den bisherigen Personen-Workflow, ohne einen
+ *   zweiten UI-State einzuführen. Das aktuelle Bild bleibt Bestandteil von
+ *   PersonUiState und damit des bestehenden unidirektionalen Datenflusses.
+ *
+ * - Galerie und Kamera liefern dem ViewModel unterschiedliche Ausgangsdaten:
+ *
+ *      Galerie
+ *          -> Content-Uri
+ *
+ *      Kamera
+ *          -> bereits bestätigter interner Dateipfad
+ *
+ * - Eine Content-Uri aus dem Android Photo Picker darf nicht direkt als
+ *   dauerhafte Bildreferenz der Person verwendet werden. Deshalb kopiert
+ *   PersonViewModel ein Galerie-Bild zunächst über IImageFileStorage in den
+ *   privaten App-Speicher:
+ *
+ *      GalleryPickerHandlerSingle
+ *          -> Uri
+ *          -> PersonIntent.GalleryImageSelected
+ *          -> PersonViewModel
+ *          -> IImageFileStorage.copyImageToAppStorage(...)
+ *          -> interner imagePath
+ *
+ * - Ein Kamera-Bild wurde dagegen bereits durch CameraPickerHandler vorbereitet
+ *   und nach erfolgreicher Aufnahme bestätigt. PersonViewModel erhält deshalb
+ *   direkt den internen Dateipfad über PersonIntent.CameraImageTaken.
+ *
+ * - Nach diesem technischen Unterschied werden Galerie- und Kamera-Bilder
+ *   wieder gleich behandelt. In beiden Fällen wird der interne Dateipfad an
+ *   IImageEdit weitergegeben.
+ *
+ * - IImageFileStorage und IImageEdit besitzen bewusst unterschiedliche
+ *   Verantwortungen:
+ *
+ *      IImageFileStorage
+ *          technische Dateioperationen
+ *          Uri in App-Speicher kopieren
+ *          Dateien anlegen, bestätigen und löschen
+ *
+ *      IImageEdit
+ *          Lebensdauer der Bilder während einer Edit-Session verwalten
+ *          Originalbild merken
+ *          Ersatzbild übernehmen
+ *          Save und Cancel absichern
+ *
+ * - PersonViewModel kennt dadurch nicht die einzelnen Löschregeln für alte und
+ *   neue Bilder. Diese Logik wird an ImageEdit delegiert.
+ *
+ * - Beim Laden einer bestehenden Person startet das ViewModel die Edit-Session
+ *   mit dem bereits gespeicherten Bild:
+ *
+ *      Repository
+ *          -> Person
+ *          -> imagePath
+ *          -> IImageEdit.start(...)
+ *
+ *   Dieses Bild gilt anschließend als Original der laufenden Bearbeitung.
+ *
+ * - replaceImage(...) bildet die gemeinsame Schnittstelle für Änderungen der
+ *   aktuellen Bildauswahl. Für Person wird nur ein Bild verwendet, IImageEdit
+ *   arbeitet jedoch bereits mit List<String>. Dadurch kann dieselbe
+ *   Infrastruktur später auch für Entitäten mit mehreren Bildern verwendet
+ *   werden.
+ *
+ * - Beim Entfernen eines Bildes wird nicht direkt eine Datei gelöscht.
+ *   Das ViewModel übergibt lediglich eine leere Auswahl an IImageEdit.
+ *   Der Delegate entscheidet anschließend abhängig von der Edit-Session,
+ *   ob eine Datei sofort entfernt werden darf oder bis zum erfolgreichen
+ *   Speichern erhalten bleiben muss.
+ *
+ * - Beim erfolgreichen Speichern gilt folgende Reihenfolge:
+ *
+ *      Person validieren
+ *          -> PersonUcCreate oder PersonUcUpdate
+ *          -> Repository.create/update(...)
+ *          -> IImageEdit.commit() im Use Case
+ *          -> ShowMessage
+ *          -> NavigateBack
+ *
+ * - Das ViewModel entscheidet anhand von isNew, welcher Use Case zur aktuellen
+ *   Benutzeraktion gehört. Die Koordination von Room-Repository und
+ *   Bild-Session liegt jedoch nicht mehr im ViewModel.
+ *
+ * - commit() wird im jeweiligen Use Case erst nach erfolgreichem Repository-
+ *   Zugriff aufgerufen. Erst dann ist sichergestellt, dass die neue
+ *   Bildreferenz dauerhaft gespeichert wurde. Jetzt dürfen nicht mehr
+ *   verwendete Originalbilder gelöscht werden.
+ *
+ * - Schlägt das Speichern fehl, führt der Use Case commit() nicht aus. Dadurch
+ *   bleiben sowohl das bisher gespeicherte Originalbild als auch das aktuell
+ *   gewählte Ersatzbild erhalten. Der Benutzer kann den Speichervorgang erneut
+ *   versuchen oder die Bearbeitung abbrechen.
+ *
+ * - Beim Abbrechen gilt:
+ *
+ *      Cancel
+ *          -> IImageEdit.discard()
+ *          -> neu erzeugte, nicht gespeicherte Bilder löschen
+ *          -> ursprüngliche Bilder erhalten
+ *          -> NavigateBack
+ *
+ * - Die Navigation wird auch hier erst nach dem Aufräumen der Edit-Session
+ *   ausgelöst. Dadurch bleibt die Bildverwaltung vollständig abgeschlossen,
+ *   bevor der PersonScreen verlassen wird.
+ *
+ * - _isSaving verhindert parallele Schreibvorgänge. Der gleichnamige Wert im
+ *   PersonUiState macht den laufenden Speichervorgang für die UI sichtbar.
+ *
+ * - Ladefehler bleiben als PersonLoadFailure im State sichtbar; RetryLoad
+ *   startet einen neuen Versuch. Validierungs-, Bild- und Aktionsfehler
+ *   werden weiterhin als einmalige ShowError-Effects ausgegeben.
+ *
+ * - Damit bleibt der bekannte Datenfluss erhalten:
+ *
+ *      PersonScreen
+ *          -> Callback
+ *
+ *      PersonAdapter
+ *          -> PersonIntent
+ *
+ *      PersonViewModel
+ *          -> StateFlow<PersonUiState>
+ *          -> PersonEffect
+ *
+ *      PersonAdapter
+ *          -> PersonScreen / Snackbar / Navigation
+ *
+ * Lernziele:
+ *
+ * - Einen einzigen Intent-Einstiegspunkt im ViewModel verwenden.
+ * - Persistent State und einmalige Effects voneinander unterscheiden.
+ * - Relationsdaten bei Bedarf statt zusammen mit der Hauptentität laden.
+ * - Content-Uri und internen Dateipfad unterscheiden.
+ * - Galerie-Bilder vor der weiteren Verarbeitung in den App-Speicher kopieren.
+ * - Technische Dateiverwaltung über IImageFileStorage kapseln.
+ * - Bild-Lebenszyklen einer Bearbeitung über IImageEdit delegieren.
+ * - Original- und Ersatzbilder bei Save und Cancel sicher behandeln.
+ * - UI-State-Logik im ViewModel und Anwendungslogik im Use Case unterscheiden.
+ * - Use Cases gezielt für zusammengesetzte Personenoperationen einsetzen.
+ * - commit() im Use Case erst nach erfolgreichem Repository-Zugriff ausführen.
+ * - discard() zum Aufräumen einer nicht gespeicherten Edit-Session verwenden.
+ * - Bestehenden UDF-/MVI-Datenfluss auch bei komplexerer Bildlogik beibehalten.
+ */
