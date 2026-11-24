@@ -18,6 +18,7 @@ import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.ui.cars.input_detail.comp.CarForm
 import de.rogallab.mobile.ui.people.create_detail.BackReason
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -48,7 +49,8 @@ class CarViewModel(
 
    private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
-   private var _isSaving = false
+   // Terminal handoff to navigation; this is not a second saving flag.
+   private var _isClosing = false
    private var _loadJob: Job? = null
    private var _peopleJob: Job? = null
 
@@ -155,6 +157,11 @@ class CarViewModel(
    }
 
    fun onIntent(intent: CarIntent) {
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is CarIntent.ManufacturerChanged ||
+            intent is CarIntent.ModelChanged ||
+            intent is CarIntent.PriceChanged ||
+            intent is CarIntent.SellerChanged)) return
       when (intent) {
          is CarIntent.ManufacturerChanged ->
             updateForm { form -> form.copy(manufacturer = intent.value) }
@@ -255,61 +262,70 @@ class CarViewModel(
    }
 
    private fun save() {
-      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadFailure != null) return
+      val state = _stateFlow.value
+      if (state.isSaving || _isClosing || state.isLoading || state.loadFailure != null) return
 
-      // Normalize all form values and show them in the UI as well.
-      val form: CarForm = _stateFlow.value.form.normalized()
-      _stateFlow.update { state: CarUiState -> state.copy(form = form) }
-
-      // Validate the form before creating a domain object.
+      // This immutable snapshot is the only input to the write operation.
+      val form = state.form.normalized().copy(imagePaths = state.form.imagePaths.toList())
+      _stateFlow.update { it.copy(form = form) }
       val error = _validator.validateCar(form)
       if (error != null) {
          showError(error)
          return
       }
-
-      // Only a valid form becomes a domain car.
       val car: Car = form.toCar()
-      _isSaving = true
 
-      viewModelScope.launch {
+      // Mark the attempt synchronously, before the coroutine can be scheduled.
+      _stateFlow.update { it.copy(isSaving = true) }
+      // Enter try/finally immediately, even if the scope is cancelled before dispatch.
+      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
          try {
             delay(_timing.delayWrite)
+            val result =
+               if (_isNew) _carUcCreate(car)
+               else _carUcUpdate(car)
 
-            // The use cases save the car and commit the image edit session.
-            if (_isNew) _carUcCreate(car).getOrThrow()
-            else _carUcUpdate(car).getOrThrow()
-
-            _effectDelegate.emit(
-               CarEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_car_saved, car.displayName)
-               )
-            )
-            _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Save))
-         }
-         catch (e: CancellationException) {
-            // Coroutine cancellation must be propagated.
+            result
+               .onSuccess {
+                  currentCoroutineContext().ensureActive()
+                  _isClosing = true
+                  _effectDelegate.emit(
+                     CarEffect.ShowMessage(
+                        _stringProvider.getString(R.string.message_car_saved, car.displayName)
+                     )
+                  )
+                  _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Save))
+               }
+               .onFailure { throwable ->
+                  currentCoroutineContext().ensureActive()
+                  if (throwable is CancellationException) throw throwable
+                  showErrorNow(_stringProvider.getString(R.string.error_car_save))
+               }
+         } catch (e: CancellationException) {
             throw e
-         }
-         catch (e: Exception) {
-            // A failed write does not commit the image session,
-            // so the user can retry or cancel.
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             showErrorNow(_stringProvider.getString(R.string.error_car_save))
-         }
-         finally {
-            // Reset in every case, including cancellation.
-            _isSaving = false
+         } finally {
+            _stateFlow.update { it.copy(isSaving = false) }
          }
       }
    }
 
    private fun cancel() {
-      if (_isSaving) return
+      if (_stateFlow.value.isSaving || _isClosing) return
+      // Once Cancel is accepted, Save must not race the pending navigation.
+      _isClosing = true
       viewModelScope.launch {
-         _imageEdit.discard()
-         _effectDelegate.emit(
-            CarEffect.NavigateBack(BackReason.Cancel)
-         )
+         try {
+            _imageEdit.discard()
+            _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Cancel))
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            _isClosing = false
+            showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+         }
       }
    }
 

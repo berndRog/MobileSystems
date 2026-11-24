@@ -62,6 +62,12 @@ fun CarScreen(
 
    val form = carUiState.form
    if (carUiState.isLoading || carUiState.loadFailure != null) return
+   if (carUiState.isSaving) {
+      Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+         CircularProgressIndicator()
+      }
+      return
+   }
 
    Column(
       modifier = modifier

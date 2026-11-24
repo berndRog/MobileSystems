@@ -15,6 +15,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -49,7 +50,8 @@ class TDriveViewModel(
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
    private val _localTimeZone = TimeZone.currentSystemDefault()
-   private var _isSaving = false
+   // Terminal handoff to navigation; this is not a second saving flag.
+   private var _isClosing = false
    private var _loadJob: Job? = null
    private var _peopleJob: Job? = null
    private var _carsJob: Job? = null
@@ -76,6 +78,11 @@ class TDriveViewModel(
    }
 
    fun onIntent(intent: TDriveIntent) {
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is TDriveIntent.PersonChanged ||
+            intent is TDriveIntent.CarChanged ||
+            intent is TDriveIntent.StartChanged ||
+            intent is TDriveIntent.CompletedChanged)) return
       when (intent) {
          is TDriveIntent.PersonChanged -> updateForm { it.copy(personId = intent.personId) }
          is TDriveIntent.CarChanged -> updateForm { it.copy(carId = intent.carId) }
@@ -95,7 +102,7 @@ class TDriveViewModel(
                observeCars()
             }
          TDriveIntent.Save -> save()
-         TDriveIntent.Cancel -> navigateBack(BackReason.Cancel)
+         TDriveIntent.Cancel -> cancel()
       }
    }
 
@@ -234,51 +241,70 @@ class TDriveViewModel(
    }
 
    private fun save() {
-      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadFailure != null) return
+      val state = _stateFlow.value
+      if (state.isSaving || _isClosing || state.isLoading || state.loadFailure != null) return
 
-      // Normalize all form values and show them in the UI as well.
-      val form: TDriveForm = _stateFlow.value.form.normalized()
-      _stateFlow.update { state: TDriveUiState -> state.copy(form = form) }
-
-      // Validate the form before creating a domain object.
+      // This immutable snapshot is the only input to the write operation.
+      val form = state.form.normalized()
+      _stateFlow.update { it.copy(form = form) }
       val error = _validator.validateTDrive(form)
       if (error != null) {
          showError(error)
          return
       }
-
-      // Only a valid form becomes a domain test drive.
       val tDrive: TDrive = form.toTDrive(_localTimeZone)
-      _isSaving = true
 
-      viewModelScope.launch {
+      // Mark the attempt synchronously, before the coroutine can be scheduled.
+      _stateFlow.update { it.copy(isSaving = true) }
+      // Enter try/finally immediately, even if the scope is cancelled before dispatch.
+      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
          try {
             delay(_timing.delayWrite)
+            val result =
+               if (_isNew) _tDriveRepository.create(tDrive)
+               else _tDriveRepository.update(tDrive)
 
-            // No images involved, so no use case is needed for saving.
-            if (_isNew) _tDriveRepository.create(tDrive).getOrThrow()
-            else _tDriveRepository.update(tDrive).getOrThrow()
-
-            _effectDelegate.emit(
-               TDriveEffect.ShowMessage(_stringProvider.getString(R.string.message_test_drive_saved))
-            )
-            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
-         }
-         catch (e: CancellationException) {
+            result
+               .onSuccess {
+                  currentCoroutineContext().ensureActive()
+                  _isClosing = true
+                  _effectDelegate.emit(
+                     TDriveEffect.ShowMessage(
+                        _stringProvider.getString(R.string.message_test_drive_saved)
+                     )
+                  )
+                  _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
+               }
+               .onFailure { throwable ->
+                  currentCoroutineContext().ensureActive()
+                  if (throwable is CancellationException) throw throwable
+                  showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
+               }
+         } catch (e: CancellationException) {
             throw e
-         }
-         catch (e: Exception) {
-            // Includes the unique index violation (same driver, car and start).
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
-         }
-         finally {
-            _isSaving = false
+         } finally {
+            _stateFlow.update { it.copy(isSaving = false) }
          }
       }
    }
 
-   private fun navigateBack(reason: BackReason) {
-      viewModelScope.launch { _effectDelegate.emit(TDriveEffect.NavigateBack(reason)) }
+   private fun cancel() {
+      if (_stateFlow.value.isSaving || _isClosing) return
+      // Once Cancel is accepted, Save must not race the pending navigation.
+      _isClosing = true
+      viewModelScope.launch {
+         try {
+            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Cancel))
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            _isClosing = false
+            showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
+         }
+      }
    }
 
    private fun showError(message: String) {

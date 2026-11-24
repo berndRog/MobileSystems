@@ -19,13 +19,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
@@ -47,6 +53,7 @@ fun TDriveAdapter(
 ) {
    val tDriveUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
    val loadFailure = tDriveUiState.loadFailure
+   val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
 
    EffectHandler(viewModel.effects) { effect ->
       when (effect) {
@@ -55,6 +62,13 @@ fun TDriveAdapter(
          is TDriveEffect.NavigateBack -> onNavigateBack(effect.reason)
       }
    }
+
+   // Consume Back here so both gestures and buttons pass the ViewModel's save guard.
+   NavigationBackHandler(
+      state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+      isBackEnabled = lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
+      onBackCompleted = { viewModel.onIntent(TDriveIntent.Cancel) },
+   )
 
    Scaffold(
       modifier = Modifier.fillMaxSize(),
@@ -67,7 +81,7 @@ fun TDriveAdapter(
             },
             navigationIcon = {
                IconButton(
-                  enabled = !tDriveUiState.isLoading,
+                  enabled = !tDriveUiState.isLoading && !tDriveUiState.isSaving,
                   onClick = {
                      viewModel.onIntent(if (loadFailure == null) TDriveIntent.Save else TDriveIntent.Cancel)
                   },

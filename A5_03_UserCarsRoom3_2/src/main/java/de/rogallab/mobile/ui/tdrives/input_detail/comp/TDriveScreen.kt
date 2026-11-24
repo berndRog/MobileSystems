@@ -1,6 +1,7 @@
 package de.rogallab.mobile.ui.tdrives.input_detail.comp
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -42,6 +44,12 @@ fun TDriveScreen(
 
    val form = tDriveUiState.form
    if (tDriveUiState.isLoading || tDriveUiState.loadFailure != null) return
+   if (tDriveUiState.isSaving) {
+      Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+         CircularProgressIndicator()
+      }
+      return
+   }
 
    Column(
       modifier = modifier,
