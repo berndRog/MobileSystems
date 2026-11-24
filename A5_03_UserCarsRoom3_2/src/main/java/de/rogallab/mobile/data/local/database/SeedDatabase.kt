@@ -1,66 +1,73 @@
 package de.rogallab.mobile.data.local.database
 
-import de.rogallab.mobile.data.ICarDao
-import de.rogallab.mobile.data.IPersonDao
-import de.rogallab.mobile.data.ITDriveDao
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
 import de.rogallab.mobile.data.local.Seed
-import de.rogallab.mobile.data.local.dtos.TDriveDto
-import de.rogallab.mobile.shared.domain.images.IImageFileStorage
-import de.rogallab.mobile.shared.domain.utilities.Alog
-import kotlinx.coroutines.runBlocking
-import java.util.Locale
+import de.rogallab.mobile.shared.data.local.database.InstantConverters
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
+// Room commits the schema, seed data and database version in one creation transaction.
 class SeedDatabase(
-   private val _personDao: IPersonDao,
-   private val _carDao: ICarDao,
-   private val _tDriveDao: ITDriveDao,
-   private val _imageFileStorage: IImageFileStorage,
    private val _seed: Seed
-) {
-   fun seed() {
-
-      runBlocking {
-         if (_personDao.count() == 0) {
-            _seed.createPersonDtos().forEach { personDto ->
-               Alog.i("<-SeedDatabase", "PersonDto: $personDto")
-               _personDao.insert(personDto)
-            }
-         }
-         if (_carDao.count() == 0) {
-            _seed.createCarDtos().forEach { carDto ->
-               Alog.i("<-SeedDatabase", "CarDto: $carDto")
-               _carDao.insert(carDto)
-            }
-         }
-
-
-         if (_tDriveDao.count() == 0) {
-            _seed.createsTestDriveDtos().forEach { tDriveDto ->
-               _tDriveDao.insert(tDriveDto)
-            }
+) : RoomDatabase.Callback() {
+   override suspend fun onCreate(connection: SQLiteConnection) {
+      // DAOs would recursively open this database. Use Room's callback connection instead.
+      connection.prepare(
+         "INSERT INTO Person (id, firstName, lastName, email, phone, imagePath) VALUES (?, ?, ?, ?, ?, ?)"
+      ).use { statement ->
+         _seed.createPersonDtos().forEach { person ->
+            coroutineContext.ensureActive()
+            statement.bindText(1, person.id)
+            statement.bindText(2, person.firstName)
+            statement.bindText(3, person.lastName)
+            statement.bindNullableText(4, person.email)
+            statement.bindNullableText(5, person.phone)
+            statement.bindNullableText(6, person.imagePath)
+            statement.step()
+            statement.reset()
          }
       }
-   }
+      connection.prepare(
+         "INSERT INTO Car (id, manufacturer, model, price, imagePaths, personId) VALUES (?, ?, ?, ?, ?, ?)"
+      ).use { statement ->
+         _seed.createCarDtos().forEach { car ->
+            coroutineContext.ensureActive()
+            statement.bindText(1, car.id)
+            statement.bindText(2, car.manufacturer)
+            statement.bindText(3, car.model)
+            if (car.price == null) statement.bindNull(4)
+            else statement.bindLong(4, car.price.toLong())
+            statement.bindText(5, StringListColumnConverter.toJson(car.imagePaths))
+            statement.bindNullableText(6, car.personId)
+            statement.step()
+            statement.reset()
+         }
+      }
+      connection.prepare(
+         "INSERT INTO TDrive (id, personId, carId, start, isCompleted) VALUES (?, ?, ?, ?, ?)"
+      ).use { statement ->
+         _seed.createsTestDriveDtos().forEach { tDrive ->
+            coroutineContext.ensureActive()
+            statement.bindText(1, tDrive.id)
+            statement.bindText(2, tDrive.personId)
+            statement.bindText(3, tDrive.carId)
+            statement.bindText(4, requireNotNull(InstantConverters.instantToIsoString(tDrive.start)))
+            statement.bindLong(5, if (tDrive.isCompleted) 1L else 0L)
+            statement.step()
+            statement.reset()
+         }
+      }
+
+      // Room enables foreign keys in onOpen, after the creation transaction.
+      connection.prepare("PRAGMA foreign_key_check").use { statement ->
+         check(!statement.step()) { "Seed data contains invalid foreign key references" }
+      }
+      coroutineContext.ensureActive()
    }
 
-/*
- * Didaktik und Lernziele
- *
- * - Die Personen verwenden dieselben Namen, stabilen IDs und Bilder wie die
- *   vorherigen Beispiele. Dadurch bleibt der bekannte Datenbestand erhalten.
- *
- * - Personenbilder sind Drawables der App. Beim Seeding werden sie mit
- *   IImageFileStorage in den privaten App-Speicher kopiert und Room speichert
- *   anschließend den absoluten Dateipfad.
- *
- * - Fahrzeuge besitzen mehrere Bildreferenzen. Die Seed-Fotos stammen aus
- *   Wikimedia Commons; Front-, Heck- und Innenraumansicht zeigen die Arbeit
- *   mit List<String> und dem zugehörigen Room-Column-Converter.
- *
- * - Zwei Fahrzeuge gehören Arne und zwei Berta. Die 1:n-Beziehung zwischen
- *   Person und Car lässt sich damit direkt in den Beispieldaten erkennen.
- *
- * - Die drei Probefahrten bilden beide Richtungen einer m:n-Beziehung ab:
- *   Frieda fährt mehrere Fahrzeuge und der Golf wird von mehreren Personen
- *   probegefahren.
- */
+   private fun SQLiteStatement.bindNullableText(index: Int, value: String?) {
+      if (value == null) bindNull(index) else bindText(index, value)
+   }
+}

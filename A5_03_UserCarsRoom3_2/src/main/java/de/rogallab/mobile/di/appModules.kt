@@ -90,6 +90,7 @@ fun appModule(
          .setDriver(BundledSQLiteDriver())
          .setQueryCoroutineContext(dispatcherIo)
          .addMigrations(migration1To2)
+         .addCallback(get<SeedDatabase>())
          .build()
    }
 
@@ -106,14 +107,7 @@ fun appModule(
    single { Seed(_imageFileStorage = get<IImageFileStorage>()) }
 
    single {
-      SeedDatabase(
-         _personDao = get<IPersonDao>(),
-         _carDao = get<ICarDao>(),
-         _tDriveDao = get(),
-         _imageFileStorage = get<IImageFileStorage>(),
-         _seed = get<Seed>()
-
-      )
+      SeedDatabase(_seed = get<Seed>())
    }
 
    Alog.i(tag, "single    -> IPersonReadModel")
@@ -292,9 +286,8 @@ fun appModule(
  *   und Fahrzeuge verwenden dieselben Shared-Dienste; A5_02 implementiert keine
  *   eigene Datei- oder ImagePicker-Infrastruktur.
  *
- * - SeedDatabase erhält IImageFileStorage ebenfalls per Dependency Injection.
- *   Dadurch verwendet der Seed für Personenbilder dieselbe Datei-Infrastruktur
- *   wie die eigentliche Anwendung.
+ * - SeedDatabase läuft als Room-Erstellungs-Callback. Seed erhält den
+ *   IImageFileStorage per Dependency Injection.
  *
  * - PersonUcCreate und PersonUcUpdate teilen dieselbe IImageEdit-Instanz mit
  *   PersonViewModel. PersonUcDelete koordiniert das Room-Repository mit der

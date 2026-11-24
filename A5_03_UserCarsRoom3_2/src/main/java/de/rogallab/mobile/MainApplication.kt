@@ -1,7 +1,9 @@
 package de.rogallab.mobile
 
 import android.app.Application
-import de.rogallab.mobile.data.local.database.SeedDatabase
+import androidx.room3.useReaderConnection
+import de.rogallab.mobile.data.local.database.AppDatabase
+import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.di.appModule
 import de.rogallab.mobile.di.effectModule
 import de.rogallab.mobile.shared.di.imageStorageModule
@@ -31,8 +33,14 @@ class MainApplication : Application() {
          modules(utilitiesModule())
          modules(imageStorageModule(Globals.imageDirectoryName))
       }
-      val seedDatabase: SeedDatabase = get()
-      appScope.launch { seedDatabase.seed() }
+      appScope.launch {
+         // Open Room off the main thread; every DAO access also waits for creation.
+         resultOf(block = {
+            get<AppDatabase>().useReaderConnection { }
+         }).onFailure { throwable ->
+            Alog.e("<-MainApplication", "Database initialization failed; opening can be retried", throwable)
+         }
+      }
    }
 }
 
