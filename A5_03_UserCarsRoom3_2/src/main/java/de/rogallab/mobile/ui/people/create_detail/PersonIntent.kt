@@ -16,6 +16,7 @@ sealed interface PersonIntent {
 
    data object RetryLoad : PersonIntent
    data object CarsRequested : PersonIntent
+   data object RetryCars : PersonIntent
    data object Save : PersonIntent
    data object Cancel : PersonIntent
 }

@@ -171,17 +171,6 @@ fun appModule(
    factory { TDriveUcDelete(_repository = get()) }
 
 
-   /*
-   IImageEdit ist als factory registriert. Jeder Aufruf von get<IImageEdit>() liefert eine neue
-   Instanz. Würde Koin PersonUcCreate selbst erzeugen, bekäme der Use Case seine eigene ImageEdit-
-   Instanz, und der ViewModel hätte eine andere. Der ViewModel startet die Sitzung (start, replace),
-    der Use Case ruft commit() auf, aber auf einem Objekt, das von den Bildern nichts weiß.
-    Es würde nichts gelöscht, und alte Profilbilder blieben liegen.
-
-   Deshalb holt der ViewModel-Block eine ImageEdit-Instanz und gibt sie von Hand an den ViewModel
-   und beide Use Cases weiter. Für PersonUcCreate und PersonUcUpdate ist die manuelle Erzeugung
-   also Absicht.
-    */
    viewModel { parameters ->
       // Both person save use cases must share the ViewModel's image edit session.
       val imageEdit = get<IImageEdit>()
@@ -192,8 +181,10 @@ fun appModule(
          _carReadModel = get<ICarReadModel>(),
          _stringProvider = get<IStringProvider>(),
          _validator = get<PersonValidator>(),
-         _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(
+            session = imageEdit, storage = get<IImageFileStorage>(),
+            mode = ImageSelectionMode.REPLACE, maxImages = 1,
+         ),
          _personUcCreate = PersonUcCreate(get<IPersonRepository>(), imageEdit),
          _personUcUpdate = PersonUcUpdate(get<IPersonRepository>(), imageEdit),
          _timing = get<AppTiming>(),
@@ -206,8 +197,7 @@ fun appModule(
       val repository = get<IPersonRepository>()
 
       PeopleViewModel(
-         _repository = repository,
-         _readmodel = get<IPersonReadModel>(),
+         _readModel = get<IPersonReadModel>(),
          _personUcDelete = PersonUcDelete(
             _repository = repository,
             _imageFileStorage = get<IImageFileStorage>(),

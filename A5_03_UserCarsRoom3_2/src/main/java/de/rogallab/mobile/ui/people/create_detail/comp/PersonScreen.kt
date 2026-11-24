@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -38,7 +39,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.entities.Car
 import de.rogallab.mobile.domain.readmodels.SellerCarItem
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.components.InputValueString
@@ -52,6 +52,7 @@ fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
    isSaving: Boolean,
+   isEditingImages: Boolean = false,
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
    lastName: String = "",
@@ -67,6 +68,8 @@ fun PersonScreen(
    onRemovePhoto: () -> Unit = {},
    cars: List<SellerCarItem> = emptyList(),
    isCarsLoading: Boolean = false,
+   carsLoadFailure: String? = null,
+   onRetryCars: () -> Unit = {},
    showCars: Boolean = false,
    onCarsRequested: () -> Unit = {},
    onDismissCars: () -> Unit = {},
@@ -83,6 +86,7 @@ fun PersonScreen(
    val enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
    Column(modifier = modifier) {
+      if (isEditingImages) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
       InputValueString(
          value = firstName,
          onValueChange = onFirstNameChange,
@@ -123,7 +127,7 @@ fun PersonScreen(
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         imageActionsEnabled = imageActionsEnabled,
+         imageActionsEnabled = imageActionsEnabled && !isEditingImages && !isSaving,
          height = 200.dp,
          onSelectPhoto = onSelectPhoto,
          onTakePhoto = onTakePhoto,
@@ -137,12 +141,12 @@ fun PersonScreen(
             Alignment.CenterHorizontally,
          ),
       ) {
-         OutlinedButton(onClick = onCancel, enabled = !isSaving) {
+         OutlinedButton(onClick = onCancel, enabled = !isSaving && !isEditingImages) {
             Text(text = stringResource(R.string.action_cancel))
          }
          Button(
             onClick = onSave,
-            enabled = enableSave && !isLoading && !isSaving,
+            enabled = enableSave && !isLoading && !isSaving && !isEditingImages,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
@@ -150,8 +154,8 @@ fun PersonScreen(
 
       if (!isNew) {
          OutlinedButton(
-            onClick = onCarsRequested,
-            enabled = !isCarsLoading,
+            onClick = if (carsLoadFailure == null) onCarsRequested else onRetryCars,
+            enabled = !isCarsLoading && !isSaving && !isEditingImages,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
          ) {
             if (isCarsLoading) {
@@ -167,13 +171,16 @@ fun PersonScreen(
                )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = stringResource(R.string.person_offered_cars))
+            Text(text = stringResource(
+               if (carsLoadFailure == null) R.string.person_offered_cars else R.string.action_retry
+            ))
          }
+         carsLoadFailure?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
       }
 
    }
 
-   if (showCars) {
+   if (showCars && !isSaving && !isEditingImages) {
       CarsBottomSheet(
          cars = cars,
          onDismiss = onDismissCars,

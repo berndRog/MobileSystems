@@ -1,6 +1,5 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.imePadding
@@ -21,6 +20,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -80,96 +85,100 @@ fun PersonAdapter(
       }
    }
 
-   BackHandler { viewModel.onIntent(PersonIntent.Cancel) }
-
+   val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
    val imageSaveError = stringResource(SharedR.string.error_image_save)
 
-   Scaffold(
-      modifier = modifier,
-      topBar = {
-         TopAppBar(
-            navigationIcon = {
-               IconButton(
-                  enabled = !personUiState.isSaving && !personUiState.isLoading,
-                  onClick = {
-                     viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
-                  },
-               ) {
-                  Icon(
-                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(
-                        if (loadFailure == null) R.string.action_save else R.string.action_back
-                     ),
-                  )
-               }
-            },
-            title = {
-               Text(
-                  text = if (personUiState.isNew)
-                     stringResource(R.string.person_create)
-                  else
-                     stringResource(R.string.person_detail),
-               )
+   // Keep picker callbacks alive while Save or image processing hides the form.
+   GalleryPickerHandlerSingle(
+      onImageSelected = { viewModel.onIntent(PersonIntent.GalleryImageSelected(it)) },
+   ) { galleryActions ->
+      CameraPickerHandler(
+         imageFileStorage = imageFileStorage,
+         onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
+         onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
+      ) { cameraActions ->
+         val imageBusy = personUiState.isEditingImages || cameraActions.isBusy
+
+         // Consume Back while busy so NavDisplay cannot bypass cleanup.
+         NavigationBackHandler(
+            state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+            isBackEnabled = lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
+            onBackCompleted = {
+               if (!imageBusy) viewModel.onIntent(PersonIntent.Cancel)
             },
          )
-      },
-   ) { innerPadding ->
-      if (personUiState.isLoading || personUiState.isSaving) {
-         Box(
-            modifier = Modifier
-               .fillMaxSize()
-               .padding(innerPadding),
-            contentAlignment = Alignment.TopCenter,
-         ) {
-            CircularProgressIndicator(modifier = Modifier.size(64.dp))
-         }
-      }
-      else if (loadFailure != null) {
-         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-         ) {
-            Text(
-               text = loadFailure.message,
-               style = MaterialTheme.typography.bodyLarge,
-               fontWeight = FontWeight.Bold,
-               modifier = Modifier.padding(bottom = 16.dp),
-            )
-            Button(onClick = {
-               viewModel.onIntent(
-                  if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
-                  else PersonIntent.RetryLoad
+
+         Scaffold(
+            modifier = modifier,
+            topBar = {
+               TopAppBar(
+                  navigationIcon = {
+                     IconButton(
+                        enabled = !personUiState.isSaving && !personUiState.isLoading && !imageBusy,
+                        onClick = {
+                           viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
+                        },
+                     ) {
+                        Icon(
+                           imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                           contentDescription = stringResource(
+                              if (loadFailure == null) R.string.action_save else R.string.action_back
+                           ),
+                        )
+                     }
+                  },
+                  title = {
+                     Text(
+                        text = if (personUiState.isNew)
+                           stringResource(R.string.person_create)
+                        else
+                           stringResource(R.string.person_detail),
+                     )
+                  },
                )
-            }) {
-               Text(text = stringResource(
-                  if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
-                  else R.string.action_retry
-               ))
-            }
-         }
-      }
-      else {
-         GalleryPickerHandlerSingle(
-            onImageSelected = { sourceUri ->
-               viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
             },
-         ) { galleryActions ->
-
-            CameraPickerHandler(
-               imageFileStorage = imageFileStorage,
-               onPhotoStored = {
-                  viewModel.onIntent(PersonIntent.CameraImageTaken(it))
-               },
-               onError = {
-                  viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError))
-               },
-            ) { cameraActions ->
-
+         ) { innerPadding ->
+            if (personUiState.isLoading || personUiState.isSaving) {
+               Box(
+                  modifier = Modifier
+                     .fillMaxSize()
+                     .padding(innerPadding),
+                  contentAlignment = Alignment.TopCenter,
+               ) {
+                  CircularProgressIndicator(modifier = Modifier.size(64.dp))
+               }
+            }
+            else if (loadFailure != null) {
+               Column(
+                  modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+                  verticalArrangement = Arrangement.Center,
+                  horizontalAlignment = Alignment.CenterHorizontally,
+               ) {
+                  Text(
+                     text = loadFailure.message,
+                     style = MaterialTheme.typography.bodyLarge,
+                     fontWeight = FontWeight.Bold,
+                     modifier = Modifier.padding(bottom = 16.dp),
+                  )
+                  Button(enabled = !imageBusy, onClick = {
+                     viewModel.onIntent(
+                        if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                        else PersonIntent.RetryLoad
+                     )
+                  }) {
+                     Text(text = stringResource(
+                        if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+                        else R.string.action_retry
+                     ))
+                  }
+               }
+            }
+            else {
                PersonScreen(
                   isNew = personUiState.isNew,
                   isLoading = personUiState.isLoading,
                   isSaving = personUiState.isSaving,
+                  isEditingImages = imageBusy,
                   firstName = person.firstName,
                   onFirstNameChange = {
                      viewModel.onIntent(PersonIntent.FirstNameChange(it))
@@ -187,7 +196,7 @@ fun PersonAdapter(
                      viewModel.onIntent(PersonIntent.PhoneChange(it))
                   },
                   imagePath = person.imagePath,
-                  imageActionsEnabled = !cameraActions.isBusy,
+                  imageActionsEnabled = !imageBusy,
                   onSelectPhoto = galleryActions.selectFromGallery,
                   onTakePhoto = cameraActions.takePhoto,
                   onRemovePhoto = {
@@ -195,6 +204,8 @@ fun PersonAdapter(
                   },
                   cars = personUiState.cars,
                   isCarsLoading = personUiState.isCarsLoading,
+                  carsLoadFailure = personUiState.carsLoadFailure,
+                  onRetryCars = { viewModel.onIntent(PersonIntent.RetryCars) },
                   showCars = showCars,
                   onCarsRequested = {
                      viewModel.onIntent(PersonIntent.CarsRequested)
@@ -220,18 +231,3 @@ fun PersonAdapter(
       }
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - Der Scaffold liegt im PersonAdapter; der einzige SnackbarHost liegt
- *   navigationweit in AppNavigation. Der Eingabescreen bleibt zustandslos.
- * - GalleryPickerHandlerSingle und CameraPickerHandler bleiben ebenfalls Aufgabe des
- *   Adapters; PersonScreen erhält nur Werte und Callback-Funktionen.
- * - PersonEffect.ShowCars öffnet das Bottom Sheet erst nach erfolgreichem Laden
- *   der angebotenen Fahrzeuge. Die Sichtbarkeit bleibt lokaler UI-Zustand.
- * - Die Navigation zu einem Fahrzeug wird über onNavigateToCar an
- *   AppNavigation delegiert.
- * - Die Bottom-Navigation wird von AppNavigation bereitgestellt. Dauerhafte
- *   Ladefehler bieten RetryLoad; System-Back sendet Cancel für Bildbereinigung.
- */

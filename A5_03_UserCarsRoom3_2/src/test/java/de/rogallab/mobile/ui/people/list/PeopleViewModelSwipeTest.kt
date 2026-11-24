@@ -62,8 +62,7 @@ class PeopleViewModelSwipeTest {
       repository: FakePersonRepository,
       readModel: FakePersonReadModel,
    ) = PeopleViewModel(
-      _repository = repository,
-      _readmodel = readModel,
+      _readModel = readModel,
       _personUcDelete = PersonUcDelete(repository, imageFileStorage),
       _stringProvider = stringProvider,
       _effectDelegate = EffectDelegate(),

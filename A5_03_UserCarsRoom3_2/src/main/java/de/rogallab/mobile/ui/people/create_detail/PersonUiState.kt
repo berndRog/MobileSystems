@@ -10,6 +10,8 @@ data class PersonUiState(
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
    val isSaving: Boolean = false,
+   val isEditingImages: Boolean = false,
    val loadFailure: PersonLoadFailure? = null,
    val isCarsLoading: Boolean = false,
+   val carsLoadFailure: String? = null,
 )

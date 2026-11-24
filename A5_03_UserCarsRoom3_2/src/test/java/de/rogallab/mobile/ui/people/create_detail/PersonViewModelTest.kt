@@ -7,6 +7,8 @@ import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeCarReadModel
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -42,8 +44,7 @@ class PersonViewModelTest {
       _carReadModel = FakeCarReadModel(),
       _stringProvider = FakeStringProvider(),
       _validator = PersonValidator(context),
-      _imageFileStorage = storage,
-      _imageEdit = imageEdit,
+      _images = ImageEditDelegate(imageEdit, storage, ImageSelectionMode.REPLACE, 1),
       _personUcCreate = PersonUcCreate(repository, imageEdit),
       _personUcUpdate = PersonUcUpdate(repository, imageEdit),
       _effectDelegate = EffectDelegate(),
