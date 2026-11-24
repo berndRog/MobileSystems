@@ -48,9 +48,8 @@ class CarViewModel(
 
    private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
-   // Terminal handoff to navigation; this is not a second saving flag.
+   // Block further actions until navigation handles the closing effect.
    private var _isClosing = false
-   private var _loadJob: Job? = null
    private var _peopleJob: Job? = null
 
    // A new car starts with an empty form; an existing car is loaded first.
@@ -67,100 +66,7 @@ class CarViewModel(
       else loadCar(_carId!!)
    }
 
-   // Loads the seller selection through the person read model.
-   // Only IPerson... types access the Person table.
-   private fun observePeople() {
-      val previousJob = _peopleJob
-      previousJob?.cancel()
-      // Set loading before launch: repeated Retry intents cannot start another attempt.
-      _stateFlow.update { it.copy(isPeopleLoading = true, peopleLoadFailure = null) }
-      _peopleJob = viewModelScope.launch {
-         previousJob?.cancelAndJoin()
-         try {
-            delay(_timing.delayRead)
-            _personReadModel.observeSelectItems().collect { result: Result<List<PersonSelectItem>> ->
-               currentCoroutineContext().ensureActive()
-               result
-                  .onSuccess { items ->
-                     _stateFlow.update {
-                        it.copy(people = items, isPeopleLoading = false, peopleLoadFailure = null)
-                     }
-                  }
-                  .onFailure { throwable ->
-                     currentCoroutineContext().ensureActive()
-                     if (throwable is CancellationException) throw throwable
-                     _stateFlow.update {
-                        it.copy(isPeopleLoading = false,
-                           peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
-                     }
-                     // Stop this collector, not a possibly newer job stored in the field.
-                     currentCoroutineContext().cancel()
-                     currentCoroutineContext().ensureActive()
-                  }
-            }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            // Also handle a Flow that throws instead of emitting Result.failure.
-            _stateFlow.update {
-               it.copy(isPeopleLoading = false,
-                  peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
-            }
-         }
-      }
-   }
-
-   private fun loadCar(id: String) {
-      val previousJob = _loadJob
-      previousJob?.cancel()
-      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
-      _loadJob = viewModelScope.launch {
-         previousJob?.cancelAndJoin()
-         try {
-            delay(_timing.delayRead)
-            _carRepository.findById(id)
-               .onSuccess { car ->
-                  currentCoroutineContext().ensureActive()
-                  if (car == null) {
-                     _stateFlow.update {
-                        it.copy(isLoading = false, loadFailure = CarLoadFailure.NotFound(
-                           _stringProvider.getString(R.string.error_car_not_found)))
-                     }
-                  } else {
-                     _images.start(car.imagePaths)
-                     _stateFlow.update {
-                        it.copy(form = car.toCarForm(),
-                           isLoading = false, loadFailure = null)
-                     }
-                  }
-               }
-               .onFailure { throwable ->
-                  currentCoroutineContext().ensureActive()
-                  if (throwable is CancellationException) throw throwable
-                  _stateFlow.update {
-                     it.copy(isLoading = false, loadFailure = CarLoadFailure.Failed(
-                        _stringProvider.getString(R.string.error_car_load)))
-                  }
-               }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            _stateFlow.update {
-               it.copy(isLoading = false, loadFailure = CarLoadFailure.Failed(
-                  _stringProvider.getString(R.string.error_car_load)))
-            }
-         }
-      }
-   }
-
    fun onIntent(intent: CarIntent) {
-      if ((_stateFlow.value.isSaving || _isClosing) &&
-         (intent is CarIntent.ManufacturerChanged ||
-            intent is CarIntent.ModelChanged ||
-            intent is CarIntent.PriceChanged ||
-            intent is CarIntent.SellerChanged)) return
       when (intent) {
          is CarIntent.ManufacturerChanged ->
             updateForm { form -> form.copy(manufacturer = intent.value) }
@@ -200,11 +106,83 @@ class CarViewModel(
       }
    }
 
+   // Retry is gated by isLoading; the ViewModel always edits the original id.
+   private fun loadCar(id: String) {
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      viewModelScope.launch {
+         try {
+            delay(_timing.delayRead)
+            val car = _carRepository.findById(id).getOrThrow()
+            currentCoroutineContext().ensureActive()
+            if (car == null) {
+               _stateFlow.update {
+                  it.copy(isLoading = false, loadFailure = CarLoadFailure.NotFound(
+                     _stringProvider.getString(R.string.error_car_not_found)))
+               }
+            } else {
+               _images.start(car.imagePaths)
+               _stateFlow.update {
+                  it.copy(form = car.toCarForm(),
+                     isLoading = false, loadFailure = null)
+               }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false, loadFailure = CarLoadFailure.Failed(
+                  _stringProvider.getString(R.string.error_car_load)))
+            }
+         }
+      }
+   }
 
+   // Selection updates must not reload the edited form.
+   private fun observePeople() {
+      val previousJob = _peopleJob
+      // Set loading before launch: repeated Retry intents cannot start another attempt.
+      _stateFlow.update { it.copy(isPeopleLoading = true, peopleLoadFailure = null) }
+      _peopleJob = viewModelScope.launch {
+         previousJob?.cancelAndJoin()
+         try {
+            delay(_timing.delayRead)
+            _personReadModel.observeSelectItems().collect { result: Result<List<PersonSelectItem>> ->
+               currentCoroutineContext().ensureActive()
+               result
+                  .onSuccess { items ->
+                     _stateFlow.update {
+                        it.copy(people = items, isPeopleLoading = false, peopleLoadFailure = null)
+                     }
+                  }
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) throw throwable
+                     _stateFlow.update {
+                        it.copy(isPeopleLoading = false,
+                           peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
+                     }
+                     // Stop this collector, not a possibly newer job stored in the field.
+                     currentCoroutineContext().cancel()
+                     currentCoroutineContext().ensureActive()
+                  }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            // Also handle a Flow that throws instead of emitting Result.failure.
+            _stateFlow.update {
+               it.copy(isPeopleLoading = false,
+                  peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
+            }
+         }
+      }
+   }
 
    // Raw input is stored unchanged; normalization happens on Save.
    private fun updateForm(transform: (CarForm) -> CarForm) {
-      _stateFlow.update { state: CarUiState -> state.copy(form = transform(state.form)) }
+      if (_stateFlow.value.isSaving || _isClosing) return
+      _stateFlow.update { it.copy(form = transform(it.form)) }
    }
 
    // All image entry points run on Main, like the other UI intents.
@@ -283,22 +261,15 @@ class CarViewModel(
                if (_isNew) _carUcCreate(car)
                else _carUcUpdate(car)
 
-            result
-               .onSuccess {
-                  currentCoroutineContext().ensureActive()
-                  _isClosing = true
-                  _effectDelegate.emit(
-                     CarEffect.ShowMessage(
-                        _stringProvider.getString(R.string.message_car_saved, car.displayName)
-                     )
-                  )
-                  _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Save))
-               }
-               .onFailure { throwable ->
-                  currentCoroutineContext().ensureActive()
-                  if (throwable is CancellationException) throw throwable
-                  showErrorNow(_stringProvider.getString(R.string.error_car_save))
-               }
+            result.getOrThrow()
+            currentCoroutineContext().ensureActive()
+            _isClosing = true
+            _effectDelegate.emit(
+               CarEffect.ShowMessage(
+                  _stringProvider.getString(R.string.message_car_saved, car.displayName)
+               )
+            )
+            _effectDelegate.emit(CarEffect.NavigateBack(BackReason.Save))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
@@ -328,27 +299,10 @@ class CarViewModel(
    }
 
    private fun showError(message: String) {
-      viewModelScope.launch {
-         showErrorNow(message)
-      }
+      viewModelScope.launch { showErrorNow(message) }
    }
 
    private suspend fun showErrorNow(message: String) {
       _effectDelegate.emit(CarEffect.ShowError(message))
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - A5_02 verwendet für Fahrzeugbilder dieselbe Shared-Infrastruktur wie die
- *   vorherigen ImagePicker-Beispiele. Das Feature implementiert keine eigene
- *   Datei- oder Picker-Schicht.
- *
- * - The image delegate imports picker results and owns technical file cleanup.
- *
- * - CameraPickerHandler liefert dagegen bereits einen bestätigten internen
- *   Dateipfad. Beide Wege enden anschließend in derselben IImageEdit-Session.
- *
- * - The ViewModel owns operation guards, form updates and user-facing effects.
- */

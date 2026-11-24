@@ -55,6 +55,45 @@ class TDrivesViewModel(
       }
    }
 
+   // The read model flow emits again whenever TDrive, Person or Car changes,
+   // so driver and car names stay current.
+   private fun observeTDrives() {
+      val previousJob = _observeJob
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      _observeJob = viewModelScope.launch {
+         previousJob?.cancelAndJoin()
+         try {
+            delay(_timing.delayRead)
+            _readModel.observeListItems().collect { result: Result<List<TDriveListItem>> ->
+               currentCoroutineContext().ensureActive()
+               result
+                  .onSuccess { items ->
+                     _stateFlow.update {
+                        it.copy(tDrives = items, isLoading = false, loadFailure = null)
+                     }
+                  }
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) throw throwable
+                     _stateFlow.update {
+                        it.copy(isLoading = false,
+                           loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
+                     }
+                     currentCoroutineContext().cancel()
+                     currentCoroutineContext().ensureActive()
+                  }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false,
+                  loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
+            }
+         }
+      }
+   }
+
    private fun navigateTo(tDriveId: String?) {
       viewModelScope.launch { _effectDelegate.emit(TDrivesEffect.NavigateTo(tDriveId)) }
    }
@@ -77,58 +116,12 @@ class TDrivesViewModel(
    private fun confirmRemove(tDriveId: String) {
       val item = findItem(tDriveId) ?: return
       viewModelScope.launch {
-         try {
-            delay(_timing.delayWrite)
-            _tDriveUcDelete(item.id).getOrThrow()
-            // On success the read model flow emits the list without this test drive.
-         }
-         catch (e: CancellationException) {
-            throw e
-         }
-         catch (e: Exception) {
-            emitErrorNow(R.string.error_test_drive_delete)
-         }
-      }
-   }
-
-   // The read model flow emits again whenever TDrive, Person or Car changes,
-   // so driver and car names stay current.
-   private fun observeTDrives() {
-      val previousJob = _observeJob
-      previousJob?.cancel()
-      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
-      _observeJob = viewModelScope.launch {
-         previousJob?.cancelAndJoin()
-         try {
-            delay(_timing.delayRead)
-            _readModel.observeListItems().collect { result: Result<List<TDriveListItem>> ->
-               currentCoroutineContext().ensureActive()
-               result
-                  .onSuccess { items ->
-                     _stateFlow.update {
-                        it.copy(tDrives = items, isLoading = false, loadFailure = null)
-                     }
-                  }
-                  .onFailure { throwable ->
-                     currentCoroutineContext().ensureActive()
-                     if (throwable is CancellationException) throw throwable
-                     _stateFlow.update {
-                        it.copy(isLoading = false,
-                           loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
-                     }
-                     currentCoroutineContext().cancel()
-                     currentCoroutineContext().ensureActive()
-                  }
+         delay(_timing.delayWrite)
+         _tDriveUcDelete(item.id)
+            .onFailure {
+               emitErrorNow(R.string.error_test_drive_delete)
             }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            _stateFlow.update {
-               it.copy(isLoading = false,
-                  loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
-            }
-         }
+         // The read model flow updates the list after successful deletion.
       }
    }
 

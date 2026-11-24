@@ -40,11 +40,24 @@ class CarsViewModel(
       observeCars()
    }
 
+   fun onIntent(intent: CarsIntent) {
+      Alog.d(TAG, "intent: $intent")
+      when (intent) {
+         CarsIntent.RetryLoad ->
+            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               observeCars()
+            }
+         CarsIntent.Create -> navigateToCar(null)
+         is CarsIntent.Detail -> navigateToCar(intent.carId)
+         is CarsIntent.RequestRemove -> requestRemove(intent.carId)
+         is CarsIntent.ConfirmRemove -> confirmRemove(intent.carId)
+      }
+   }
+
    // The read model flow emits again whenever Car or Person changes,
    // so seller names stay current without observing people separately.
    private fun observeCars() {
       val previousJob = _observeJob
-      previousJob?.cancel()
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       _observeJob = viewModelScope.launch {
          previousJob?.cancelAndJoin()
@@ -59,7 +72,6 @@ class CarsViewModel(
                      }
                   }
                   .onFailure { throwable ->
-                     currentCoroutineContext().ensureActive()
                      if (throwable is CancellationException) throw throwable
                      _stateFlow.update {
                         it.copy(isLoading = false,
@@ -81,20 +93,6 @@ class CarsViewModel(
       }
    }
 
-   fun onIntent(intent: CarsIntent) {
-      Alog.d(TAG, "intent: $intent")
-      when (intent) {
-         CarsIntent.RetryLoad ->
-            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
-               observeCars()
-            }
-         CarsIntent.Create -> navigateToCar(null)
-         is CarsIntent.Detail -> navigateToCar(intent.carId)
-         is CarsIntent.RequestRemove -> requestRemove(intent.carId)
-         is CarsIntent.ConfirmRemove -> confirmRemove(intent.carId)
-      }
-   }
-
    private fun navigateToCar(carId: String?) {
       viewModelScope.launch { _effectDelegate.emit(CarsEffect.NavigateTo(carId)) }
    }
@@ -111,7 +109,6 @@ class CarsViewModel(
          _effectDelegate.emit(CarsEffect.ConfirmRemove(message, actionLabel, item.id))
       }
    }
-
 
    // The confirmed action passes only the id; the use case loads the aggregate.
    private fun confirmRemove(carId: String) {
@@ -144,12 +141,3 @@ class CarsViewModel(
 
    companion object { private const val TAG = "<-CarsViewModel" }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - CarsViewModel verwendet denselben UDF-Ablauf wie PeopleViewModel.
- * - Swipe-to-Delete entfernt kein Listenelement vorzeitig. Erst die bestätigte
- *   Snackbar-Aktion führt über ConfirmRemove zur Repository-Operation.
- * - Ladefehler bleiben bis zum expliziten RetryLoad im State sichtbar.
- */

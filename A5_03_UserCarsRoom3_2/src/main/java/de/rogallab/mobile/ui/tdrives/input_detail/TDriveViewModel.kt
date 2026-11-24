@@ -50,9 +50,8 @@ class TDriveViewModel(
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
    private val _localTimeZone = TimeZone.currentSystemDefault()
-   // Terminal handoff to navigation; this is not a second saving flag.
+   // Block further actions until navigation handles the closing effect.
    private var _isClosing = false
-   private var _loadJob: Job? = null
    private var _peopleJob: Job? = null
    private var _carsJob: Job? = null
 
@@ -78,11 +77,6 @@ class TDriveViewModel(
    }
 
    fun onIntent(intent: TDriveIntent) {
-      if ((_stateFlow.value.isSaving || _isClosing) &&
-         (intent is TDriveIntent.PersonChanged ||
-            intent is TDriveIntent.CarChanged ||
-            intent is TDriveIntent.StartChanged ||
-            intent is TDriveIntent.CompletedChanged)) return
       when (intent) {
          is TDriveIntent.PersonChanged -> updateForm { it.copy(personId = intent.personId) }
          is TDriveIntent.CarChanged -> updateForm { it.copy(carId = intent.carId) }
@@ -106,10 +100,40 @@ class TDriveViewModel(
       }
    }
 
-   // Driver selection: only IPerson... types access the Person table.
+   // Retry is gated by isLoading; the ViewModel always edits the original id.
+   private fun loadTDrive(id: String) {
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      viewModelScope.launch {
+         try {
+            delay(_timing.delayRead)
+            val tDrive = _tDriveRepository.findById(id).getOrThrow()
+            currentCoroutineContext().ensureActive()
+            if (tDrive == null) {
+               _stateFlow.update {
+                  it.copy(isLoading = false, loadFailure = TDriveLoadFailure.NotFound(
+                     _stringProvider.getString(R.string.error_test_drive_not_found)))
+               }
+            } else {
+               _stateFlow.update {
+                  it.copy(form = tDrive.toTDriveForm(_localTimeZone),
+                     isLoading = false, loadFailure = null)
+               }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false, loadFailure = TDriveLoadFailure.Failed(
+                  _stringProvider.getString(R.string.error_test_drive_load)))
+            }
+         }
+      }
+   }
+
+   // Selection updates must not reload the edited form.
    private fun observePeople() {
       val previousJob = _peopleJob
-      previousJob?.cancel()
       // Set loading before launch: repeated Retry intents cannot start another attempt.
       _stateFlow.update { it.copy(isPeopleLoading = true, peopleLoadFailure = null) }
       _peopleJob = viewModelScope.launch {
@@ -125,7 +149,6 @@ class TDriveViewModel(
                      }
                   }
                   .onFailure { throwable ->
-                     currentCoroutineContext().ensureActive()
                      if (throwable is CancellationException) throw throwable
                      _stateFlow.update {
                         it.copy(isPeopleLoading = false,
@@ -149,10 +172,9 @@ class TDriveViewModel(
       }
    }
 
-   // Car selection: only ICar... types access the Car table.
+   // Retry this selection independently of the driver selection.
    private fun observeCars() {
       val previousJob = _carsJob
-      previousJob?.cancel()
       // Set loading before launch: repeated Retry intents cannot start another attempt.
       _stateFlow.update { it.copy(isCarsLoading = true, carsLoadFailure = null) }
       _carsJob = viewModelScope.launch {
@@ -168,7 +190,6 @@ class TDriveViewModel(
                      }
                   }
                   .onFailure { throwable ->
-                     currentCoroutineContext().ensureActive()
                      if (throwable is CancellationException) throw throwable
                      _stateFlow.update {
                         it.copy(isCarsLoading = false,
@@ -192,52 +213,10 @@ class TDriveViewModel(
       }
    }
 
-   private fun loadTDrive(id: String) {
-      val previousJob = _loadJob
-      previousJob?.cancel()
-      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
-      _loadJob = viewModelScope.launch {
-         previousJob?.cancelAndJoin()
-         try {
-            delay(_timing.delayRead)
-            _tDriveRepository.findById(id)
-               .onSuccess { tDrive ->
-                  currentCoroutineContext().ensureActive()
-                  if (tDrive == null) {
-                     _stateFlow.update {
-                        it.copy(isLoading = false, loadFailure = TDriveLoadFailure.NotFound(
-                           _stringProvider.getString(R.string.error_test_drive_not_found)))
-                     }
-                  } else {
-                     _stateFlow.update {
-                        it.copy(form = tDrive.toTDriveForm(_localTimeZone),
-                           isLoading = false, loadFailure = null)
-                     }
-                  }
-               }
-               .onFailure { throwable ->
-                  currentCoroutineContext().ensureActive()
-                  if (throwable is CancellationException) throw throwable
-                  _stateFlow.update {
-                     it.copy(isLoading = false, loadFailure = TDriveLoadFailure.Failed(
-                        _stringProvider.getString(R.string.error_test_drive_load)))
-                  }
-               }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            _stateFlow.update {
-               it.copy(isLoading = false, loadFailure = TDriveLoadFailure.Failed(
-                  _stringProvider.getString(R.string.error_test_drive_load)))
-            }
-         }
-      }
-   }
-
    // Raw input is stored unchanged; normalization happens on Save.
    private fun updateForm(transform: (TDriveForm) -> TDriveForm) {
-      _stateFlow.update { state: TDriveUiState -> state.copy(form = transform(state.form)) }
+      if (_stateFlow.value.isSaving || _isClosing) return
+      _stateFlow.update { it.copy(form = transform(it.form)) }
    }
 
    private fun save() {
@@ -264,22 +243,15 @@ class TDriveViewModel(
                if (_isNew) _tDriveRepository.create(tDrive)
                else _tDriveRepository.update(tDrive)
 
-            result
-               .onSuccess {
-                  currentCoroutineContext().ensureActive()
-                  _isClosing = true
-                  _effectDelegate.emit(
-                     TDriveEffect.ShowMessage(
-                        _stringProvider.getString(R.string.message_test_drive_saved)
-                     )
-                  )
-                  _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
-               }
-               .onFailure { throwable ->
-                  currentCoroutineContext().ensureActive()
-                  if (throwable is CancellationException) throw throwable
-                  showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
-               }
+            result.getOrThrow()
+            currentCoroutineContext().ensureActive()
+            _isClosing = true
+            _effectDelegate.emit(
+               TDriveEffect.ShowMessage(
+                  _stringProvider.getString(R.string.message_test_drive_saved)
+               )
+            )
+            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
