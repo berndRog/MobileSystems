@@ -70,113 +70,113 @@ fun CarAdapter(
       }
    }
 
-   // Consume Back here so both gestures and buttons pass the ViewModel's save guard.
-   NavigationBackHandler(
-      state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
-      isBackEnabled = lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
-      onBackCompleted = { viewModel.onIntent(CarIntent.Cancel) },
-   )
-
-   val imageCount = carUiState.form?.imagePaths?.size ?: 0
+   val imageCount = carUiState.form.imagePaths.size
    val remainingSlots = (MAX_CAR_IMAGE_COUNT - imageCount).coerceAtLeast(1)
    val canAddMoreImages = imageCount < MAX_CAR_IMAGE_COUNT
    val imageSaveError = stringResource(SharedR.string.error_image_save)
 
-   Scaffold(
-      modifier = Modifier.fillMaxSize(),
-      topBar = {
-         TopAppBar(
-            title = {
-               Text(text = stringResource(
-                     if (carUiState.isNew) R.string.car_create_title
-                     else R.string.car_edit_title))
-            },
-            navigationIcon = {
-               IconButton(
-                  enabled = !carUiState.isLoading && !carUiState.isSaving,
-                  onClick = {
-                     viewModel.onIntent(if (loadFailure == null) CarIntent.Save else CarIntent.Cancel)
-                  },
-               ) {
-                  Icon(
-                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back),
+   // Keep launchers composed, including during Save and image processing.
+   GalleryPickerHandlerSingle(
+      onImageSelected = { viewModel.onIntent(CarIntent.GalleryImagesSelected(listOf(it))) },
+   ) { singleGalleryActions ->
+      GalleryPickerHandlerMultiple(
+         maxSelectionCount = remainingSlots.coerceAtLeast(2),
+         onImagesSelected = { viewModel.onIntent(CarIntent.GalleryImagesSelected(it)) },
+      ) { multipleGalleryActions ->
+         CameraPickerHandler(
+            imageFileStorage = imageFileStorage,
+            onPhotoStored = { viewModel.onIntent(CarIntent.CameraImageTaken(it)) },
+            onError = { viewModel.onIntent(CarIntent.ImageFailed(imageSaveError)) },
+         ) { cameraActions ->
+            val imageBusy = carUiState.isEditingImages || cameraActions.isBusy
+
+            // Consume Back while busy; disabling the handler would let NavDisplay pop.
+            NavigationBackHandler(
+               state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+               isBackEnabled = lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
+               onBackCompleted = {
+                  if (!imageBusy) viewModel.onIntent(CarIntent.Cancel)
+               },
+            )
+
+            Scaffold(
+               modifier = Modifier.fillMaxSize(),
+               topBar = {
+                  TopAppBar(
+                     title = {
+                        Text(stringResource(
+                           if (carUiState.isNew) R.string.car_create_title else R.string.car_edit_title
+                        ))
+                     },
+                     navigationIcon = {
+                        IconButton(
+                           enabled = !carUiState.isLoading && !carUiState.isSaving && !imageBusy,
+                           onClick = {
+                              if (!imageBusy) {
+                                 viewModel.onIntent(
+                                    if (loadFailure == null) CarIntent.Save else CarIntent.Cancel
+                                 )
+                              }
+                           },
+                        ) {
+                           Icon(
+                              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                              contentDescription = stringResource(
+                                 if (loadFailure == null) R.string.action_save else R.string.action_back
+                              ),
+                           )
+                        }
+                     },
                   )
-               }
-            },
-         )
-      },
-   ) { innerPadding ->
-      if (carUiState.isLoading) {
-         Box(
-            modifier = Modifier
-               .fillMaxSize()
-               .padding(innerPadding),
-            contentAlignment = Alignment.TopCenter,
-         ) {
-            CircularProgressIndicator(modifier = Modifier.size(64.dp))
-         }
-      }
-      else if (loadFailure != null) {
-         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-         ) {
-            Text(text = loadFailure.message)
-            Button(onClick = {
-               viewModel.onIntent(
-                  if (loadFailure is CarLoadFailure.NotFound) CarIntent.Cancel
-                  else CarIntent.RetryLoad
-               )
-            }) {
-               Text(stringResource(
-                  if (loadFailure is CarLoadFailure.NotFound) R.string.action_back
-                  else R.string.action_retry
-               ))
-            }
-         }
-      }
-      else {
-         GalleryPickerHandlerSingle(
-            onImageSelected = { sourceUri ->
-               viewModel.onIntent(CarIntent.GalleryImagesSelected(listOf(sourceUri)))
-            },
-         ) { singleGalleryActions ->
-             GalleryPickerHandlerMultiple(
-                maxSelectionCount = remainingSlots.coerceAtLeast(2),
-                onImagesSelected = { sourceUris ->
-                   viewModel.onIntent(CarIntent.GalleryImagesSelected(sourceUris))
-                },
-             ) { multipleGalleryActions ->
-               CameraPickerHandler(
-                  imageFileStorage = imageFileStorage,
-                  onPhotoStored = { imagePath ->
-                     viewModel.onIntent(CarIntent.CameraImageTaken(imagePath))
-                  },
-                  onError = {
-                     viewModel.onIntent(CarIntent.ImageFailed(imageSaveError))
-                  },
-               ) { cameraActions ->
+               },
+            ) { innerPadding ->
+               if (carUiState.isLoading) {
+                  Box(
+                     modifier = Modifier.fillMaxSize().padding(innerPadding),
+                     contentAlignment = Alignment.TopCenter,
+                  ) {
+                     CircularProgressIndicator(modifier = Modifier.size(64.dp))
+                  }
+               } else if (loadFailure != null) {
+                  Column(
+                     modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+                     verticalArrangement = Arrangement.Center,
+                     horizontalAlignment = Alignment.CenterHorizontally,
+                  ) {
+                     Text(text = loadFailure.message)
+                     Button(
+                        enabled = !imageBusy,
+                        onClick = {
+                           viewModel.onIntent(
+                              if (loadFailure is CarLoadFailure.NotFound) CarIntent.Cancel
+                              else CarIntent.RetryLoad
+                           )
+                        },
+                     ) {
+                        Text(stringResource(
+                           if (loadFailure is CarLoadFailure.NotFound) R.string.action_back
+                           else R.string.action_retry
+                        ))
+                     }
+                  }
+               } else {
                   CarScreen(
                      carUiState = carUiState,
                      validator = validator,
+                     isCameraBusy = cameraActions.isBusy,
                      onSelectImages = {
-                        if (canAddMoreImages) {
-                           if (remainingSlots == 1)
-                              singleGalleryActions.selectFromGallery()
-                           else
-                              multipleGalleryActions.selectFromGallery()
+                        if (!imageBusy && canAddMoreImages) {
+                           if (remainingSlots == 1) singleGalleryActions.selectFromGallery()
+                           else multipleGalleryActions.selectFromGallery()
                         }
                      },
-                     onTakePhoto = { if (canAddMoreImages) cameraActions.takePhoto() },
+                     onTakePhoto = {
+                        if (!imageBusy && canAddMoreImages) cameraActions.takePhoto()
+                     },
                      onIntent = viewModel::onIntent,
-                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
+                     modifier = Modifier.fillMaxSize().padding(innerPadding)
                         .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState())
-                        .imePadding(),
+                        .verticalScroll(rememberScrollState()).imePadding(),
                   )
                }
             }

@@ -56,10 +56,12 @@ fun CarScreen(
    onTakePhoto: () -> Unit,
    onIntent: (CarIntent) -> Unit,
    modifier: Modifier = Modifier,
+   isCameraBusy: Boolean = false,
 ) {
    var nCount by remember { mutableIntStateOf(0) }
    SideEffect { AppLogger.compose(TAG, "Composition #${nCount++}") }
 
+   val imageBusy = carUiState.isEditingImages || isCameraBusy
    val form = carUiState.form
    if (carUiState.isLoading || carUiState.loadFailure != null) return
    if (carUiState.isSaving) {
@@ -126,9 +128,13 @@ fun CarScreen(
          )
       }
 
+      if (imageBusy) {
+         CircularProgressIndicator(modifier = Modifier.padding(vertical = 8.dp))
+      }
+
       ImageSelectionButtons(
          imagePath = null,
-         enabled = form.imagePaths.size < MAX_CAR_IMAGE_COUNT,
+         enabled = !imageBusy && form.imagePaths.size < MAX_CAR_IMAGE_COUNT,
          onSelectPhoto = onSelectImages,
          onTakePhoto = onTakePhoto,
          onRemovePhoto = {},
@@ -160,6 +166,7 @@ fun CarScreen(
       else {
          CarImagePreviewList(
             imagePaths = form.imagePaths,
+            enabled = !imageBusy,
             onRemoveImage = { imagePath ->
                onIntent(CarIntent.ImageRemoved(imagePath))
             },
@@ -173,11 +180,11 @@ fun CarScreen(
             Alignment.CenterHorizontally,
          ),
       ) {
-         OutlinedButton(onClick = { onIntent(CarIntent.Cancel) }) {
+         OutlinedButton(enabled = !imageBusy, onClick = { onIntent(CarIntent.Cancel) }) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
-         Button(onClick = { onIntent(CarIntent.Save) }) {
+         Button(enabled = !imageBusy, onClick = { onIntent(CarIntent.Save) }) {
             Text(text = stringResource(R.string.action_save))
          }
       }
@@ -187,6 +194,7 @@ fun CarScreen(
 @Composable
 private fun CarImagePreviewList(
    imagePaths: List<String>,
+   enabled: Boolean,
    onRemoveImage: (String) -> Unit,
 ) {
    Column(
@@ -213,6 +221,7 @@ private fun CarImagePreviewList(
             }
 
             IconButton(
+               enabled = enabled,
                modifier = Modifier.align(Alignment.TopEnd),
                onClick = { onRemoveImage(imagePath) },
             ) {

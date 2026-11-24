@@ -11,6 +11,7 @@ data class CarUiState(
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
    val isSaving: Boolean = false,
+   val isEditingImages: Boolean = false,
    val loadFailure: CarLoadFailure? = null,
    val isPeopleLoading: Boolean = false,
    val peopleLoadFailure: String? = null,

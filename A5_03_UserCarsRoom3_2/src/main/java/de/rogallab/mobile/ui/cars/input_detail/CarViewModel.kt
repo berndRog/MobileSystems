@@ -12,6 +12,7 @@ import de.rogallab.mobile.domain.repositories.ICarRepository
 import de.rogallab.mobile.domain.usecases.CarUcCreate
 import de.rogallab.mobile.domain.usecases.CarUcUpdate
 import de.rogallab.mobile.shared.domain.IEffectSource
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
@@ -19,6 +20,8 @@ import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.ui.cars.input_detail.comp.CarForm
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -53,6 +56,8 @@ class CarViewModel(
    private var _isClosing = false
    private var _loadJob: Job? = null
    private var _peopleJob: Job? = null
+   // Originals and already handled new paths. Never delete these on a duplicate camera result.
+   private val _knownImagePaths = mutableSetOf<String>()
 
    // A new car starts with an empty form; an existing car is loaded first.
    private val _initialState =
@@ -129,6 +134,7 @@ class CarViewModel(
                            _stringProvider.getString(R.string.error_car_not_found)))
                      }
                   } else {
+                     _knownImagePaths.addAll(car.imagePaths)
                      _imageEdit.start(car.imagePaths)
                      _stateFlow.update {
                         it.copy(form = car.toCarForm(),
@@ -208,62 +214,131 @@ class CarViewModel(
       _stateFlow.update { state: CarUiState -> state.copy(form = transform(state.form)) }
    }
 
-   // Copies Photo Picker Uris with the shared storage service. The UI never
-   // turns external Uris into persistent entity data itself.
+   // All image entry points run on Main, like the other UI intents.
+   private fun beginImageChange(): Boolean {
+      val state = _stateFlow.value
+      if (state.isEditingImages || state.isSaving || state.isLoading ||
+         state.loadFailure != null || _isClosing) return false
+      _stateFlow.update { it.copy(isEditingImages = true) }
+      return true
+   }
+
    private fun storeGalleryImages(sourceUris: List<Uri>) {
-      if (sourceUris.isEmpty()) return
+      if (sourceUris.isEmpty() || !beginImageChange()) return
 
-      viewModelScope.launch {
-         val imagePaths = mutableListOf<String>()
-         var copyFailed = false
-
-         sourceUris.forEach { sourceUri ->
-            _imageFileStorage
-               .copyImageToAppStorage(sourceUri)
-               .onSuccess { imagePath -> imagePaths += imagePath }
-               .onFailure { copyFailed = true }
-         }
-
-         if (imagePaths.isNotEmpty()) {
-            addImages(imagePaths)
-         }
-
-         if (copyFailed) {
-            showErrorNow(
-               _stringProvider.getString(SharedR.string.error_image_save)
-            )
+      // Enter finally immediately, even if the scope is cancelled before dispatch.
+      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+         val unadopted = mutableListOf<String>()
+         try {
+            var copyFailed = false
+            sourceUris.forEach { sourceUri ->
+               _imageFileStorage.copyImageToAppStorage(sourceUri)
+                  .onSuccess { path ->
+                     if (_knownImagePaths.add(path)) unadopted += path
+                  }
+                  .onFailure { throwable ->
+                     if (throwable is CancellationException) throw throwable
+                     copyFailed = true
+                  }
+               currentCoroutineContext().ensureActive()
+            }
+            if (unadopted.isNotEmpty()) {
+               val images = unadopted.toList()
+               // ImageEdit owns these paths from entry into add(), including its cleanup.
+               unadopted.clear()
+               addImages(images)
+            }
+            if (copyFailed) showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+         } finally {
+            try {
+               cleanupUnadoptedImages(unadopted)
+            } finally {
+               _stateFlow.update { it.copy(isEditingImages = false) }
+            }
          }
       }
    }
 
-   // CameraPickerHandler has already created and confirmed the private file.
    private fun storeCameraImage(imagePath: String) {
-      viewModelScope.launch {
-         addImages(listOf(imagePath))
+      // The handler supplies a fresh private file. A repeated result is not a new file.
+      if (imagePath.isBlank() || !_knownImagePaths.add(imagePath)) return
+      if (!beginImageChange()) {
+         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            cleanupUnadoptedImages(listOf(imagePath))
+         }
+         return
+      }
+
+      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+         var handedOver = false
+         try {
+            currentCoroutineContext().ensureActive()
+            handedOver = true
+            addImages(listOf(imagePath))
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+         } finally {
+            try {
+               if (!handedOver) cleanupUnadoptedImages(listOf(imagePath))
+            } finally {
+               _stateFlow.update { it.copy(isEditingImages = false) }
+            }
+         }
       }
    }
 
-   // IImageEdit owns the technical edit-session rules. If more images are
-   // returned than the feature allows, replace() also cleans transient overflow.
+   // Internal: the caller already holds the image-operation guard.
    private suspend fun addImages(imagePaths: List<String>) {
       var images = _imageEdit.add(imagePaths)
       if (images.size > MAX_CAR_IMAGE_COUNT) {
          images = _imageEdit.replace(images.take(MAX_CAR_IMAGE_COUNT))
       }
-
-      updateForm { form -> form.copy(imagePaths = images) }
+      updateForm { it.copy(imagePaths = images) }
    }
 
    private fun removeImage(imagePath: String) {
-      viewModelScope.launch {
-         val images = _imageEdit.remove(imagePath)
-         updateForm { form -> form.copy(imagePaths = images) }
+      if (!beginImageChange()) return
+      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+         try {
+            val images = _imageEdit.remove(imagePath)
+            updateForm { it.copy(imagePaths = images) }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+         } finally {
+            _stateFlow.update { it.copy(isEditingImages = false) }
+         }
+      }
+   }
+
+   // Only files not handed to ImageEdit are cleaned here. Originals belong to ImageEdit.
+   private suspend fun cleanupUnadoptedImages(paths: List<String>) {
+      if (paths.isEmpty()) return
+      // Finish known-file cleanup even when the owning ViewModel is being cleared.
+      withContext(NonCancellable) {
+         paths.forEach { path ->
+            _imageFileStorage.deleteImageFromAppStorage(path)
+               .onFailure { throwable ->
+                  if (throwable is CancellationException) throw throwable
+                  Alog.e("<-CarViewModel", "Temporary image cleanup failed", throwable)
+               }
+         }
       }
    }
 
    private fun save() {
       val state = _stateFlow.value
-      if (state.isSaving || _isClosing || state.isLoading || state.loadFailure != null) return
+      if (state.isSaving || state.isEditingImages || _isClosing || state.isLoading || state.loadFailure != null) return
 
       // This immutable snapshot is the only input to the write operation.
       val form = state.form.normalized().copy(imagePaths = state.form.imagePaths.toList())
@@ -313,7 +388,7 @@ class CarViewModel(
    }
 
    private fun cancel() {
-      if (_stateFlow.value.isSaving || _isClosing) return
+      if (_stateFlow.value.isSaving || _stateFlow.value.isEditingImages || _isClosing) return
       // Once Cancel is accepted, Save must not race the pending navigation.
       _isClosing = true
       viewModelScope.launch {
