@@ -12,12 +12,17 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class CarsViewModel(
    private val _readModel: ICarReadModel,
@@ -38,32 +43,51 @@ class CarsViewModel(
    // The read model flow emits again whenever Car or Person changes,
    // so seller names stay current without observing people separately.
    private fun observeCars() {
-      _observeJob?.cancel()
+      val previousJob = _observeJob
+      previousJob?.cancel()
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       _observeJob = viewModelScope.launch {
-         _stateFlow.update { state: CarsUiState -> state.copy(isLoading = true) }
-         delay(_timing.delayRead)
-
-         _readModel.observeListItems().collect { result: Result<List<CarListItem>> ->
-            result
-               .onSuccess { cars ->
-                  _stateFlow.update { state: CarsUiState ->
-                     state.copy(cars = cars, isLoading = false)
+         previousJob?.cancelAndJoin()
+         try {
+            delay(_timing.delayRead)
+            _readModel.observeListItems().collect { result: Result<List<CarListItem>> ->
+               currentCoroutineContext().ensureActive()
+               result
+                  .onSuccess { items ->
+                     _stateFlow.update {
+                        it.copy(cars = items, isLoading = false, loadFailure = null)
+                     }
                   }
-               }
-               .onFailure { throwable ->
-                  Alog.e(TAG, "observe failed", throwable)
-                  _stateFlow.update { state: CarsUiState -> state.copy(isLoading = false) }
-                  emitErrorNow(R.string.error_cars_load)
-               }
+                  .onFailure { throwable ->
+                     currentCoroutineContext().ensureActive()
+                     if (throwable is CancellationException) throw throwable
+                     _stateFlow.update {
+                        it.copy(isLoading = false,
+                           loadFailure = _stringProvider.getString(R.string.error_cars_load))
+                     }
+                     currentCoroutineContext().cancel()
+                     currentCoroutineContext().ensureActive()
+                  }
+            }
+         } catch (e: CancellationException) {
+            throw e
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false,
+                  loadFailure = _stringProvider.getString(R.string.error_cars_load))
+            }
          }
       }
    }
 
-
-
    fun onIntent(intent: CarsIntent) {
       Alog.d(TAG, "intent: $intent")
       when (intent) {
+         CarsIntent.RetryLoad ->
+            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               observeCars()
+            }
          CarsIntent.Create -> navigateToCar(null)
          is CarsIntent.Detail -> navigateToCar(intent.carId)
          is CarsIntent.RequestRemove -> requestRemove(intent.carId)
@@ -127,6 +151,5 @@ class CarsViewModel(
  * - CarsViewModel verwendet denselben UDF-Ablauf wie PeopleViewModel.
  * - Swipe-to-Delete entfernt kein Listenelement vorzeitig. Erst die bestätigte
  *   Snackbar-Aktion führt über ConfirmRemove zur Repository-Operation.
- * - Die Verkäuferliste wird separat beobachtet, damit die UI sellerId auf einen
- *   lesbaren Personennamen abbilden kann.
+ * - Ladefehler bleiben bis zum expliziten RetryLoad im State sichtbar.
  */

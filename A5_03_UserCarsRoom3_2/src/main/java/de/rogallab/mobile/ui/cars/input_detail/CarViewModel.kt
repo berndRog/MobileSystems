@@ -18,6 +18,11 @@ import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.ui.cars.input_detail.comp.CarForm
 import de.rogallab.mobile.ui.people.create_detail.BackReason
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +49,8 @@ class CarViewModel(
    private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
    private var _isSaving = false
+   private var _loadJob: Job? = null
+   private var _peopleJob: Job? = null
 
    // A new car starts with an empty form; an existing car is loaded first.
    private val _initialState =
@@ -62,57 +69,90 @@ class CarViewModel(
    // Loads the seller selection through the person read model.
    // Only IPerson... types access the Person table.
    private fun observePeople() {
-      viewModelScope.launch {
-         delay(_timing.delayRead)
-
+      val previousJob = _peopleJob
+      previousJob?.cancel()
+      // Set loading before launch: repeated Retry intents cannot start another attempt.
+      _stateFlow.update { it.copy(isPeopleLoading = true, peopleLoadFailure = null) }
+      _peopleJob = viewModelScope.launch {
+         previousJob?.cancelAndJoin()
          try {
+            delay(_timing.delayRead)
             _personReadModel.observeSelectItems().collect { result: Result<List<PersonSelectItem>> ->
-               val people = result.getOrThrow()
-               _stateFlow.update { state: CarUiState -> state.copy(people = people) }
+               currentCoroutineContext().ensureActive()
+               result
+                  .onSuccess { items ->
+                     _stateFlow.update {
+                        it.copy(people = items, isPeopleLoading = false, peopleLoadFailure = null)
+                     }
+                  }
+                  .onFailure { throwable ->
+                     currentCoroutineContext().ensureActive()
+                     if (throwable is CancellationException) throw throwable
+                     _stateFlow.update {
+                        it.copy(isPeopleLoading = false,
+                           peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
+                     }
+                     // Stop this collector, not a possibly newer job stored in the field.
+                     currentCoroutineContext().cancel()
+                     currentCoroutineContext().ensureActive()
+                  }
             }
-         }
-         catch (e: CancellationException) {
-            // Coroutine cancellation must be propagated.
+         } catch (e: CancellationException) {
             throw e
-         }
-         catch (e: Exception) {
-            showErrorNow(_stringProvider.getString(R.string.error_people_load))
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            // Also handle a Flow that throws instead of emitting Result.failure.
+            _stateFlow.update {
+               it.copy(isPeopleLoading = false,
+                  peopleLoadFailure = _stringProvider.getString(R.string.error_people_load))
+            }
          }
       }
    }
 
    private fun loadCar(id: String) {
-      viewModelScope.launch {
-         delay(_timing.delayRead)
-
+      val previousJob = _loadJob
+      previousJob?.cancel()
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      _loadJob = viewModelScope.launch {
+         previousJob?.cancelAndJoin()
          try {
-            val car = _carRepository.findById(id).getOrThrow()
-               ?: throw NoSuchElementException("Car $id not found")
-
-            // The shared delegate remembers the persisted images as the
-            // original selection of this edit session.
-            _imageEdit.start(car.imagePaths)
-
-            // Domain -> form: the price becomes text for the TextField.
-            _stateFlow.update { state: CarUiState ->
-               state.copy(form = car.toCarForm(), isLoading = false)
-            }
-         }
-         catch (e: CancellationException) {
-            // Coroutine cancellation must be propagated.
+            delay(_timing.delayRead)
+            _carRepository.findById(id)
+               .onSuccess { car ->
+                  currentCoroutineContext().ensureActive()
+                  if (car == null) {
+                     _stateFlow.update {
+                        it.copy(isLoading = false, loadFailure = CarLoadFailure.NotFound(
+                           _stringProvider.getString(R.string.error_car_not_found)))
+                     }
+                  } else {
+                     _imageEdit.start(car.imagePaths)
+                     _stateFlow.update {
+                        it.copy(form = car.toCarForm(),
+                           isLoading = false, loadFailure = null)
+                     }
+                  }
+               }
+               .onFailure { throwable ->
+                  currentCoroutineContext().ensureActive()
+                  if (throwable is CancellationException) throw throwable
+                  _stateFlow.update {
+                     it.copy(isLoading = false, loadFailure = CarLoadFailure.Failed(
+                        _stringProvider.getString(R.string.error_car_load)))
+                  }
+               }
+         } catch (e: CancellationException) {
             throw e
-         }
-         catch (e: NoSuchElementException) {
-            _stateFlow.update { it.copy(isLoading = false) }
-            showErrorNow(_stringProvider.getString(R.string.error_car_not_found))
-         }
-         catch (e: Exception) {
-            _stateFlow.update { it.copy(isLoading = false) }
-            showErrorNow(_stringProvider.getString(R.string.error_car_load))
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false, loadFailure = CarLoadFailure.Failed(
+                  _stringProvider.getString(R.string.error_car_load)))
+            }
          }
       }
    }
-
 
    fun onIntent(intent: CarIntent) {
       when (intent) {
@@ -140,6 +180,15 @@ class CarViewModel(
          is CarIntent.ImageFailed ->
             showError(intent.message)
 
+         CarIntent.RetryLoad ->
+            if (!_isNew && !_stateFlow.value.isLoading &&
+               _stateFlow.value.loadFailure is CarLoadFailure.Failed) {
+               loadCar(_carId!!)
+            }
+         CarIntent.RetryPeople ->
+            if (!_stateFlow.value.isPeopleLoading && _stateFlow.value.peopleLoadFailure != null) {
+               observePeople()
+            }
          CarIntent.Save -> save()
          CarIntent.Cancel -> cancel()
       }
@@ -206,7 +255,7 @@ class CarViewModel(
    }
 
    private fun save() {
-      if (_isSaving || _stateFlow.value.isLoading) return
+      if (_isSaving || _stateFlow.value.isLoading || _stateFlow.value.loadFailure != null) return
 
       // Normalize all form values and show them in the UI as well.
       val form: CarForm = _stateFlow.value.form.normalized()

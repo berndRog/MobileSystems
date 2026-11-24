@@ -41,6 +41,7 @@ fun TDriveScreen(
    }
 
    val form = tDriveUiState.form
+   if (tDriveUiState.isLoading || tDriveUiState.loadFailure != null) return
 
    Column(
       modifier = modifier,
@@ -50,6 +51,10 @@ fun TDriveScreen(
          form = form,
          people = tDriveUiState.people,
          cars = tDriveUiState.cars,
+         isPeopleLoading = tDriveUiState.isPeopleLoading,
+         peopleLoadFailure = tDriveUiState.peopleLoadFailure,
+         isCarsLoading = tDriveUiState.isCarsLoading,
+         carsLoadFailure = tDriveUiState.carsLoadFailure,
          validator = validator,
          onIntent = onIntent,
          modifier = Modifier.fillMaxWidth(),

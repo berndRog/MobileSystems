@@ -10,6 +10,11 @@ import de.rogallab.mobile.domain.usecases.TDriveUcDelete
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,12 +36,18 @@ class TDrivesViewModel(
    private val _stateFlow = MutableStateFlow(TDrivesUiState())
    val stateFlow: StateFlow<TDrivesUiState> = _stateFlow.asStateFlow()
 
+   private var _observeJob: Job? = null
+
    init {
       observeTDrives()
    }
 
    fun onIntent(intent: TDrivesIntent) {
       when (intent) {
+         TDrivesIntent.RetryLoad ->
+            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               observeTDrives()
+            }
          TDrivesIntent.Create -> navigateTo(null)
          is TDrivesIntent.Detail -> navigateTo(intent.tDriveId)
          is TDrivesIntent.RequestRemove -> requestRemove(intent.tDriveId)
@@ -83,23 +94,40 @@ class TDrivesViewModel(
    // The read model flow emits again whenever TDrive, Person or Car changes,
    // so driver and car names stay current.
    private fun observeTDrives() {
-      viewModelScope.launch {
-         _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = true) }
+      val previousJob = _observeJob
+      previousJob?.cancel()
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+      _observeJob = viewModelScope.launch {
+         previousJob?.cancelAndJoin()
          try {
             delay(_timing.delayRead)
             _readModel.observeListItems().collect { result: Result<List<TDriveListItem>> ->
-               val tDrives = result.getOrThrow()
-               _stateFlow.update { state: TDrivesUiState ->
-                  state.copy(tDrives = tDrives, isLoading = false)
-               }
+               currentCoroutineContext().ensureActive()
+               result
+                  .onSuccess { items ->
+                     _stateFlow.update {
+                        it.copy(tDrives = items, isLoading = false, loadFailure = null)
+                     }
+                  }
+                  .onFailure { throwable ->
+                     currentCoroutineContext().ensureActive()
+                     if (throwable is CancellationException) throw throwable
+                     _stateFlow.update {
+                        it.copy(isLoading = false,
+                           loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
+                     }
+                     currentCoroutineContext().cancel()
+                     currentCoroutineContext().ensureActive()
+                  }
             }
-         }
-         catch (e: CancellationException) {
+         } catch (e: CancellationException) {
             throw e
-         }
-         catch (e: Exception) {
-            _stateFlow.update { state: TDrivesUiState -> state.copy(isLoading = false) }
-            emitErrorNow(R.string.error_test_drives_load)
+         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            _stateFlow.update {
+               it.copy(isLoading = false,
+                  loadFailure = _stringProvider.getString(R.string.error_test_drives_load))
+            }
          }
       }
    }

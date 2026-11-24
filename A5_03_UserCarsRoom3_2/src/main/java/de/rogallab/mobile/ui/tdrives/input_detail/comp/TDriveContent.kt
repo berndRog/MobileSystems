@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +37,10 @@ fun TDriveContent(
    cars: List<CarSelectItem>,
    validator: TDriveValidator,
    onIntent: (TDriveIntent) -> Unit,
+   isPeopleLoading: Boolean = false,
+   peopleLoadFailure: String? = null,
+   isCarsLoading: Boolean = false,
+   carsLoadFailure: String? = null,
    modifier: Modifier = Modifier,
 ) {
    val tag = "<-TDriveContent"
@@ -45,23 +51,41 @@ fun TDriveContent(
       modifier = modifier,
       verticalArrangement = Arrangement.spacedBy(12.dp),
    ) {
-      PersonSelectionField(
-         people = people,
-         selectedPersonId = form.personId,
-         label = stringResource(R.string.person_selection_label),
-         allowNone = false,
-         onPersonSelected = { personId ->
-            onIntent(TDriveIntent.PersonChanged(personId))
-         },
-      )
+      if (isPeopleLoading) {
+         CircularProgressIndicator()
+      } else if (peopleLoadFailure != null) {
+         Text(text = peopleLoadFailure)
+         Button(onClick = { onIntent(TDriveIntent.RetryPeople) }) {
+            Text(stringResource(R.string.action_retry))
+         }
+      } else {
+         PersonSelectionField(
+            people = people,
+            selectedPersonId = form.personId,
+            label = stringResource(R.string.person_selection_label),
+            allowNone = false,
+            onPersonSelected = { personId ->
+               onIntent(TDriveIntent.PersonChanged(personId))
+            },
+         )
+      }
 
-      CarSelectionField(
-         cars = cars,
-         selectedCarId = form.carId,
-         onCarSelected = { carId ->
-            onIntent(TDriveIntent.CarChanged(carId))
-         },
-      )
+      if (isCarsLoading) {
+         CircularProgressIndicator()
+      } else if (carsLoadFailure != null) {
+         Text(text = carsLoadFailure)
+         Button(onClick = { onIntent(TDriveIntent.RetryCars) }) {
+            Text(stringResource(R.string.action_retry))
+         }
+      } else {
+         CarSelectionField(
+            cars = cars,
+            selectedCarId = form.carId,
+            onCarSelected = { carId ->
+               onIntent(TDriveIntent.CarChanged(carId))
+            },
+         )
+      }
 
       InputValueString(
          value = form.startInput,

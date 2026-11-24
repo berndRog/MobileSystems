@@ -2,6 +2,8 @@ package de.rogallab.mobile.ui.cars.input_detail.comp
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,6 +35,7 @@ import de.rogallab.mobile.shared.ui.images.CameraPickerHandler
 import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerMultiple
 import de.rogallab.mobile.shared.ui.images.GalleryPickerHandlerSingle
 import de.rogallab.mobile.ui.cars.input_detail.CarEffect
+import de.rogallab.mobile.ui.cars.input_detail.CarLoadFailure
 import de.rogallab.mobile.ui.cars.input_detail.CarIntent
 import de.rogallab.mobile.ui.cars.input_detail.CarValidator
 import de.rogallab.mobile.ui.cars.input_detail.CarViewModel
@@ -50,6 +54,7 @@ fun CarAdapter(
    imageFileStorage: IImageFileStorage = koinInject(),
 ) {
    val carUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = carUiState.loadFailure
 
    EffectHandler(viewModel.effects) { effect ->
       when (effect) {
@@ -77,10 +82,15 @@ fun CarAdapter(
                      else R.string.car_edit_title))
             },
             navigationIcon = {
-               IconButton(onClick = { viewModel.onIntent(CarIntent.Save) }) {
+               IconButton(
+                  enabled = !carUiState.isLoading,
+                  onClick = {
+                     viewModel.onIntent(if (loadFailure == null) CarIntent.Save else CarIntent.Cancel)
+                  },
+               ) {
                   Icon(
                      imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save),
+                     contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back),
                   )
                }
             },
@@ -95,6 +105,26 @@ fun CarAdapter(
             contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      }
+      else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure.message)
+            Button(onClick = {
+               viewModel.onIntent(
+                  if (loadFailure is CarLoadFailure.NotFound) CarIntent.Cancel
+                  else CarIntent.RetryLoad
+               )
+            }) {
+               Text(stringResource(
+                  if (loadFailure is CarLoadFailure.NotFound) R.string.action_back
+                  else R.string.action_retry
+               ))
+            }
          }
       }
       else {

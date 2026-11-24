@@ -5,6 +5,9 @@ sealed interface TDriveIntent {
    data class CarChanged(val carId: String?) : TDriveIntent
    data class StartChanged(val value: String) : TDriveIntent
    data class CompletedChanged(val value: Boolean) : TDriveIntent
+   data object RetryLoad : TDriveIntent
+   data object RetryPeople : TDriveIntent
+   data object RetryCars : TDriveIntent
    data object Save : TDriveIntent
    data object Cancel : TDriveIntent
 }

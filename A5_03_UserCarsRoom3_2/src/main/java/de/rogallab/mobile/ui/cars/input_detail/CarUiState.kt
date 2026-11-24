@@ -10,4 +10,7 @@ data class CarUiState(
    val people: List<PersonSelectItem> = emptyList(),   // seller selection
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
+   val loadFailure: CarLoadFailure? = null,
+   val isPeopleLoading: Boolean = false,
+   val peopleLoadFailure: String? = null,
 )

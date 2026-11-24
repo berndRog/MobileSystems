@@ -11,4 +11,9 @@ data class TDriveUiState(
    val cars: List<CarSelectItem> = emptyList(),        // car selection
    val isNew: Boolean = true,
    val isLoading: Boolean = false,
+   val loadFailure: TDriveLoadFailure? = null,
+   val isPeopleLoading: Boolean = false,
+   val peopleLoadFailure: String? = null,
+   val isCarsLoading: Boolean = false,
+   val carsLoadFailure: String? = null,
 )

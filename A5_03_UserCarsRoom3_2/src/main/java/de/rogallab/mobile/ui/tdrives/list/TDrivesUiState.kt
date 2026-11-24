@@ -9,4 +9,5 @@ import de.rogallab.mobile.domain.readmodels.TDriveListItem
 data class TDrivesUiState(
    val tDrives: List<TDriveListItem> = emptyList(),
    val isLoading: Boolean = false,
+   val loadFailure: String? = null,
 )

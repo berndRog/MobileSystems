@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Euro
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,7 +60,8 @@ fun CarScreen(
    var nCount by remember { mutableIntStateOf(0) }
    SideEffect { AppLogger.compose(TAG, "Composition #${nCount++}") }
 
-   val form = carUiState.form ?: return
+   val form = carUiState.form
+   if (carUiState.isLoading || carUiState.loadFailure != null) return
 
    Column(
       modifier = modifier
@@ -98,16 +100,25 @@ fun CarScreen(
          imeAction = ImeAction.Done,
       )
 
-      PersonSelectionField(
-         people = carUiState.people,
-         selectedPersonId = form.personId,
-         label = stringResource(R.string.car_field_seller),
-         allowNone = false,
-         onPersonSelected = { personId ->
-            onIntent(CarIntent.SellerChanged(personId))
-         },
-         modifier = Modifier.padding(top = 4.dp)
-      )
+      if (carUiState.isPeopleLoading) {
+         CircularProgressIndicator()
+      } else if (carUiState.peopleLoadFailure != null) {
+         Text(text = carUiState.peopleLoadFailure)
+         Button(onClick = { onIntent(CarIntent.RetryPeople) }) {
+            Text(stringResource(R.string.action_retry))
+         }
+      } else {
+         PersonSelectionField(
+            people = carUiState.people,
+            selectedPersonId = form.personId,
+            label = stringResource(R.string.car_field_seller),
+            allowNone = false,
+            onPersonSelected = { personId ->
+               onIntent(CarIntent.SellerChanged(personId))
+            },
+            modifier = Modifier.padding(top = 4.dp)
+         )
+      }
 
       ImageSelectionButtons(
          imagePath = null,

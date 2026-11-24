@@ -1,6 +1,8 @@
 package de.rogallab.mobile.ui.tdrives.input_detail.comp
 
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -9,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +30,7 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.shared.ui.effects.EffectHandler
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveEffect
+import de.rogallab.mobile.ui.tdrives.input_detail.TDriveLoadFailure
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveIntent
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveValidator
 import de.rogallab.mobile.ui.tdrives.input_detail.TDriveViewModel
@@ -42,6 +46,7 @@ fun TDriveAdapter(
    validator: TDriveValidator = koinInject(),
 ) {
    val tDriveUiState by viewModel.stateFlow.collectAsStateWithLifecycle()
+   val loadFailure = tDriveUiState.loadFailure
 
    EffectHandler(viewModel.effects) { effect ->
       when (effect) {
@@ -61,9 +66,14 @@ fun TDriveAdapter(
                      else R.string.test_drive_edit_title))
             },
             navigationIcon = {
-               IconButton(onClick = { viewModel.onIntent(TDriveIntent.Save) }) {
+               IconButton(
+                  enabled = !tDriveUiState.isLoading,
+                  onClick = {
+                     viewModel.onIntent(if (loadFailure == null) TDriveIntent.Save else TDriveIntent.Cancel)
+                  },
+               ) {
                   Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(R.string.action_save))
+                     contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back))
                }
             },
          )
@@ -77,6 +87,26 @@ fun TDriveAdapter(
             contentAlignment = Alignment.TopCenter,
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
+         }
+      }
+      else if (loadFailure != null) {
+         Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+            Text(text = loadFailure.message)
+            Button(onClick = {
+               viewModel.onIntent(
+                  if (loadFailure is TDriveLoadFailure.NotFound) TDriveIntent.Cancel
+                  else TDriveIntent.RetryLoad
+               )
+            }) {
+               Text(stringResource(
+                  if (loadFailure is TDriveLoadFailure.NotFound) R.string.action_back
+                  else R.string.action_retry
+               ))
+            }
          }
       }
       else {
