@@ -1,6 +1,11 @@
 package de.rogallab.mobile.ui.people.create_detail.comp
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -69,8 +74,6 @@ fun PersonAdapter(
    // Person data
    val person = personUiState.person
    val loadFailure = personUiState.loadFailure
-   //var enableSave by remember { mutableStateOf(false) }
-   //enableSave = person.firstName.isNotEmpty() && person.lastName.isNotEmpty()
 
    // Handle one-time effects separately from the persistent UI state.
    EffectHandler(viewModel.effects) { personEffect ->
@@ -81,99 +84,101 @@ fun PersonAdapter(
       }
    }
 
-   // Consume system back while saving; otherwise Cancel discards temporary images.
-   BackHandler {
-      if (!personUiState.isSaving) viewModel.onIntent(PersonIntent.Cancel)
-   }
-
    // Resolve the image error text in the UI layer for errors that originate
    // directly from the Android camera interaction.
    val imageSaveError =
       stringResource(SharedR.string.error_image_save)
 
-   Scaffold(
-      modifier = modifier,
-      topBar = {
-         TopAppBar(
-            navigationIcon = {
-               IconButton(enabled = !personUiState.isSaving && !personUiState.isLoading, onClick = {
-                  viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
-               }) {
-                  Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                     contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back))
-               }
-            },
-            title = {
-               Text(text = stringResource( if (personUiState.isNew) R.string.person_create
-               else R.string.person_detail ))
+   val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+
+   // Keep result handlers composed during loading and saving.
+   GalleryPickerHandlerSingle(
+      onImageSelected = { viewModel.onIntent(PersonIntent.GalleryImageSelected(it)) },
+   ) { galleryActions ->
+      CameraPickerHandler(
+         imageFileStorage = imageFileStorage,
+         onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
+         onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
+      ) { cameraActions ->
+         val imageBusy = personUiState.isEditingImages || cameraActions.isBusy
+         // Consume Back until the current operation can finish safely.
+         NavigationBackHandler(
+            state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
+            isBackEnabled = lifecycleState.isAtLeast(Lifecycle.State.RESUMED),
+            onBackCompleted = {
+               if (!imageBusy) viewModel.onIntent(PersonIntent.Cancel)
             },
          )
-      },
-   ) { innerPadding ->
-      // Show initial loading before the form is available.
-      if (personUiState.isLoading) {
-         Box(
-            modifier = Modifier
-               .fillMaxSize()
-               .padding(innerPadding),
-            contentAlignment = Alignment.TopCenter,
-         ) {
-            CircularProgressIndicator(modifier = Modifier.size(64.dp))
-         }
-      }
-      // load failure screen
-      else if (loadFailure != null) {
-         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-         ) {
-            Text(
-               text = loadFailure.message,
-               style = MaterialTheme.typography.bodyLarge,
-               fontWeight = FontWeight.Bold,
-               modifier = Modifier.padding(bottom = 16.dp),
-            )
-            Button(onClick = {
-               viewModel.onIntent(
-                  if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
-                  else PersonIntent.RetryLoad
+
+         Scaffold(
+            modifier = modifier,
+            topBar = {
+               TopAppBar(
+                  navigationIcon = {
+                     IconButton(enabled = !personUiState.isSaving && !personUiState.isLoading && !imageBusy, onClick = {
+                        viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
+                     }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                           contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back))
+                     }
+                  },
+                  title = {
+                     Text(text = stringResource( if (personUiState.isNew) R.string.person_create
+                     else R.string.person_detail ))
+                  },
                )
-            }) {
-               Text(text = stringResource(
-                  if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
-                  else R.string.action_retry
-               ))
+            },
+         ) { innerPadding ->
+            // Show initial loading before the form is available.
+            if (personUiState.isLoading) {
+               Box(
+                  modifier = Modifier
+                     .fillMaxSize()
+                     .padding(innerPadding),
+                  contentAlignment = Alignment.TopCenter,
+               ) {
+                  CircularProgressIndicator(modifier = Modifier.size(64.dp))
+               }
             }
-         }
-      }
-      // Show person form
-      else {
-         Box(
-            modifier = Modifier
-               .fillMaxSize().padding(innerPadding),
-         ) {
-
-            // The gallery handler selects one image and returns its content Uri.
-            GalleryPickerHandlerSingle(
-               onImageSelected = { sourceUri ->
-                  viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
-               },
-            ) { galleryActions ->
-
-               // The camera handler prepares the target file before starting the camera.
-               // After a successful capture it returns the confirmed internal file path.
-               CameraPickerHandler(
-                  imageFileStorage = imageFileStorage,
-                  onPhotoStored = { viewModel.onIntent(PersonIntent.CameraImageTaken(it)) },
-                  onError = { viewModel.onIntent(PersonIntent.ImageFailed(imageSaveError)) },
-               ) { cameraActions ->
+            // load failure screen
+            else if (loadFailure != null) {
+               Column(
+                  modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+                  verticalArrangement = Arrangement.Center,
+                  horizontalAlignment = Alignment.CenterHorizontally,
+               ) {
+                  Text(
+                     text = loadFailure.message,
+                     style = MaterialTheme.typography.bodyLarge,
+                     fontWeight = FontWeight.Bold,
+                     modifier = Modifier.padding(bottom = 16.dp),
+                  )
+                  Button(enabled = !imageBusy, onClick = {
+                     viewModel.onIntent(
+                        if (loadFailure is PersonLoadFailure.NotFound) PersonIntent.Cancel
+                        else PersonIntent.RetryLoad
+                     )
+                  }) {
+                     Text(text = stringResource(
+                        if (loadFailure is PersonLoadFailure.NotFound) R.string.action_back
+                        else R.string.action_retry
+                     ))
+                  }
+               }
+            }
+            // Show person form
+            else {
+               Box(
+                  modifier = Modifier
+                     .fillMaxSize().padding(innerPadding),
+               ) {
 
                   // Connect the current UI state and all user actions to PersonScreen.
                   PersonScreen(
                      isNew = personUiState.isNew,
                      isLoading = personUiState.isLoading,
                      isSaving = personUiState.isSaving,
+                     isEditingImages = imageBusy,
                      firstName = person.firstName,
                      onFirstNameChange = { viewModel.onIntent(PersonIntent.FirstNameChange(it)) },
                      lastName = person.lastName,
@@ -186,7 +191,7 @@ fun PersonAdapter(
                      // current image path is provided to the screen for display.
                      imagePath = person.imagePath,
                      // Disable image actions while a camera file is being prepared
-                     imageActionsEnabled = !cameraActions.isBusy,
+                     imageActionsEnabled = !personUiState.isSaving && !imageBusy,
                      // Gallery is delegated to its Activity Result handler.
                      onSelectPhoto = galleryActions.selectFromGallery,
                      // Camera is delegated to its Activity Result handler.
@@ -202,146 +207,27 @@ fun PersonAdapter(
                         .fillMaxSize().padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState()).imePadding()
                   )
-               }
-            }
 
-            if (personUiState.isSaving) {
-               Box(
-                  modifier = Modifier
-                     .matchParentSize()
-                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
-                     .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                     ),
-                  contentAlignment = Alignment.TopCenter,
-               ) {
-                  CircularProgressIndicator(
-                     modifier = Modifier.padding(top = 24.dp).size(64.dp),
-                  )
+                  if (personUiState.isSaving) {
+                     Box(
+                        modifier = Modifier
+                           .matchParentSize()
+                           .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                           .clickable(
+                              interactionSource = remember { MutableInteractionSource() },
+                              indication = null,
+                              onClick = {},
+                           ),
+                        contentAlignment = Alignment.TopCenter,
+                     ) {
+                        CircularProgressIndicator(
+                           modifier = Modifier.padding(top = 24.dp).size(64.dp),
+                        )
+                     }
+                  }
                }
             }
          }
       }
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - PersonAdapter bildet weiterhin die Verbindung zwischen PersonViewModel
- *   und dem zustandslosen PersonScreen. Er beobachtet den StateFlow, verarbeitet
- *   einmalige Effects und übersetzt Callback-Funktionen des Screens in Intents
- *   des ViewModels.
- *
- * - A3_04 erweitert diese Adapter-Aufgabe um die Anbindung an zwei getrennte
- *   Android-Mechanismen für Bilder:
- *
- *      GalleryPickerHandlerSingle
- *          Auswahl eines vorhandenen Bildes
- *
- *      CameraPickerHandler
- *          Aufnahme eines neuen Fotos
- *
- * - Beide Vorgänge werden bewusst nicht mehr in einem gemeinsamen
- *   ImagePickerHandler zusammengefasst. Dadurch werden die unterschiedlichen
- *   technischen Abläufe von Galerie und Kamera im Code deutlich sichtbar.
- *
- * - Der GalleryPickerHandlerSingle verwendet den Android Photo Picker und liefert
- *   nach einer erfolgreichen Auswahl eine Content-Uri. Er speichert die Datei
- *   selbst noch nicht im privaten App-Speicher.
- *
- * - Die Uri wird über PersonIntent.GalleryImageSelected an PersonViewModel
- *   weitergegeben. Erst dort wird IImageFileStorage verwendet, um das
- *   ausgewählte Bild in den privaten App-Speicher zu kopieren:
- *
- *      GalleryPickerHandlerSingle
- *          -> Uri
- *          -> PersonAdapter
- *          -> PersonIntent.GalleryImageSelected
- *          -> PersonViewModel
- *          -> IImageFileStorage.copyImageToAppStorage(...)
- *          -> interner Dateipfad
- *          -> ImageEdit
- *          -> PersonUiState
- *
- * - Für die Kamera ist der Ablauf anders. Eine Kamera-Anwendung benötigt schon
- *   vor dem Start ein Ziel, in das sie das Foto schreiben kann. Deshalb verwendet
- *   CameraPickerHandler IImageFileStorage direkt, um zunächst eine Kamera-Datei
- *   und deren Uri vorzubereiten.
- *
- * - Nach einer erfolgreichen Aufnahme bestätigt CameraPickerHandler die Datei
- *   und liefert den internen Dateipfad über onPhotoStored zurück:
- *
- *      CameraPickerHandler
- *          -> IImageFileStorage.createCameraImageFile()
- *          -> Kamera
- *          -> IImageFileStorage.confirmCameraImageFile(...)
- *          -> interner Dateipfad
- *          -> PersonAdapter
- *          -> PersonIntent.CameraImageTaken
- *          -> PersonViewModel
- *          -> ImageEdit
- *          -> PersonUiState
- *
- * - Damit liegt IImageFileStorage absichtlich an zwei unterschiedlichen Stellen
- *   im Ablauf:
- *
- *      Galerie:
- *          PersonViewModel verwendet IImageFileStorage nach der Bildauswahl.
- *
- *      Kamera:
- *          CameraPickerHandler benötigt IImageFileStorage bereits vor dem
- *          Start der Kamera.
- *
- * - ImageEdit bleibt von diesen Android-spezifischen Abläufen
- *   unabhängig. Er erhält nur interne Dateipfade und verwaltet damit die
- *   Edit-Session. Er entscheidet insbesondere, welche neuen Bilder bei Cancel
- *   entfernt und welche alten Bilder erst nach erfolgreichem Save gelöscht
- *   werden dürfen.
- *
- * - PersonScreen kennt weder GalleryPickerHandlerSingle noch CameraPickerHandler,
- *   IImageFileStorage oder ImageEdit. Für den Screen bestehen die
- *   Bildoperationen lediglich aus den Callback-Funktionen:
- *
- *      onSelectPhoto
- *      onTakePhoto
- *      onRemovePhoto
- *
- * - Ladefehler bleiben sichtbar; RetryLoad startet den nächsten Ladeversuch.
- *   System-Back sendet außerhalb eines Speichervorgangs Cancel und räumt
- *   temporäre Bilddateien auf. Während Save läuft, bleibt die Seite geöffnet.
- *
- * - Dadurch bleibt die bekannte Aufgabenteilung erhalten:
- *
- *      PersonScreen
- *          Darstellung und Benutzerinteraktion
- *
- *      PersonAdapter
- *          State und Effects beobachten
- *          Intents erzeugen
- *          GalleryPickerHandlerSingle und CameraPickerHandler anbinden
- *
- *      PersonViewModel
- *          Anwendungslogik koordinieren
- *          Gallery-Uri in internen Dateipfad umwandeln
- *          PersonUiState aktualisieren
- *
- *      ImageEdit
- *          Lebensdauer der Bilder innerhalb einer Edit-Session verwalten
- *
- *      IImageFileStorage
- *          technische Dateioperationen durchführen
- *
- * Lernziele:
- *
- * - Stateful Adapter und stateless Screen voneinander unterscheiden.
- * - State und Effects getrennt beobachten und verarbeiten.
- * - Unterschiedliche Activity-Result-Abläufe für Galerie und Kamera erkennen.
- * - GalleryPickerHandlerSingle und CameraPickerHandler nach Verantwortung trennen.
- * - Android-spezifische Picker-Logik aus PersonScreen heraushalten.
- * - UI-Ereignisse über Intents an das ViewModel weiterleiten.
- * - Technische Dateiverwaltung und Edit-Session-Verwaltung unterscheiden.
- * - Delegation zur Wiederverwendung gemeinsamer Bildlogik einsetzen.
- */

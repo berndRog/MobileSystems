@@ -15,6 +15,8 @@ import de.rogallab.mobile.shared.data.local.io.ImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.ui.people.PersonValidator
 import java.io.File
 import java.util.UUID
@@ -53,8 +55,7 @@ class GalleryImageIntegrationTest {
             _repository = repository,
             _stringProvider = StringProvider(context),
             _validator = PersonValidator(context),
-            _imageFileStorage = storage,
-            _imageEdit = imageEdit,
+            _images = ImageEditDelegate(imageEdit, storage, ImageSelectionMode.REPLACE, 1),
             _personUcCreate = PersonUcCreate(repository, imageEdit),
             _personUcUpdate = PersonUcUpdate(repository, imageEdit),
             _effectDelegate = EffectDelegate(),

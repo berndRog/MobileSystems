@@ -36,6 +36,7 @@ fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
    isSaving: Boolean,
+   isEditingImages: Boolean = false,
 
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
@@ -119,7 +120,7 @@ fun PersonScreen(
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         imageActionsEnabled = imageActionsEnabled,
+         imageActionsEnabled = imageActionsEnabled && !isLoading && !isSaving && !isEditingImages,
          height = 200.dp,
          onSelectPhoto = onSelectPhoto,
          onTakePhoto = onTakePhoto,
@@ -136,81 +137,17 @@ fun PersonScreen(
       ) {
          OutlinedButton(
             onClick = onCancel,
-            enabled = !isSaving,
+            enabled = !isSaving && !isEditingImages,
          ) {
             Text(text = stringResource(R.string.action_cancel))
          }
 
          Button(
             onClick = onSave,
-            enabled = enableSave && !isLoading && !isSaving,
+            enabled = enableSave && !isLoading && !isSaving && !isEditingImages,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
       }
    }
 }
-/*
- * Didaktik und Lernziele
- *
- * - PersonScreen bleibt auch nach der Erweiterung um die Bildbearbeitung ein
- *   zustandsloses Composable. Der Screen erhält ausschließlich Werte und
- *   Callback-Funktionen und kennt weder ViewModel noch Repository,
- *   Navigation oder SnackbarController.
- *
- * - A4_01 ergänzt die bisherige Personenbearbeitung um die Anzeige und
- *   Bearbeitung eines Personenbildes. ImageSelection übernimmt dabei nur noch
- *   die Darstellung des aktuellen Bildes sowie die Schaltflächen für
- *   Galerie, Kamera und Entfernen.
- *
- * - Die technische Anbindung an Android ist bewusst nicht Bestandteil von
- *   PersonScreen. GalleryPickerHandlerSingle und CameraPickerHandler werden im
- *   PersonAdapter verwendet. Der Screen erhält lediglich die delegierten
- *   Funktionen onSelectPhoto und onTakePhoto.
- *
- * - Damit bleiben die Aufgaben klar getrennt:
- *
- *      PersonScreen
- *          Darstellung und Benutzerinteraktion
- *
- *      PersonAdapter
- *          Verbindung zum ViewModel
- *          Verwendung der beiden Picker-Handler
- *
- *      GalleryPickerHandlerSingle
- *          Auswahl eines vorhandenen Bildes
- *          Rückgabe einer Content-Uri
- *
- *      CameraPickerHandler
- *          Aufnahme eines neuen Fotos
- *          Verwaltung der dafür benötigten Kamera-Datei
- *
- * - Nach einer Galerieauswahl erhält das ViewModel zunächst eine Uri.
- *   Dort wird das ausgewählte Bild über IImageFileStorage in den privaten
- *   App-Speicher kopiert. Erst der dadurch entstandene interne Dateipfad
- *   wird anschließend über ImageEdit in die laufende Edit-Session
- *   übernommen.
- *
- * - Bei einer Kameraaufnahme wird die Zieldatei bereits vor dem Start der
- *   Kamera vorbereitet. Nach einer erfolgreichen Aufnahme liefert der
- *   CameraPickerHandler den bestätigten internen Dateipfad zurück.
- *
- * - Für PersonScreen spielt dieser technische Unterschied keine Rolle.
- *   Galerie und Kamera erscheinen hier lediglich als zwei Callback-Funktionen.
- *   Dadurch bleibt die UI unabhängig von ActivityResultContracts,
- *   Content-Uris und Dateiverwaltung.
- *
- * - Auch das Entfernen eines Bildes führt nicht direkt zu einer Dateioperation.
- *   PersonScreen meldet lediglich onRemovePhoto. Die weitere Verarbeitung
- *   erfolgt über PersonAdapter, PersonViewModel und ImageEdit.
- *
- * Lernziele:
- *
- * - Stateful Adapter und stateless Screen klar voneinander trennen.
- * - Android-spezifische Activity-Result-Logik aus dem Screen heraushalten.
- * - GalleryPickerHandlerSingle und CameraPickerHandler für unterschiedliche
- *   technische Abläufe verwenden.
- * - UI-Aktionen über Callback-Funktionen an den Adapter delegieren.
- * - Bildanzeige und technische Bildauswahl als getrennte Aufgaben verstehen.
- * - Die bestehende MVI-/UDF-Struktur auch für Bildoperationen beibehalten.
- */

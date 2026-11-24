@@ -11,10 +11,15 @@ import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
 import de.rogallab.mobile.ui.people.PersonValidator
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -45,16 +50,18 @@ class PersonViewModelImageTest {
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
-   private fun createViewModel(personId: String? = null): PersonViewModel {
-      val imageEdit = ImageEdit(storage)
+   private fun createViewModel(
+      personId: String? = null,
+      imageStorage: IImageFileStorage = storage,
+   ): PersonViewModel {
+      val imageEdit = ImageEdit(imageStorage)
 
       return PersonViewModel(
          personId = personId,
          _repository = repository,
          _stringProvider = stringProvider,
          _validator = validator,
-         _imageFileStorage = storage,
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, imageStorage, ImageSelectionMode.REPLACE, 1),
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),
@@ -184,6 +191,98 @@ class PersonViewModelImageTest {
       advanceUntilIdle()
       assertTrue("/images/new.jpg" in storage.deletedPaths)
    }
+
+   @Test
+   fun galleryImport_blocksSaveCancelAndFurtherImages_untilFinished() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val pending = CompletableDeferred<Result<String>>()
+         val delayedStorage = object : IImageFileStorage by storage {
+            override suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String> =
+               pending.await()
+         }
+         val viewModel = createViewModel(imageStorage = delayedStorage)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/1")))
+            assertTrue(viewModel.stateFlow.value.isEditingImages)
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Cancel)
+            viewModel.onIntent(PersonIntent.CameraImageTaken("/images/rejected.jpg"))
+            advanceUntilIdle()
+            assertTrue(repository.created.isEmpty())
+            assertTrue("/images/rejected.jpg" in storage.deletedPaths)
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+
+            pending.complete(Result.success("/images/imported.jpg"))
+            advanceUntilIdle()
+            assertFalse(viewModel.stateFlow.value.isEditingImages)
+            assertEquals("/images/imported.jpg", viewModel.stateFlow.value.person.imagePath)
+            viewModel.onIntent(PersonIntent.Cancel)
+            advanceUntilIdle()
+            assertEquals(BackReason.Cancel, (awaitItem() as PersonEffect.NavigateBack).reason)
+            assertTrue("/images/imported.jpg" in storage.deletedPaths)
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun save_blocksFormAndImageChanges_andCleansRejectedCamera() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+         viewModel.onIntent(PersonIntent.Save)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Grace"))
+         viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/1")))
+         viewModel.onIntent(PersonIntent.CameraImageTaken("/images/rejected.jpg"))
+         assertTrue(viewModel.stateFlow.value.isSaving)
+         advanceUntilIdle()
+         assertEquals("Ada", repository.created.single().firstName)
+         assertTrue(storage.copiedUris.isEmpty())
+         assertTrue("/images/rejected.jpg" in storage.deletedPaths)
+         assertNull(viewModel.stateFlow.value.person.imagePath)
+      }
+
+   @Test
+   fun cancelledImport_resetsEditingFlag_withoutErrorEffect() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val cancelledStorage = object : IImageFileStorage by storage {
+            override suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String> =
+               throw CancellationException("cancelled import")
+         }
+         val viewModel = createViewModel(imageStorage = cancelledStorage)
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/1")))
+            advanceUntilIdle()
+            assertFalse(viewModel.stateFlow.value.isEditingImages)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
+
+   @Test
+   fun cancel_blocksFurtherActions_andCleansLateCameraResult() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Cancel)
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Cancel)
+            viewModel.onIntent(PersonIntent.CameraImageTaken("/images/late.jpg"))
+            advanceUntilIdle()
+            assertTrue(repository.created.isEmpty())
+            assertTrue("/images/late.jpg" in storage.deletedPaths)
+            assertNull(viewModel.stateFlow.value.person.imagePath)
+            assertEquals(BackReason.Cancel, (awaitItem() as PersonEffect.NavigateBack).reason)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 
    @Test
    fun imageStorageFailed_isForwardedAsShowErrorString() = runTest(mainDispatcherRule.testDispatcher) {

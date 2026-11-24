@@ -14,6 +14,8 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
@@ -94,8 +96,12 @@ fun appModule(): Module = module {
          _repository = get<IPersonRepository>(),
          _stringProvider = get<IStringProvider>(),
          _validator = get<PersonValidator>(),
-         _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(
+            session = imageEdit,
+            storage = get<IImageFileStorage>(),
+            mode = ImageSelectionMode.REPLACE,
+            maxImages = 1,
+         ),
          _personUcCreate = get<PersonUcCreate> {
             parametersOf(imageEdit)
          },
@@ -129,7 +135,7 @@ fun appModule(): Module = module {
  *   keinen zusätzlichen zustandsbehafteten VisualRemovalDelegate.
  *
  * - PersonUcCreate und PersonUcUpdate verwenden dieselbe
- *   IImageEdit-Instanz wie PersonViewModel. Nur so schließen sie genau die
+ *   IImageEdit-Instanz wie dessen ImageEditDelegate. Nur so schließen sie genau die
  *   Bild-Session ab, die das ViewModel während der Bearbeitung aufgebaut hat.
  *
  * - PersonUcDelete kombiniert das Repository mit IImageFileStorage, weil

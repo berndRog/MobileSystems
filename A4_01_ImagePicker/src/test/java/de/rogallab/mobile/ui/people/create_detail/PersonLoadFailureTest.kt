@@ -11,6 +11,8 @@ import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
@@ -46,8 +48,7 @@ class PersonLoadFailureTest {
          _repository = repository,
          _stringProvider = strings,
          _validator = validator,
-         _imageFileStorage = imageFileStorage,
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, imageFileStorage, ImageSelectionMode.REPLACE, 1),
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _timing = AppTiming(delayRead = 10L, delayWrite = 10L, animationDuration = 10),

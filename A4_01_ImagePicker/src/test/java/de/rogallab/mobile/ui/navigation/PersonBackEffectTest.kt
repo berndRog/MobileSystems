@@ -12,6 +12,8 @@ import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -59,14 +61,32 @@ class PersonBackEffectTest {
          _repository = repository,
          _stringProvider = stringProvider,
          _validator = validator,
-         _imageFileStorage = imageFileStorage,
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, imageFileStorage, ImageSelectionMode.REPLACE, 1),
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _timing = timing,
          _effectDelegate = EffectDelegate(),
       )
    }
+
+   @Test
+   fun cancelledSave_resetsSaving_withoutErrorOrNavigation() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override suspend fun create(person: Person): Result<Unit> =
+               throw kotlinx.coroutines.CancellationException("cancelled write")
+         }
+         val viewModel = createViewModel(repository)
+         viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+         viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Save)
+            advanceUntilIdle()
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+         }
+      }
 
    @Test
    fun invalidPerson_emitsValidationErrorWithoutWritingOrNavigating() =
