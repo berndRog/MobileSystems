@@ -33,13 +33,16 @@ import de.rogallab.mobile.ui.navigation.PopReason
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation(timing: AppTiming = koinInject()) {
+fun AppNavigation(
+   timing: AppTiming = koinInject()
+) {
+
+   val nComp = remember { mutableIntStateOf(1) }
+   SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
    val navigationAnimations = remember(timing.animationDuration) {
       NavigationAnimations(timing.animationDuration)
    }
-   val nComp = remember { mutableIntStateOf(1) }
-   SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
    // Creates the standard saveable Navigation 3 back stack.
    val backStack = rememberNavBackStack(PeopleKey)

@@ -21,6 +21,7 @@ import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.data.readmodels.PersonReadModel
 import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
@@ -42,6 +43,7 @@ fun appModule(
 
    val tag = "<-appModule"
 
+   Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
    single { AppTiming() }
 
    Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
@@ -94,8 +96,6 @@ fun appModule(
       )
    }
 
-   factory { PersonUcDelete(get(), get()) }
-
    Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
    single<IPersonRepository> {
       PersonRepository(
@@ -113,13 +113,12 @@ fun appModule(
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
       // Both save use cases must share the ViewModel's image edit session.
-      val repository = get<IPersonRepository>()
       val imageEdit = get<IImageEdit>()
 
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = repository,
-         _stringProvider = get(),
+         _repository = get<IPersonRepository>(),
+         _stringProvider = get<IStringProvider>(),
          _validator = get<PersonValidator>(),
          _images = ImageEditDelegate(
             session = imageEdit,
@@ -127,11 +126,18 @@ fun appModule(
             mode = ImageSelectionMode.REPLACE,
             maxImages = 1,
          ),
-         _personUcCreate = PersonUcCreate(repository, imageEdit),
-         _personUcUpdate = PersonUcUpdate(repository, imageEdit),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+         _personUcCreate = PersonUcCreate(get<IPersonRepository>(), imageEdit),
+         _personUcUpdate = PersonUcUpdate(get<IPersonRepository>(), imageEdit),
+         _timing = get<AppTiming>(),
+         _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+      )
+   }
+
+   Alog.i(tag, "factory   -> PersonUcDelete")
+   factory {
+      PersonUcDelete(
+         _repository = get<IPersonRepository>(),
+         _imageFileStorage = get<IImageFileStorage>()
       )
    }
 
@@ -140,10 +146,9 @@ fun appModule(
       PeopleViewModel(
          _readModel = get<IPersonReadModel>(),
          _personUcDelete = get<PersonUcDelete>(),
-         _stringProvider = get(),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
+         _stringProvider = get<IStringProvider>(),
+         _timing = get<AppTiming>(),
+         _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )
    }
 }
