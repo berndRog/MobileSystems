@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.images.IImageEdit

@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate

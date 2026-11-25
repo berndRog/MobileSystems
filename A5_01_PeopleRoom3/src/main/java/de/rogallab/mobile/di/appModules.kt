@@ -9,7 +9,7 @@ import de.rogallab.mobile.data.local.Seed
 import de.rogallab.mobile.data.local.SeedDatabase
 import de.rogallab.mobile.data.local.database.AppDatabase
 import de.rogallab.mobile.data.repositories.PersonRepository
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
@@ -100,7 +100,6 @@ fun appModule(
    single<IPersonRepository> {
       PersonRepository(
          _personDao = get<IPersonDao>(),
-         _dispatcherIo = get(named("dispatcherIo")),
       )
    }
 

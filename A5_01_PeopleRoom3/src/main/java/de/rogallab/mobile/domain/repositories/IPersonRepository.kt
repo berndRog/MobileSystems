@@ -1,10 +1,8 @@
-package de.rogallab.mobile.domain
+package de.rogallab.mobile.domain.repositories
 
 import de.rogallab.mobile.domain.entities.Person
-import kotlinx.coroutines.flow.Flow
 
 interface IPersonRepository {
-   fun observeAll(): Flow<Result<List<Person>>>
    suspend fun findById(id: String): Result<Person?>
 
    suspend fun create(person: Person): Result<Unit>

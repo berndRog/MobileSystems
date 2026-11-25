@@ -1,36 +1,19 @@
 package de.rogallab.mobile.data.repositories
 
 import de.rogallab.mobile.data.IPersonDao
-import de.rogallab.mobile.data.local.dtos.PersonDto
 import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.data.local.checkInserted
 import de.rogallab.mobile.shared.data.local.checkUpdated
 import de.rogallab.mobile.shared.data.local.checkDeleted
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import de.rogallab.mobile.shared.domain.utilities.Alog
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import kotlin.coroutines.cancellation.CancellationException
 
 class PersonRepository(
    private val _personDao: IPersonDao,
-   private val _dispatcherIo: CoroutineDispatcher,
 ) : IPersonRepository {
-   override fun observeAll(): Flow<Result<List<Person>>> =
-      _personDao.observeAll()
-         .map { dtos -> Result.success(dtos.map(PersonDto::toPerson)) }
-         .flowOn(_dispatcherIo)
-         .catch { throwable ->
-            if (throwable is CancellationException) throw throwable
-            emit(Result.failure(throwable))
-         }
-
    override suspend fun findById(id: String): Result<Person?> =
       resultOf(
          block = { _personDao.findById(id)?.toPerson() }

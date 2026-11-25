@@ -11,6 +11,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface IPersonDao {
+
+
+   // ─────────────────────────────────────────────────────────────
+   // Read side: used by CarReadModel
+   // ─────────────────────────────────────────────────────────────
    @Query("""
       SELECT *
       FROM Person
@@ -26,8 +31,7 @@ interface IPersonDao {
    """)
    suspend fun findById(personId: String): PersonDto?
 
-   @Query("SELECT COUNT(*) FROM Person")
-   suspend fun count(): Int
+
    @Insert(onConflict = OnConflictStrategy.ABORT)
    suspend fun insert(personDto: PersonDto): Long
 
@@ -38,4 +42,9 @@ interface IPersonDao {
    suspend fun update(personDto: PersonDto): Int
    @Delete
    suspend fun delete(personDto: PersonDto): Int
+
+
+   @Query("SELECT COUNT(*) FROM Person")
+   suspend fun count(): Int
+
 }

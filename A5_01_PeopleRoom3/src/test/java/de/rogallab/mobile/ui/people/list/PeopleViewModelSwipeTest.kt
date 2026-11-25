@@ -2,7 +2,7 @@ package de.rogallab.mobile.ui.people.list
 
 import app.cash.turbine.test
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.entities.Person
@@ -15,7 +15,6 @@ import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -88,7 +87,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun requestRemove_dismissedConfirmationKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+         val repository = FakePersonRepository().apply {
             findResult = Result.success(ada)
          }
          val readModel = FakePersonReadModel(listOf(adaItem, graceItem))
@@ -126,7 +125,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun confirmRemove_deletesPersonAndUpdatesState() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+         val repository = FakePersonRepository().apply {
             findResult = Result.success(ada)
          }
          val readModel = FakePersonReadModel(listOf(adaItem, graceItem))
@@ -157,7 +156,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun thrownConfirmRemove_emitsErrorAndKeepsTheProjection() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val source = FakePersonRepository(listOf(ada)).apply {
+         val source = FakePersonRepository().apply {
             findResult = Result.success(ada)
          }
          val repository = object : IPersonRepository by source {
@@ -180,7 +179,7 @@ class PeopleViewModelSwipeTest {
    @Test
    fun failedConfirmRemove_emitsErrorAndKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+         val repository = FakePersonRepository().apply {
             findResult = Result.success(ada)
             removeResult = Result.failure(IllegalStateException("delete failed"))
          }

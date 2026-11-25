@@ -35,7 +35,9 @@ The table stores an image reference; the image file remains in app storage. This
 
 **Write:** form → Intent → ViewModel → create/update use case → `IPersonRepository` → `PersonRepository` → `Person.toPersonDto()` → DAO → Room.
 
-**Observe:** Room → `IPersonDao.observeAll()` → `Flow<List<PersonDto>>` → repository mapping → `Flow<Result<List<Person>>>` → ViewModel state → adapter → list.
+**Observe:** Room → `IPersonDao.observeAll()` → `Flow<List<PersonDto>>` → `PersonReadModel` projection mapping → `Flow<Result<List<PersonListItem>>>` → `PeopleViewModel` state → adapter → list.
+
+The repository loads individual Domain entities through `findById()` and performs writes. The read model observes display projections through `IPersonReadModel.observeListItems()`.
 
 `observeAll()` selects all people ordered by `lastName, firstName`. Writes to the table feed subsequent query results into the existing observation path; the adapter collects UI state lifecycle-aware.
 
@@ -45,7 +47,7 @@ The DAO also provides `findById()`, `count()`, inserts for one person or a list,
 
 Keep the application workflow familiar and expose the persistence boundary. Compare A4_01's shared DAO/database infrastructure with the module-owned classes in A5_01. Room annotations remain on `PersonDto`; the Domain entity `Person` remains free of them. Mapping functions make this boundary explicit.
 
-`AppDatabase` registers only `PersonDto` and exposes `personDao()`. In `di/appModules.kt`, Koin builds the database using `Room.databaseBuilder`, `BundledSQLiteDriver`, and a query coroutine context defaulting to `Dispatchers.IO`. The configured database is `people51.db`, version 1. It then supplies the DAO to `PersonRepository`.
+`AppDatabase` registers only `PersonDto` and exposes `personDao()`. In `di/appModules.kt`, Koin builds the database using `Room.databaseBuilder`, `BundledSQLiteDriver`, and a query coroutine context defaulting to `Dispatchers.IO`. The configured database is `people51.db`, version 1. It then supplies the DAO to `PersonRepository` and `PersonReadModel`; only the read model needs the dispatcher for observation.
 
 The Domain use cases introduced in A4_01 retain their role: coordinate person persistence and image-session commit or cleanup. They call `IPersonRepository`; the concrete Room access belongs to the Data layer.
 
@@ -59,11 +61,12 @@ Koin assembles the database dependencies in `di/appModules.kt`. `MainApplication
 | --- | --- |
 | `single<AppDatabase>` | `Room.databaseBuilder` with `androidContext()`, `Globals.databaseName`, `BundledSQLiteDriver`, and the query coroutine context |
 | `single<IPersonDao>` | `get<AppDatabase>().personDao()` obtains the DAO from that database |
+| `single<IPersonReadModel>` | `PersonReadModel` receives the DAO and the qualified IO dispatcher to observe display projections |
 | `single<IPersonRepository>` | `PersonRepository(_personDao = get<IPersonDao>())` binds the Domain interface to the concrete implementation |
 
 `single` retains one instance per registration in the container; `get<T>()` resolves a registered dependency. This creates the chain **AppDatabase → IPersonDao → PersonRepository**, shared by the consuming objects. Koin invokes the configured builders and supplies dependencies; Room generates the concrete database/DAO implementations.
 
-The `viewModel` definitions resolve `IPersonRepository` and pass it through constructors to the ViewModels and person use cases. Consumers receive their dependencies instead of constructing databases themselves. `SeedDatabase` receives the same registered database and DAO; `MainApplication` resolves it with `get()` before starting the seed operation. `Shared` continues to supply general services such as image storage, while the database registrations remain local to A5_01.
+The `viewModel` definitions supply `IPersonReadModel` to `PeopleViewModel` for list observation. `PersonViewModel` and the person use cases receive `IPersonRepository` to load Domain entities and perform writes. Consumers receive their dependencies instead of constructing databases themselves. `SeedDatabase` receives the same registered database and DAO; `MainApplication` resolves it with `get()` before starting the seed operation. `Shared` continues to supply general services such as image storage, while the database registrations remain local to A5_01.
 
 ## Suggested learning path
 

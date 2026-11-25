@@ -118,6 +118,22 @@ To rerun one app with full Gradle output, use `./gradlew -p A3_05_SwipeDeleteUnd
 
 The scripts build the apps one at a time. Gradle can execute tasks within a build in parallel according to `gradle.properties`. Concurrent app builds are not supported by this layout because they share the output directories of `Shared` and `build-logic`.
 
+## Export an app as a standalone project
+
+From the repository root:
+
+```bash
+bash scripts/createStandAlone.sh A5_01_PeopleRoom3
+# Optional: another destination directory that does not exist yet
+bash scripts/createStandAlone.sh A5_01_PeopleRoom3 --destination /path/to/PeopleStandalone
+```
+
+Requires Bash 3.2 or later and rsync. The default destination is a sibling of MobileSystems named after the app. Its parent must exist outside the repository; existing destinations are never overwritten.
+
+The export contains `app/`, `shared/`, `build-logic/`, the Gradle wrapper, version catalog and ProGuard rules. Shared symbolic links become real files. Gradle paths and module dependencies are adjusted, preserving the original application ID. Source projects remain unchanged. Build outputs, caches, IDE files and `local.properties` are excluded.
+
+Open the **exported project root** in Android Studio and configure its SDK location, or use `ANDROID_HOME`. Verify it with `./gradlew :app:assembleDebug :app:testDebugUnitTest :shared:testDebugUnitTest`. Configure app-specific local settings such as `NEWS_API_KEY` again in the export.
+
 ## Create and open another app
 
 From the repository root:

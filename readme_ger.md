@@ -118,6 +118,22 @@ Eine einzelne App kannst du mit vollständiger Gradle-Ausgabe erneut prüfen: `.
 
 Die Skripte bauen die Apps nacheinander. Innerhalb eines Builds kann Gradle Aufgaben gemäß `gradle.properties` parallel ausführen. Mehrere App-Builds gleichzeitig sind in dieser Struktur nicht vorgesehen, weil sie die Ausgabeverzeichnisse von `Shared` und `build-logic` gemeinsam nutzen.
 
+## Eine App als Standalone-Projekt exportieren
+
+Im Repository-Root:
+
+```bash
+bash scripts/createStandAlone.sh A5_01_PeopleRoom3
+# Optional: ein anderer, noch nicht vorhandener Zielordner
+bash scripts/createStandAlone.sh A5_01_PeopleRoom3 --destination /Pfad/zu/PeopleStandalone
+```
+
+Das Skript benötigt Bash ab 3.2 und rsync. Standardmäßig entsteht ein gleichnamiger Ordner neben MobileSystems. Der Ziel-Elternordner muss existieren und außerhalb des Repositorys liegen; bestehende Ziele werden nicht überschrieben.
+
+Der Export enthält `app/`, `shared/`, `build-logic/`, Gradle-Wrapper, Versionskatalog und ProGuard-Regeln. Gemeinsame symbolische Links werden als echte Dateien kopiert. Gradle-Pfade und Modulabhängigkeiten werden angepasst; die ursprüngliche Application-ID bleibt erhalten. Quellprojekte bleiben unverändert. Build-Ausgaben, Caches, IDE-Dateien und `local.properties` werden nicht übernommen.
+
+Öffne den **exportierten Projektstamm** in Android Studio und richte dort den SDK-Pfad ein oder verwende `ANDROID_HOME`. Prüfen kannst du den Export mit `./gradlew :app:assembleDebug :app:testDebugUnitTest :shared:testDebugUnitTest`. App-spezifische lokale Einstellungen wie `NEWS_API_KEY` müssen im Export erneut eingerichtet werden.
+
 ## Eine weitere App anlegen und öffnen
 
 Im Repository-Root:

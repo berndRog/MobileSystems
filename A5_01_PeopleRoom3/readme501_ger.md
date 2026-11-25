@@ -35,7 +35,9 @@ Die Tabelle speichert eine Bildreferenz; die Bilddatei bleibt im App-Speicher. S
 
 **Schreiben:** Formular → Intent → ViewModel → Create-/Update-Use-Case → `IPersonRepository` → `PersonRepository` → `Person.toPersonDto()` → DAO → Room.
 
-**Beobachten:** Room → `IPersonDao.observeAll()` → `Flow<List<PersonDto>>` → Repository-Mapping → `Flow<Result<List<Person>>>` → ViewModel-State → Adapter → Liste.
+**Beobachten:** Room → `IPersonDao.observeAll()` → `Flow<List<PersonDto>>` → Projektions-Mapping in `PersonReadModel` → `Flow<Result<List<PersonListItem>>>` → State von `PeopleViewModel` → Adapter → Liste.
+
+Das Repository lädt einzelne Domain-Entities mit `findById()` und führt Schreiboperationen aus. Das ReadModel beobachtet Anzeigeprojektionen über `IPersonReadModel.observeListItems()`.
 
 `observeAll()` liest alle Personen sortiert nach `lastName, firstName`. Schreibzugriffe auf die Tabelle führen zu neuen Abfrageergebnissen im bestehenden Beobachtungspfad; der Adapter beobachtet UI-State lifecycle-aware.
 
@@ -45,7 +47,7 @@ Das DAO bietet außerdem `findById()`, `count()`, Inserts für eine Person oder 
 
 Der Anwendungsablauf bleibt vertraut; die Persistenzgrenze wird sichtbar gemacht. Die gemeinsame DAO-/Datenbankinfrastruktur aus A4_01 wird mit den modulinternen Klassen aus A5_01 verglichen. Room-Annotationen gehören zu `PersonDto`; die Domain-Entity `Person` bleibt davon frei. Mapping-Funktionen verdeutlichen diese Grenze.
 
-`AppDatabase` registriert ausschließlich `PersonDto` und stellt `personDao()` bereit. In `di/appModules.kt` erzeugt Koin die Datenbank mit `Room.databaseBuilder`, `BundledSQLiteDriver` und einem Query-Coroutine-Kontext, standardmäßig `Dispatchers.IO`. Konfiguriert ist `people51.db`, Version 1. Anschließend wird das DAO an `PersonRepository` übergeben.
+`AppDatabase` registriert ausschließlich `PersonDto` und stellt `personDao()` bereit. In `di/appModules.kt` erzeugt Koin die Datenbank mit `Room.databaseBuilder`, `BundledSQLiteDriver` und einem Query-Coroutine-Kontext, standardmäßig `Dispatchers.IO`. Konfiguriert ist `people51.db`, Version 1. Anschließend wird das DAO an `PersonRepository` und `PersonReadModel` übergeben; nur das ReadModel benötigt den Dispatcher für die Beobachtung.
 
 Die in A4_01 eingeführten Domain-Use-Cases behalten ihre Aufgabe: Personenpersistenz und Bild-Session-Commit beziehungsweise Aufräumen koordinieren. Sie rufen `IPersonRepository` auf; der konkrete Room-Zugriff gehört zur Data-Schicht.
 
@@ -59,11 +61,12 @@ Koin setzt die Datenbankabhängigkeiten in `di/appModules.kt` zusammen. `MainApp
 | --- | --- |
 | `single<AppDatabase>` | `Room.databaseBuilder` mit `androidContext()`, `Globals.databaseName`, `BundledSQLiteDriver` und Query-Coroutine-Kontext |
 | `single<IPersonDao>` | `get<AppDatabase>().personDao()` bezieht das DAO aus dieser Datenbank |
+| `single<IPersonReadModel>` | `PersonReadModel` erhält DAO und qualifizierten IO-Dispatcher für die Beobachtung von Anzeigeprojektionen |
 | `single<IPersonRepository>` | `PersonRepository(_personDao = get<IPersonDao>())` verbindet die Domain-Schnittstelle mit der konkreten Implementierung |
 
 `single` hält pro Registrierung eine Instanz im Container; `get<T>()` löst eine registrierte Abhängigkeit auf. So entsteht die Kette **AppDatabase → IPersonDao → PersonRepository**, die von den konsumierenden Objekten gemeinsam verwendet wird. Koin ruft die konfigurierten Erzeugungsfunktionen auf und stellt Abhängigkeiten bereit; Room generiert die konkreten Datenbank-/DAO-Implementierungen.
 
-Die `viewModel`-Definitionen beziehen `IPersonRepository` und übergeben es über Konstruktoren an ViewModels und Personen-Use-Cases. Die Empfänger erhalten ihre Abhängigkeiten, statt selbst Datenbanken zu erzeugen. Auch `SeedDatabase` erhält dieselbe registrierte Datenbank und dasselbe DAO; `MainApplication` bezieht es vor dem Seeding mit `get()`. `Shared` stellt weiterhin allgemeine Dienste wie Bildspeicher bereit, während die Datenbankregistrierungen lokal zu A5_01 gehören.
+Die `viewModel`-Definitionen übergeben `IPersonReadModel` zur Listenbeobachtung an `PeopleViewModel`. `PersonViewModel` und die Personen-Use-Cases erhalten `IPersonRepository`, um Domain-Entities zu laden und Schreiboperationen auszuführen. Die Empfänger erhalten ihre Abhängigkeiten, statt selbst Datenbanken zu erzeugen. Auch `SeedDatabase` erhält dieselbe registrierte Datenbank und dasselbe DAO; `MainApplication` bezieht es vor dem Seeding mit `get()`. `Shared` stellt weiterhin allgemeine Dienste wie Bildspeicher bereit, während die Datenbankregistrierungen lokal zu A5_01 gehören.
 
 ## Vorgeschlagener Lernpfad
 

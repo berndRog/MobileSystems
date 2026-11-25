@@ -35,9 +35,11 @@ class MainApplication : Application() {
       }
       appScope.launch {
          // Open Room off the main thread; every DAO access also waits for creation.
-         resultOf(block = {
-            get<AppDatabase>().useReaderConnection { }
-         }).onFailure { throwable ->
+         resultOf(
+            block = {
+               get<AppDatabase>().useReaderConnection { }
+            }
+         ).onFailure { throwable ->
             Alog.e("<-MainApplication", "Database initialization failed; opening can be retried", throwable)
          }
       }

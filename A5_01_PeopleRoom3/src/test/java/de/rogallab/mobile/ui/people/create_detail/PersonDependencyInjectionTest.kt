@@ -1,14 +1,13 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
-import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.domain.entities.Person
 import org.koin.core.parameter.parametersOf
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import de.rogallab.mobile.di.appModule
 import de.rogallab.mobile.di.effectModule
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage

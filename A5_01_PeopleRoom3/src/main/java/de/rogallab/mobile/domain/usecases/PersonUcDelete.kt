@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlin.coroutines.cancellation.CancellationException
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage

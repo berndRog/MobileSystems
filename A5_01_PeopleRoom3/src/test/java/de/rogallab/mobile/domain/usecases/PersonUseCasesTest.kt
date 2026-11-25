@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import kotlin.coroutines.cancellation.CancellationException
 import org.junit.Assert.assertSame
@@ -93,7 +93,7 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_success_removesPersonAndImage() = runTest {
-      val repository = FakePersonRepository(listOf(person)).apply {
+      val repository = FakePersonRepository().apply {
          findResult = Result.success(person)
       }
       val imageFileStorage = FakeImageFileStorage()
@@ -107,7 +107,7 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_repositoryFailure_keepsImage() = runTest {
-      val repository = FakePersonRepository(listOf(person)).apply {
+      val repository = FakePersonRepository().apply {
          findResult = Result.success(person)
          removeResult = Result.failure(IllegalStateException("delete failed"))
       }
@@ -122,7 +122,7 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_imageCleanupFailure_keepsSuccessfulDeleteResult() = runTest {
-      val repository = FakePersonRepository(listOf(person)).apply {
+      val repository = FakePersonRepository().apply {
          findResult = Result.success(person)
       }
       val imageFileStorage = FakeImageFileStorage().apply {

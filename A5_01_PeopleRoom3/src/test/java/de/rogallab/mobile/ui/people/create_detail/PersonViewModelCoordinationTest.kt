@@ -2,14 +2,13 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
 import de.rogallab.mobile.ui.people.PersonValidator
-import de.rogallab.mobile.ui.people.toPersonForm
 import android.net.Uri
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.images.*

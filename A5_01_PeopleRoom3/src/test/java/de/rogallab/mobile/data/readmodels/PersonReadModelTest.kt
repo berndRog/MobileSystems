@@ -12,6 +12,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -110,6 +114,44 @@ class PersonReadModelTest {
       } catch (actual: CancellationException) {
          assertSame(cancellation, actual)
       }
+   }
+
+   @Test
+   fun observeListItems_canCollectAgainAfterFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val failure = IllegalStateException("first collection failed")
+      var collections = 0
+      val dao = observing(flow {
+         collections++
+         if (collections == 1) throw failure
+         emit(listOf(ada))
+      })
+      val observation = PersonReadModel(dao, mainDispatcherRule.testDispatcher).observeListItems()
+
+      assertSame(failure, observation.first().exceptionOrNull())
+      assertEquals(listOf(adaItem), observation.first().getOrThrow())
+      assertEquals(2, collections)
+   }
+
+   @Test
+   fun observeListItems_collectorCancellation_cancelsUpstream() = runTest(mainDispatcherRule.testDispatcher) {
+      var upstreamCancelled = false
+      val dao = observing(flow {
+         try {
+            emit(listOf(ada))
+            awaitCancellation()
+         } finally {
+            upstreamCancelled = true
+         }
+      })
+      val results = mutableListOf<Result<List<PersonListItem>>>()
+      val readModel = PersonReadModel(dao, mainDispatcherRule.testDispatcher)
+      val collector = backgroundScope.launch { readModel.observeListItems().collect { results += it } }
+      runCurrent()
+
+      collector.cancelAndJoin()
+
+      assertTrue(upstreamCancelled)
+      assertEquals(listOf(listOf(adaItem)), results.map { it.getOrThrow() })
    }
 
    @Test
