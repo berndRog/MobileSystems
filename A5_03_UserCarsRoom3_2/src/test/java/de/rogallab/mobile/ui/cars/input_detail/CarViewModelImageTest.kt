@@ -15,9 +15,9 @@ import de.rogallab.mobile.domain.usecases.CarUcCreate
 import de.rogallab.mobile.domain.usecases.CarUcUpdate
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
-import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.testing.FakeCarRepository
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakeStringProvider
@@ -31,7 +31,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

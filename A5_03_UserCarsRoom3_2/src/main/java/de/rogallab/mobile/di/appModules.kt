@@ -18,10 +18,10 @@ import de.rogallab.mobile.data.repositories.CarRepository
 import de.rogallab.mobile.data.repositories.PersonRepository
 import de.rogallab.mobile.data.repositories.TDriveRepository
 import de.rogallab.mobile.domain.readmodels.ICarReadModel
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.domain.repositories.ICarRepository
 import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.repositories.ITDriveRepository
-import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.domain.readmodels.ITDriveReadModel
 import de.rogallab.mobile.domain.usecases.CarUcCreate
 import de.rogallab.mobile.domain.usecases.CarUcDelete

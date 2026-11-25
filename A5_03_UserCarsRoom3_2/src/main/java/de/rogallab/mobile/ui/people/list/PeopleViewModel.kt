@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IStringProvider

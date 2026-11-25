@@ -7,13 +7,15 @@ import app.cash.turbine.test
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.TDrive
-import de.rogallab.mobile.domain.repositories.ITDriveRepository
 import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.readmodels.PersonSelectItem
-
+import de.rogallab.mobile.domain.repositories.ITDriveRepository
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.testing.*
+import de.rogallab.mobile.testing.FakeCarReadModel
+import de.rogallab.mobile.testing.FakeStringProvider
+import de.rogallab.mobile.testing.FakeTDriveRepository
+import de.rogallab.mobile.testing.MainDispatcherRule
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,7 +26,10 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

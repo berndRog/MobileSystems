@@ -2,10 +2,10 @@ package de.rogallab.mobile.ui.people.list
 
 import app.cash.turbine.test
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.readmodels.IPersonReadModel
-import de.rogallab.mobile.domain.readmodels.PersonSelectItem
-import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.domain.readmodels.PersonListItem
+import de.rogallab.mobile.domain.readmodels.PersonSelectItem
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
