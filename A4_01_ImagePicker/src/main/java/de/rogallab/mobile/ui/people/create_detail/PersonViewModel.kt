@@ -85,32 +85,35 @@ class PersonViewModel(
    private fun loadPerson(id: String) {
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       viewModelScope.launch {
-         try {
-            delay(_timing.delayRead)
-            val person = _repository.findById(id).getOrThrow()
-            currentCoroutineContext().ensureActive()
-            if (_isClosing) return@launch
-            if (person == null) {
-               _stateFlow.update {
-                  it.copy(isLoading = false, loadFailure = PersonLoadFailure.NotFound(
-                     _stringProvider.getString(R.string.error_person_not_found)))
-               }
-            } else {
-               _images.start(listOfNotNull(person.imagePath))
-               _stateFlow.update {
-                  it.copy(person = person,
-                     isLoading = false, loadFailure = null)
+         delay(_timing.delayRead)
+
+         // Expected failures arrive as Result; unexpected exceptions are covered in A5.
+         _repository.findById(id)
+            .onSuccess { person ->
+               currentCoroutineContext().ensureActive()
+               if (_isClosing) return@onSuccess
+               if (person == null) {
+                  _stateFlow.update {
+                     it.copy(isLoading = false, loadFailure = PersonLoadFailure.NotFound(
+                        _stringProvider.getString(R.string.error_person_not_found)))
+                  }
+               } else {
+                  _images.start(listOfNotNull(person.imagePath))
+                  _stateFlow.update {
+                     it.copy(person = person, isLoading = false, loadFailure = null)
+                  }
                }
             }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            _stateFlow.update {
-               it.copy(isLoading = false, loadFailure = PersonLoadFailure.Failed(
-                  _stringProvider.getString(R.string.error_person_load)))
+            .onFailure { error ->
+               // Cancellation is control flow, not a user-visible error.
+               if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
+               if (_isClosing) return@onFailure
+               _stateFlow.update {
+                  it.copy(isLoading = false, loadFailure = PersonLoadFailure.Failed(
+                     _stringProvider.getString(R.string.error_person_load)))
+               }
             }
-         }
       }
    }
 
@@ -131,25 +134,26 @@ class PersonViewModel(
 
    private fun changeImages(operation: suspend () -> Result<ImageChange>) {
       if (!beginImageChange()) return
-      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-         try {
-            currentCoroutineContext().ensureActive()
-            operation()
-               .onSuccess { change ->
-                  currentCoroutineContext().ensureActive()
-                  change.paths?.let { paths -> updateForm { it.copy(imagePath = paths.firstOrNull()) } }
-                  if (change.failedImports > 0) {
-                     showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
-                  }
-               }
-               .onFailure { error ->
-                  currentCoroutineContext().ensureActive()
-                  if (error is CancellationException) throw error
+      val job = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+         currentCoroutineContext().ensureActive()
+         operation()
+            .onSuccess { change ->
+               currentCoroutineContext().ensureActive()
+               change.paths?.let { paths -> updateForm { it.copy(imagePath = paths.firstOrNull()) } }
+               if (change.failedImports > 0) {
                   showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
                }
-         } finally {
-            _stateFlow.update { it.copy(isEditingImages = false) }
-         }
+            }
+            .onFailure { error ->
+               if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
+               showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+            }
+      }
+      // Register outside the body, even when the job has already completed.
+      // Only this atomic state update releases the guard; no file cleanup belongs here.
+      job.invokeOnCompletion {
+         _stateFlow.update { it.copy(isEditingImages = false) }
       }
    }
 
@@ -163,6 +167,7 @@ class PersonViewModel(
          viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             _images.rejectCamera(path).onFailure { error ->
                if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
                if (!_isClosing) showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
             }
          }
@@ -212,35 +217,38 @@ class PersonViewModel(
          return
       }
 
-      _stateFlow.update { it.copy(person = person) }
+      val personToSave = person
+      // Freeze the submitted values and block further write operations immediately.
+      _stateFlow.update { it.copy(person = personToSave, isSaving = true) }
 
-      // Mark the attempt synchronously, before the coroutine can be scheduled.
-      _stateFlow.update { it.copy(isSaving = true) }
-      // Enter try/finally immediately, even if the scope is cancelled before dispatch.
-      viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-         try {
-            delay(_timing.delayWrite)
-            val result =
-               if (_isNew) _personUcCreate(person)
-               else _personUcUpdate(person)
+      val job = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+         currentCoroutineContext().ensureActive()
+         delay(_timing.delayWrite)
+         val result =
+            if (_isNew) _personUcCreate(personToSave)
+            else _personUcUpdate(personToSave)
 
-            result.getOrThrow()
-            currentCoroutineContext().ensureActive()
-            _isClosing = true
-            _effectDelegate.emit(
-               PersonEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_person_saved, person.fullName)
+         result
+            .onSuccess {
+               currentCoroutineContext().ensureActive()
+               _isClosing = true
+               _effectDelegate.emit(
+                  PersonEffect.ShowMessage(
+                     _stringProvider.getString(R.string.message_person_saved, personToSave.fullName)
+                  )
                )
-            )
-            _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            showErrorNow(_stringProvider.getString(R.string.error_person_save))
-         } finally {
-            _stateFlow.update { it.copy(isSaving = false) }
-         }
+               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+            }
+            .onFailure { error ->
+               if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
+               showErrorNow(_stringProvider.getString(R.string.error_person_save))
+            }
+      }
+      // Completion also releases the guard after cancellation.
+      // Do not launch a coroutine here: the ViewModel scope may already be cancelled.
+      job.invokeOnCompletion {
+         _stateFlow.update { it.copy(isSaving = false) }
       }
    }
 
@@ -249,15 +257,18 @@ class PersonViewModel(
       // Once Cancel is accepted, Save must not race the pending navigation.
       _isClosing = true
       viewModelScope.launch {
-         try {
-            _images.discard().getOrThrow()
-            _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
-            _isClosing = false
-            showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
-         }
+         _images.discard()
+            .onSuccess {
+               currentCoroutineContext().ensureActive()
+               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
+            }
+            .onFailure { error ->
+               if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
+               // An expected cleanup failure allows another Cancel attempt.
+               _isClosing = false
+               showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+            }
       }
    }
 

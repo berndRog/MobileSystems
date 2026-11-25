@@ -1,6 +1,11 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.runCurrent
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.AppTiming
@@ -156,6 +161,69 @@ class PersonLoadFailureTest {
       assertNull(viewModel.stateFlow.value.loadFailure)
       assertFalse(viewModel.stateFlow.value.isLoading)
    }
+
+   @Test
+   fun cancelledLoad_propagatesWithoutErrorEffectOrLoadFailure() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         for (throwDirectly in listOf(false, true)) {
+            val repository = object : IPersonRepository by FakePersonRepository() {
+               override suspend fun findById(id: String): Result<Person?> {
+                  val cancellation = CancellationException("cancelled load")
+                  if (throwDirectly) throw cancellation
+                  return Result.failure(cancellation)
+               }
+            }
+            val store = ViewModelStore()
+            val viewModel = createViewModel("p1", repository).also { store.put("person", it) }
+            val loading = viewModel.viewModelScope.coroutineContext[
+               kotlinx.coroutines.Job
+            ]!!.children.single()
+            try {
+               viewModel.effects.test {
+                  advanceUntilIdle()
+                  assertTrue(loading.isCancelled)
+                  assertNull(viewModel.stateFlow.value.loadFailure)
+                  expectNoEvents()
+               }
+            } finally {
+               store.clear()
+            }
+         }
+      }
+
+   @Test
+   fun lateLoadResult_afterAcceptedCancel_doesNotChangeTheState() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val person = Person(id = "p1", firstName = "Ada", lastName = "Lovelace")
+         for (outcome in listOf<Result<Person?>>(
+            Result.success(person), Result.failure(IllegalStateException("late failure"))
+         )) {
+            val pending = CompletableDeferred<Result<Person?>>()
+            val repository = object : IPersonRepository by FakePersonRepository() {
+               override suspend fun findById(id: String): Result<Person?> = pending.await()
+            }
+            val store = ViewModelStore()
+            val viewModel = createViewModel("p1", repository).also { store.put("person", it) }
+            try {
+               viewModel.effects.test {
+                  advanceUntilIdle()
+                  viewModel.onIntent(PersonIntent.Cancel)
+                  runCurrent()
+                  assertEquals(
+                     BackReason.Cancel,
+                     (awaitItem() as PersonEffect.NavigateBack).reason,
+                  )
+                  val state = viewModel.stateFlow.value
+                  pending.complete(outcome)
+                  advanceUntilIdle()
+                  assertEquals(state, viewModel.stateFlow.value)
+                  expectNoEvents()
+               }
+            } finally {
+               store.clear()
+            }
+         }
+      }
 
    @Test
    fun saveDuringLoad_doesNotWrite() = runTest(mainDispatcherRule.testDispatcher) {

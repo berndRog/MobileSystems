@@ -1,6 +1,7 @@
 package de.rogallab.mobile.ui.navigation
 
 import android.app.Application
+import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.AppTiming
@@ -72,9 +73,67 @@ class PersonBackEffectTest {
    @Test
    fun cancelledSave_resetsSaving_withoutErrorOrNavigation() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = object : IPersonRepository by FakePersonRepository() {
-            override suspend fun create(person: Person): Result<Unit> =
-               throw kotlinx.coroutines.CancellationException("cancelled write")
+         for (throwDirectly in listOf(false, true)) {
+            val repository = object : IPersonRepository by FakePersonRepository() {
+               override suspend fun create(person: Person): Result<Unit> {
+                  val cancellation = kotlinx.coroutines.CancellationException("cancelled write")
+                  if (throwDirectly) throw cancellation
+                  return Result.failure(cancellation)
+               }
+            }
+            val viewModel = createViewModel(repository)
+            viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+            viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+            viewModel.effects.test {
+               viewModel.onIntent(PersonIntent.Save)
+               advanceUntilIdle()
+               assertFalse(viewModel.stateFlow.value.isSaving)
+               expectNoEvents()
+               cancelAndIgnoreRemainingEvents()
+            }
+         }
+      }
+
+   @Test
+   fun scopeCancellation_resetsSaving_evenBeforeWorkStarts() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         for (cancelBeforeIntent in listOf(false, true)) {
+            val repository = FakePersonRepository()
+            val store = ViewModelStore()
+            val viewModel = createViewModel(repository).also { store.put("person", it) }
+            viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+            viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+            viewModel.effects.test {
+               if (cancelBeforeIntent) store.clear()
+               viewModel.onIntent(PersonIntent.Save)
+               if (!cancelBeforeIntent) {
+                  assertTrue(viewModel.stateFlow.value.isSaving)
+                  store.clear()
+                  // Complete the cancelled continuation before checking its completion handler.
+                  runCurrent()
+               }
+               // Registration must also work when the job has already been cancelled.
+               assertFalse(viewModel.stateFlow.value.isSaving)
+               advanceUntilIdle()
+               assertTrue(repository.created.isEmpty())
+               expectNoEvents()
+            }
+         }
+      }
+
+   @Test
+   fun failedSave_releasesGuardForOneRetry_andKeepsItUntilRetryCompletes() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val source = FakePersonRepository()
+         val pending = CompletableDeferred<Result<Unit>>()
+         var calls = 0
+         val repository = object : IPersonRepository by source {
+            override suspend fun create(person: Person): Result<Unit> {
+               calls++
+               return if (calls == 1) Result.failure(IllegalStateException("offline"))
+               else pending.await().onSuccess { source.create(person) }
+            }
          }
          val viewModel = createViewModel(repository)
          viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
@@ -82,9 +141,24 @@ class PersonBackEffectTest {
          viewModel.effects.test {
             viewModel.onIntent(PersonIntent.Save)
             advanceUntilIdle()
+            assertTrue(awaitItem() is PersonEffect.ShowError)
             assertFalse(viewModel.stateFlow.value.isSaving)
+
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Save)
+            viewModel.onIntent(PersonIntent.Cancel)
+            advanceUntilIdle()
+            assertEquals(2, calls)
+            assertTrue(viewModel.stateFlow.value.isSaving)
             expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
+
+            pending.complete(Result.success(Unit))
+            advanceUntilIdle()
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            assertEquals(1, source.created.size)
+            assertTrue(awaitItem() is PersonEffect.ShowMessage)
+            assertEquals(BackReason.Save, (awaitItem() as PersonEffect.NavigateBack).reason)
+            expectNoEvents()
          }
       }
 

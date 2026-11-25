@@ -1,5 +1,16 @@
 package de.rogallab.mobile.ui.people.list
 
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
+import app.cash.turbine.test
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
@@ -112,6 +123,96 @@ class PeopleLoadFailureTest {
       assertEquals(strings.getString(R.string.error_people_observe), viewModel.stateFlow.value.loadFailure)
       assertFalse(viewModel.stateFlow.value.isLoading)
    }
+
+   @Test
+   fun retry_waitsForCollectorCleanup_andIgnoresFollowingEmissions() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val ada = Person(firstName = "Ada", lastName = "Lovelace", id = "person-1")
+         var collections = 0
+         var active = 0
+         var maxActive = 0
+         var continuedAfterFailure = false
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override fun observeAll(): Flow<Result<List<Person>>> = flow {
+               val attempt = ++collections
+               active++
+               maxActive = maxOf(maxActive, active)
+               try {
+                  if (attempt == 1) {
+                     emit(Result.failure(IllegalStateException("offline")))
+                     continuedAfterFailure = true
+                     emit(Result.success(listOf(ada)))
+                  } else {
+                     emit(Result.success(listOf(ada)))
+                     awaitCancellation()
+                  }
+               } finally {
+                  // Simulate slow upstream cleanup after collector cancellation.
+                  if (attempt == 1) withContext(NonCancellable) { delay(100) }
+                  active--
+               }
+            }
+         }
+         val store = ViewModelStore()
+         val viewModel = createViewModel(repository).also { store.put("people", it) }
+         try {
+            advanceTimeBy(10)
+            runCurrent()
+            assertFalse(viewModel.stateFlow.value.isLoading)
+            assertTrue(viewModel.stateFlow.value.loadFailure != null)
+            assertTrue(viewModel.stateFlow.value.people.isEmpty())
+            assertFalse(continuedAfterFailure)
+            assertEquals(1, active)
+
+            repeat(10) { viewModel.onIntent(PeopleIntent.RetryLoad) }
+            runCurrent()
+            assertTrue(viewModel.stateFlow.value.isLoading)
+            assertEquals(1, collections)
+            advanceTimeBy(99)
+            runCurrent()
+            assertEquals(1, collections)
+
+            advanceUntilIdle()
+            assertEquals(2, collections)
+            assertEquals(1, maxActive)
+            assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+            assertNull(viewModel.stateFlow.value.loadFailure)
+            assertFalse(viewModel.stateFlow.value.isLoading)
+         } finally {
+            store.clear()
+         }
+         advanceUntilIdle()
+         assertEquals(0, active)
+      }
+
+   @Test
+   fun cancelledObservation_propagatesWithoutPublishingALoadFailure() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         for (throwDirectly in listOf(false, true)) {
+            val repository = object : IPersonRepository by FakePersonRepository() {
+               override fun observeAll(): Flow<Result<List<Person>>> = flow {
+                  val cancellation = CancellationException("cancelled observation")
+                  if (throwDirectly) throw cancellation
+                  emit(Result.failure(cancellation))
+               }
+            }
+            val store = ViewModelStore()
+            val viewModel = createViewModel(repository).also { store.put("people", it) }
+            val observer = viewModel.viewModelScope.coroutineContext[
+               kotlinx.coroutines.Job
+            ]!!.children.single()
+            try {
+               viewModel.effects.test {
+                  advanceUntilIdle()
+                  assertTrue(observer.isCancelled)
+                  assertNull(viewModel.stateFlow.value.loadFailure)
+                  expectNoEvents()
+               }
+            } finally {
+               store.clear()
+            }
+         }
+      }
 
    @Test
    fun retryDuringInitialLoading_doesNotStartAnotherObservation() = runTest(mainDispatcherRule.testDispatcher) {

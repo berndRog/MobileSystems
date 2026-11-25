@@ -62,24 +62,27 @@ fun PeopleAdapter(
             peopleEffect.actionLabel,
             peopleEffect.personId,
          )
+
          is PeopleEffect.NavigateTo -> onNavigateTo(peopleEffect.personId)
       }
    }
 
    Scaffold(
       modifier = modifier.fillMaxSize(),
-      TopAppBar(
-         navigationIcon = {
-            IconButton(onClick = {
-               Alog.d(tag, "Exit Application")
-               activity?.finish()
-            }) {
-               Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                  contentDescription = "Exit")
-            }
-         },
-         title = { Text(text = stringResource(R.string.people_list)) }
-      )
+      topBar = {
+         TopAppBar(
+            navigationIcon = {
+               IconButton(onClick = {
+                  Alog.d(tag, "Exit Application")
+                  activity?.finish()
+               }) {
+                  Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                     contentDescription = "Exit")
+               }
+            },
+            title = { Text(text = stringResource(R.string.people_list)) }
+         )
+      },
       floatingActionButton = {
          ExtendedFloatingActionButton(
             containerColor = colorScheme.secondary,
@@ -101,8 +104,7 @@ fun PeopleAdapter(
          ) {
             CircularProgressIndicator(modifier = Modifier.size(64.dp))
          }
-      }
-      else if (loadFailure != null) {
+      } else if (loadFailure != null) {
          Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -113,8 +115,7 @@ fun PeopleAdapter(
                Text(text = stringResource(R.string.action_retry))
             }
          }
-      }
-      else {
+      } else {
          PeopleScreen(
             people = peopleUiState.listItems,
             onDetail = { personId ->

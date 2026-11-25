@@ -115,16 +115,18 @@ fun PersonAdapter(
             topBar = {
                TopAppBar(
                   navigationIcon = {
-                     IconButton(enabled = !personUiState.isSaving && !personUiState.isLoading && !imageBusy, onClick = {
-                        viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
-                     }) {
+                     IconButton(
+                        enabled = !personUiState.isSaving && !personUiState.isLoading && !imageBusy,
+                        onClick = {
+                           viewModel.onIntent(if (loadFailure == null) PersonIntent.Save else PersonIntent.Cancel)
+                        }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                            contentDescription = stringResource(if (loadFailure == null) R.string.action_save else R.string.action_back))
                      }
                   },
                   title = {
-                     Text(text = stringResource( if (personUiState.isNew) R.string.person_create
-                     else R.string.person_detail ))
+                     Text(text = stringResource(if (personUiState.isNew) R.string.person_create
+                     else R.string.person_detail))
                   },
                )
             },

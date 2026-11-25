@@ -12,6 +12,11 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,40 +46,38 @@ class PeopleViewModel(
 
    // Observes the repository and updates the list state.
    private fun observePeople() {
-      // Cancel any existing observation job before starting a new one.
-      _observeJob?.cancel()
+      val previousJob = _observeJob
 
-      // Mark the attempt before launching so repeated retries cannot overlap it.
-      _stateFlow.update { state ->
-         state.copy(isLoading = true, loadFailure = null)
-      }
+      // Mark the attempt before another Retry intent can arrive.
+      _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
 
       _observeJob = viewModelScope.launch {
-
-         // Successful repository emissions keep the list current.
-         // Result.failure ends this collector. Only RetryLoad starts a new observation.
+         // Wait until the previous collector has finished its cleanup.
+         previousJob?.cancelAndJoin()
+         currentCoroutineContext().ensureActive()
          delay(_timing.delayRead)
 
          _repository.observeAll().collect { result ->
+            // Ignore emissions received after this collector was cancelled.
+            currentCoroutineContext().ensureActive()
             result
-               // Update the UI state with the list of people when the repository operation succeeded.
                .onSuccess { people ->
-                  _stateFlow.update { state ->
-                     state.copy(people = people, isLoading = false, loadFailure = null)
+                  _stateFlow.update {
+                     it.copy(people = people, isLoading = false, loadFailure = null)
                   }
                }
-
-               // Update the UI state with an error message when the repository operation failed.
-               .onFailure { throwable ->
-                  val error = _stringProvider.getString(R.string.error_people_observe)
-                  Alog.e(TAG, error, throwable)
-                  _stateFlow.update { state ->
-                     state.copy(isLoading = false, loadFailure = error)
+               .onFailure { error ->
+                  // Cancellation is control flow, not a user-visible error.
+                  if (error is CancellationException) throw error
+                  val message = _stringProvider.getString(R.string.error_people_observe)
+                  Alog.e(TAG, message, error)
+                  _stateFlow.update {
+                     it.copy(isLoading = false, loadFailure = message)
                   }
 
-                  // Stop Collector.
-                  // RetryLoad starts a new oberservation.
-                  _observeJob?.cancel()
+                  // Stop this collector, not a newer job stored in the field.
+                  currentCoroutineContext().cancel()
+                  currentCoroutineContext().ensureActive()
                }
          }
       }
@@ -147,11 +150,14 @@ class PeopleViewModel(
 
          _personUcDelete(person)
             .onSuccess {
+               currentCoroutineContext().ensureActive()
                val message = _stringProvider.getString(
                   R.string.message_person_removed, person.fullName)
                _effectDelegate.emit(PeopleEffect.ShowMessage(message))
             }
             .onFailure { throwable ->
+               if (throwable is CancellationException) throw throwable
+               currentCoroutineContext().ensureActive()
                val error = _stringProvider.getString(R.string.error_person_remove)
                _effectDelegate.emit(PeopleEffect.ShowError(error))
             }

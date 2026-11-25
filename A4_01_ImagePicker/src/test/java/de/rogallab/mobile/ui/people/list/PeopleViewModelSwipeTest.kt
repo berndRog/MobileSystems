@@ -11,6 +11,8 @@ import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
+import androidx.lifecycle.ViewModelStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -124,6 +126,29 @@ class PeopleViewModelSwipeTest {
          assertEquals(listOf(ada), repository.removed)
          assertEquals(listOf(ada.imagePath), imageFileStorage.deletedPaths)
          assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+      }
+
+   @Test
+   fun cancelledRemove_keepsPersonAndImage_withoutErrorEffect() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository(listOf(ada)).apply {
+            removeResult = Result.failure(CancellationException("cancelled delete"))
+         }
+         val store = ViewModelStore()
+         val viewModel = createViewModel(repository).also { store.put("people", it) }
+         try {
+            advanceUntilIdle()
+            viewModel.effects.test {
+               viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+               advanceUntilIdle()
+               assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+               assertTrue(repository.removed.isEmpty())
+               assertTrue(imageFileStorage.deletedPaths.isEmpty())
+               expectNoEvents()
+            }
+         } finally {
+            store.clear()
+         }
       }
 
    @Test
