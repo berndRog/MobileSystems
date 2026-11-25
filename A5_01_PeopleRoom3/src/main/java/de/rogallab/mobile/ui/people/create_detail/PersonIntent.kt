@@ -18,10 +18,3 @@ sealed interface PersonIntent {
    data object Save : PersonIntent
    data object Cancel : PersonIntent
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - RetryLoad startet nach einem Repository-Ladefehler einen neuen Versuch.
- * - Galerie, Kamera und Entfernen erweitern die bisherigen Formular-Intents.
- */

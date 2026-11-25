@@ -1,5 +1,7 @@
 package de.rogallab.mobile.ui.people
 
+import de.rogallab.mobile.ui.people.create_detail.PersonForm
+
 import android.content.Context
 import android.util.Patterns
 import de.rogallab.mobile.R
@@ -60,7 +62,7 @@ class PersonValidator(
    // Validates the complete person in the same order used by the save action.
    // The first validation error is returned; null means that all fields are valid.
    fun validatePerson(
-      person: Person,
+      person: PersonForm,
    ): String? =
       validateFirstName(person.firstName)
          ?: validateLastName(person.lastName)

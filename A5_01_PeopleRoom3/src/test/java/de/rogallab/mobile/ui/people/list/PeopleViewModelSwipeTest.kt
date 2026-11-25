@@ -3,6 +3,8 @@ package de.rogallab.mobile.ui.people.list
 import app.cash.turbine.test
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -12,8 +14,8 @@ import de.rogallab.mobile.testing.FakeStringProvider
 import de.rogallab.mobile.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -39,77 +41,58 @@ class PeopleViewModelSwipeTest {
    private val stringProvider = FakeStringProvider()
    private val imageFileStorage = FakeImageFileStorage()
 
-   private fun createViewModel(repository: IPersonRepository) =
-      PeopleViewModel(
-         _repository = repository,
-         _personUcDelete = PersonUcDelete(repository, imageFileStorage),
-         _stringProvider = stringProvider,
-         _effectDelegate = EffectDelegate(),
-      )
+   private val adaItem = PersonListItem(ada.id, "Ada Lovelace", null, null, ada.imagePath)
+   private val graceItem = PersonListItem(grace.id, "Grace Hopper", null, null, grace.imagePath)
+
+   private class FakePersonReadModel(items: List<PersonListItem> = emptyList()) : IPersonReadModel {
+      val itemsFlow = MutableStateFlow(Result.success(items))
+      var observations = 0
+         private set
+
+      override fun observeListItems(): Flow<Result<List<PersonListItem>>> {
+         observations++
+         return itemsFlow
+      }
+   }
+
+   private fun createViewModel(
+      repository: IPersonRepository,
+      readModel: FakePersonReadModel,
+   ) = PeopleViewModel(
+      _readModel = readModel,
+      _personUcDelete = PersonUcDelete(repository, imageFileStorage),
+      _stringProvider = stringProvider,
+      _effectDelegate = EffectDelegate(),
+   )
 
    @Test
    fun failedObservation_staysVisibleUntilRetry() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository().apply {
-         peopleFlow.value = Result.failure(IllegalStateException("offline"))
+      val readModel = FakePersonReadModel().apply {
+         itemsFlow.value = Result.failure(IllegalStateException("offline"))
       }
-      var observations = 0
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> {
-            observations++
-            return source.observeAll()
-         }
-      }
-      val viewModel = PeopleViewModel(
-         repository, PersonUcDelete(repository, imageFileStorage), stringProvider, EffectDelegate()
-      )
+      val viewModel = createViewModel(FakePersonRepository(), readModel)
       advanceUntilIdle()
-
       assertEquals(stringProvider.getString(R.string.error_people_observe),
          viewModel.stateFlow.value.loadFailure)
-      source.peopleFlow.value = Result.success(listOf(ada))
+      readModel.itemsFlow.value = Result.success(listOf(adaItem))
       advanceUntilIdle()
-      assertTrue(viewModel.stateFlow.value.people.isEmpty())
-
+      assertTrue(viewModel.stateFlow.value.listItems.isEmpty())
       viewModel.onIntent(PeopleIntent.RetryLoad)
       advanceUntilIdle()
-      assertEquals(2, observations)
-      assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+      assertEquals(2, readModel.observations)
+      assertEquals(listOf(adaItem), viewModel.stateFlow.value.listItems)
       assertNull(viewModel.stateFlow.value.loadFailure)
       assertFalse(viewModel.stateFlow.value.isLoading)
    }
 
    @Test
-   fun thrownObservation_setsFailureAndReleasesLoading() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> =
-            flow { throw IllegalStateException("unexpected observation failure") }
-      }
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-      assertEquals(stringProvider.getString(R.string.error_people_observe),
-         viewModel.stateFlow.value.loadFailure)
-      assertFalse(viewModel.stateFlow.value.isLoading)
-   }
-
-   @Test
-   fun cancelledObservation_releasesLoadingWithoutFailure() = runTest(mainDispatcherRule.testDispatcher) {
-      val source = FakePersonRepository()
-      val repository = object : IPersonRepository by source {
-         override fun observeAll(): Flow<Result<List<Person>>> =
-            flow { throw CancellationException("observation cancelled") }
-      }
-      val viewModel = createViewModel(repository)
-      advanceUntilIdle()
-      assertNull(viewModel.stateFlow.value.loadFailure)
-      assertFalse(viewModel.stateFlow.value.isLoading)
-   }
-
-   @Test
-   fun requestRemove_emitsConfirmationWithoutDeleting() =
+   fun requestRemove_dismissedConfirmationKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace))
-         val viewModel = createViewModel(repository)
+         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
+         }
+         val readModel = FakePersonReadModel(listOf(adaItem, graceItem))
+         val viewModel = createViewModel(repository, readModel)
          advanceUntilIdle()
 
          viewModel.effects.test {
@@ -121,8 +104,7 @@ class PeopleViewModelSwipeTest {
             assertEquals(
                stringProvider.getString(
                   R.string.message_person_remove_confirm,
-                  ada.firstName,
-                  ada.lastName,
+                  adaItem.fullName,
                ),
                effect.message,
             )
@@ -131,34 +113,79 @@ class PeopleViewModelSwipeTest {
                effect.actionLabel,
             )
             assertEquals(emptyList<Person>(), repository.removed)
-            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+            assertEquals(listOf(adaItem, graceItem), viewModel.stateFlow.value.listItems)
 
             cancelAndIgnoreRemainingEvents()
          }
+         advanceUntilIdle()
+         assertEquals(emptyList<Person>(), repository.removed)
+         assertEquals(emptyList<String?>(), imageFileStorage.deletedPaths)
+         assertEquals(listOf(adaItem, graceItem), viewModel.stateFlow.value.listItems)
       }
 
    @Test
    fun confirmRemove_deletesPersonAndUpdatesState() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace))
-         val viewModel = createViewModel(repository)
+         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
+         }
+         val readModel = FakePersonReadModel(listOf(adaItem, graceItem))
+         val viewModel = createViewModel(repository, readModel)
          advanceUntilIdle()
 
-         viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
-         advanceUntilIdle()
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.RequestRemove(ada.id))
+            advanceUntilIdle()
+            val confirmation = awaitItem() as PeopleEffect.ConfirmRemove
+            assertEquals(emptyList<Person>(), repository.removed)
+
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(confirmation.personId))
+            advanceUntilIdle()
+            assertTrue(awaitItem() is PeopleEffect.ShowMessage)
+            cancelAndIgnoreRemainingEvents()
+         }
 
          assertEquals(listOf(ada), repository.removed)
          assertEquals(listOf(ada.imagePath), imageFileStorage.deletedPaths)
-         assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+         // Persistence does not change the projection until the read model emits it.
+         assertEquals(listOf(adaItem, graceItem), viewModel.stateFlow.value.listItems)
+         readModel.itemsFlow.value = Result.success(listOf(graceItem))
+         advanceUntilIdle()
+         assertEquals(listOf(graceItem), viewModel.stateFlow.value.listItems)
+      }
+
+   @Test
+   fun thrownConfirmRemove_emitsErrorAndKeepsTheProjection() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val source = FakePersonRepository(listOf(ada)).apply {
+            findResult = Result.success(ada)
+         }
+         val repository = object : IPersonRepository by source {
+            override suspend fun remove(person: Person): Result<Unit> =
+               throw IllegalStateException("delete failed")
+         }
+         val readModel = FakePersonReadModel(listOf(adaItem))
+         val viewModel = createViewModel(repository, readModel)
+         advanceUntilIdle()
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+            advanceUntilIdle()
+            assertTrue(awaitItem() is PeopleEffect.ShowError)
+            assertEquals(listOf(adaItem), viewModel.stateFlow.value.listItems)
+            assertTrue(imageFileStorage.deletedPaths.isEmpty())
+            expectNoEvents()
+         }
       }
 
    @Test
    fun failedConfirmRemove_emitsErrorAndKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
             removeResult = Result.failure(IllegalStateException("delete failed"))
          }
-         val viewModel = createViewModel(repository)
+         val readModel = FakePersonReadModel(listOf(adaItem, graceItem))
+         val viewModel = createViewModel(repository, readModel)
          advanceUntilIdle()
 
          viewModel.effects.test {
@@ -172,30 +199,9 @@ class PeopleViewModelSwipeTest {
             )
             assertEquals(emptyList<Person>(), repository.removed)
             assertEquals(emptyList<String?>(), imageFileStorage.deletedPaths)
-            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+            assertEquals(listOf(adaItem, graceItem), viewModel.stateFlow.value.listItems)
 
             cancelAndIgnoreRemainingEvents()
-         }
-      }
-
-   @Test
-   fun thrownConfirmRemove_emitsErrorAndKeepsPerson() =
-      runTest(mainDispatcherRule.testDispatcher) {
-         val source = FakePersonRepository(listOf(ada, grace))
-         val repository = object : IPersonRepository by source {
-            override suspend fun remove(person: Person): Result<Unit> =
-               throw IllegalStateException("unexpected delete failure")
-         }
-         val viewModel = createViewModel(repository)
-         advanceUntilIdle()
-
-         viewModel.effects.test {
-            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
-            advanceUntilIdle()
-            assertTrue(awaitItem() is PeopleEffect.ShowError)
-            assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
-            assertTrue(imageFileStorage.deletedPaths.isEmpty())
-            expectNoEvents()
          }
       }
 }

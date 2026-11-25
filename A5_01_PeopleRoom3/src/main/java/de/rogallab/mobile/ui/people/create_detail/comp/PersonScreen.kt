@@ -10,7 +10,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,34 +30,27 @@ import de.rogallab.mobile.shared.ui.images.ImageSelection
 import de.rogallab.mobile.ui.people.PersonValidator
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
    isNew: Boolean,
    isLoading: Boolean,
    isSaving: Boolean,
-
+   isEditingImages: Boolean = false,
    firstName: String = "",
    onFirstNameChange: (String) -> Unit = {},
-
    lastName: String = "",
    onLastNameChange: (String) -> Unit = {},
-
    email: String? = "",
    onEmailChange: (String) -> Unit = {},
-
    phone: String? = "",
    onPhoneChange: (String) -> Unit = {},
-
    imagePath: String? = null,
    imageActionsEnabled: Boolean = true,
    onSelectPhoto: () -> Unit = {},
    onTakePhoto: () -> Unit = {},
    onRemovePhoto: () -> Unit = {},
-
    onSave: () -> Unit = {},
    onCancel: () -> Unit = {},
-
    modifier: Modifier = Modifier,
    validator: PersonValidator = koinInject(),
 ) {
@@ -65,14 +58,10 @@ fun PersonScreen(
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(tag, "Composition #${nComp.intValue++}") }
 
-   // Saving is enabled only when the mandatory name fields contain values.
    val enableSave = firstName.isNotEmpty() && lastName.isNotEmpty()
 
-   // The form itself remains stateless. All changes are sent back through
-   // callback functions provided by PersonAdapter.
-   Column(
-      modifier = modifier
-   ) {
+   Column(modifier = modifier) {
+      if (isEditingImages) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
       InputValueString(
          value = firstName,
          onValueChange = onFirstNameChange,
@@ -82,7 +71,6 @@ fun PersonScreen(
          keyboardType = KeyboardType.Text,
          imeAction = ImeAction.Next,
       )
-
       InputValueString(
          value = lastName,
          onValueChange = onLastNameChange,
@@ -92,7 +80,6 @@ fun PersonScreen(
          keyboardType = KeyboardType.Text,
          imeAction = ImeAction.Next,
       )
-
       InputValueString(
          value = email.orEmpty(),
          onValueChange = onEmailChange,
@@ -102,7 +89,6 @@ fun PersonScreen(
          keyboardType = KeyboardType.Email,
          imeAction = ImeAction.Next,
       )
-
       InputValueString(
          value = phone.orEmpty(),
          onValueChange = onPhoneChange,
@@ -113,20 +99,16 @@ fun PersonScreen(
          imeAction = ImeAction.Done,
       )
 
-      // ImageSelection only renders the current image and the available
-      // image actions. Gallery and camera handling are provided by the
-      // PersonAdapter through the callback functions.
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         imageActionsEnabled = imageActionsEnabled,
+         imageActionsEnabled = imageActionsEnabled && !isEditingImages && !isSaving,
          height = 200.dp,
          onSelectPhoto = onSelectPhoto,
          onTakePhoto = onTakePhoto,
-         onRemovePhoto = onRemovePhoto
+         onRemovePhoto = onRemovePhoto,
       )
 
-      // Save and Cancel are also delegated to the caller.
       Row(
          modifier = Modifier.fillMaxWidth(),
          horizontalArrangement = Arrangement.spacedBy(
@@ -134,84 +116,16 @@ fun PersonScreen(
             Alignment.CenterHorizontally,
          ),
       ) {
-         OutlinedButton(
-            onClick = onCancel,
-            enabled = !isSaving,
-         ) {
+         OutlinedButton(onClick = onCancel, enabled = !isSaving && !isEditingImages) {
             Text(text = stringResource(R.string.action_cancel))
          }
-
          Button(
             onClick = onSave,
-            enabled = enableSave && !isLoading && !isSaving,
+            enabled = enableSave && !isLoading && !isSaving && !isEditingImages,
          ) {
             Text(text = stringResource(R.string.action_save))
          }
       }
+
    }
 }
-/*
- * Didaktik und Lernziele
- *
- * - PersonScreen bleibt auch nach der Erweiterung um die Bildbearbeitung ein
- *   zustandsloses Composable. Der Screen erhält ausschließlich Werte und
- *   Callback-Funktionen und kennt weder ViewModel noch Repository,
- *   Navigation oder SnackbarController.
- *
- * - A5_01 behält die Bildbearbeitung aus A4_01 bei. Room 3 ersetzt die
- *   Persistenz hinter dem Repository; die Screen-Callbacks bleiben gleich.
- *   ImageSelection übernimmt weiterhin
- *   die Darstellung des aktuellen Bildes sowie die Schaltflächen für
- *   Galerie, Kamera und Entfernen.
- *
- * - Die technische Anbindung an Android ist bewusst nicht Bestandteil von
- *   PersonScreen. GalleryPickerHandlerSingle und CameraPickerHandler werden im
- *   PersonAdapter verwendet. Der Screen erhält lediglich die delegierten
- *   Funktionen onSelectPhoto und onTakePhoto.
- *
- * - Damit bleiben die Aufgaben klar getrennt:
- *
- *      PersonScreen
- *          Darstellung und Benutzerinteraktion
- *
- *      PersonAdapter
- *          Verbindung zum ViewModel
- *          Verwendung der beiden Picker-Handler
- *
- *      GalleryPickerHandlerSingle
- *          Auswahl eines vorhandenen Bildes
- *          Rückgabe einer Content-Uri
- *
- *      CameraPickerHandler
- *          Aufnahme eines neuen Fotos
- *          Verwaltung der dafür benötigten Kamera-Datei
- *
- * - Nach einer Galerieauswahl erhält das ViewModel zunächst eine Uri.
- *   Dort wird das ausgewählte Bild über IImageFileStorage in den privaten
- *   App-Speicher kopiert. Erst der dadurch entstandene interne Dateipfad
- *   wird anschließend über ImageEdit in die laufende Edit-Session
- *   übernommen.
- *
- * - Bei einer Kameraaufnahme wird die Zieldatei bereits vor dem Start der
- *   Kamera vorbereitet. Nach einer erfolgreichen Aufnahme liefert der
- *   CameraPickerHandler den bestätigten internen Dateipfad zurück.
- *
- * - Für PersonScreen spielt dieser technische Unterschied keine Rolle.
- *   Galerie und Kamera erscheinen hier lediglich als zwei Callback-Funktionen.
- *   Dadurch bleibt die UI unabhängig von ActivityResultContracts,
- *   Content-Uris und Dateiverwaltung.
- *
- * - Auch das Entfernen eines Bildes führt nicht direkt zu einer Dateioperation.
- *   PersonScreen meldet lediglich onRemovePhoto. Die weitere Verarbeitung
- *   erfolgt über PersonAdapter, PersonViewModel und ImageEdit.
- *
- * Lernziele:
- *
- * - Stateful Adapter und stateless Screen klar voneinander trennen.
- * - Android-spezifische Activity-Result-Logik aus dem Screen heraushalten.
- * - GalleryPickerHandlerSingle und CameraPickerHandler für unterschiedliche
- *   technische Abläufe verwenden.
- * - UI-Aktionen über Callback-Funktionen an den Adapter delegieren.
- * - Bildanzeige und technische Bildauswahl als getrennte Aufgaben verstehen.
- * - Die bestehende MVI-/UDF-Struktur auch für Bildoperationen beibehalten.
- */

@@ -1,15 +1,16 @@
 package de.rogallab.mobile.domain.usecases
 
 import de.rogallab.mobile.domain.IPersonRepository
-import org.junit.Assert.assertSame
-import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
-import de.rogallab.mobile.shared.domain.utilities.Alog
+import kotlin.coroutines.cancellation.CancellationException
+import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -17,7 +18,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.fail
 
 class PersonUseCasesTest {
 
@@ -92,42 +92,13 @@ class PersonUseCasesTest {
    }
 
    @Test
-   fun save_imageCleanupThrows_keepsPersistedSuccess() = runTest {
-      val repository = FakePersonRepository()
-      val imageEdit = object : IImageEdit by FakeImageEdit() {
-         override suspend fun commit() {
-            throw IllegalStateException("cleanup failed")
-         }
-      }
-
-      assertTrue(PersonUcCreate(repository, imageEdit)(person).isSuccess)
-      assertTrue(PersonUcUpdate(repository, imageEdit)(person).isSuccess)
-      assertEquals(listOf(person), repository.created)
-      assertEquals(listOf(person), repository.updated)
-   }
-
-   @Test
-   fun save_imageCommitCancellation_propagates() = runTest {
-      val imageEdit = object : IImageEdit by FakeImageEdit() {
-         override suspend fun commit() {
-            throw CancellationException("commit cancelled")
-         }
-      }
-
-      try {
-         PersonUcCreate(FakePersonRepository(), imageEdit)(person)
-         fail("Expected cancellation")
-      } catch (_: CancellationException) {
-         // Cancellation must never be reported as a normal save result.
-      }
-   }
-
-   @Test
    fun delete_success_removesPersonAndImage() = runTest {
-      val repository = FakePersonRepository(listOf(person))
+      val repository = FakePersonRepository(listOf(person)).apply {
+         findResult = Result.success(person)
+      }
       val imageFileStorage = FakeImageFileStorage()
 
-      val result = PersonUcDelete(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person.id)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.removed)
@@ -137,11 +108,12 @@ class PersonUseCasesTest {
    @Test
    fun delete_repositoryFailure_keepsImage() = runTest {
       val repository = FakePersonRepository(listOf(person)).apply {
+         findResult = Result.success(person)
          removeResult = Result.failure(IllegalStateException("delete failed"))
       }
       val imageFileStorage = FakeImageFileStorage()
 
-      val result = PersonUcDelete(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person.id)
 
       assertTrue(result.isFailure)
       assertEquals(emptyList<Person>(), repository.removed)
@@ -150,43 +122,18 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_imageCleanupFailure_keepsSuccessfulDeleteResult() = runTest {
-      val repository = FakePersonRepository(listOf(person))
+      val repository = FakePersonRepository(listOf(person)).apply {
+         findResult = Result.success(person)
+      }
       val imageFileStorage = FakeImageFileStorage().apply {
          deleteResult = Result.failure(IllegalStateException("cleanup failed"))
       }
 
-      val result = PersonUcDelete(repository, imageFileStorage)(person)
+      val result = PersonUcDelete(repository, imageFileStorage)(person.id)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(person), repository.removed)
       assertFalse(imageFileStorage.deletedPaths.isEmpty())
-   }
-
-   @Test
-   fun delete_imageCleanupThrows_keepsSuccessfulDeleteResult() = runTest {
-      val repository = FakePersonRepository(listOf(person))
-      val storage = object : IImageFileStorage by FakeImageFileStorage() {
-         override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
-            throw IllegalStateException("cleanup threw")
-      }
-
-      assertTrue(PersonUcDelete(repository, storage)(person).isSuccess)
-      assertEquals(listOf(person), repository.removed)
-   }
-
-   @Test
-   fun delete_imageCleanupCancellation_propagates() = runTest {
-      val storage = object : IImageFileStorage by FakeImageFileStorage() {
-         override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
-            Result.failure(CancellationException("cleanup cancelled"))
-      }
-
-      try {
-         PersonUcDelete(FakePersonRepository(), storage)(person)
-         fail("Expected cancellation")
-      } catch (_: CancellationException) {
-         // A cancelled cleanup cannot be treated as a completed deletion.
-      }
    }
 
    @Test
@@ -239,7 +186,7 @@ class PersonUseCasesTest {
    @Test
    fun imageCleanupExceptions_keepSuccessfulPersistence() = runTest {
       for (operation in listOf("delete")) {
-         val repository = FakePersonRepository()
+         val repository = FakePersonRepository().apply { findResult = Result.success(person) }
          val failure = IllegalStateException("cleanup threw")
          val storage = object : IImageFileStorage by FakeImageFileStorage() {
             override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
@@ -254,7 +201,7 @@ class PersonUseCasesTest {
    fun imageCleanupCancellation_propagatesWhetherThrownOrReturned() = runTest {
       for (operation in listOf("delete")) {
          for (throwDirectly in listOf(false, true)) {
-            val repository = FakePersonRepository()
+            val repository = FakePersonRepository().apply { findResult = Result.success(person) }
             val cancellation = CancellationException("cleanup cancelled")
             val storage = object : IImageFileStorage by FakeImageFileStorage() {
                override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> {
@@ -271,7 +218,7 @@ class PersonUseCasesTest {
    }
 
    @Test
-   fun imageCommitExceptions_keepPersistedSuccess() = runTest {
+   fun imageCommitExceptions_becomeFailuresAfterPersistence() = runTest {
       for (operation in listOf("create", "update")) {
          val repository = FakePersonRepository()
          val failure = IllegalStateException("commit threw")
@@ -279,7 +226,7 @@ class PersonUseCasesTest {
             override suspend fun commit() = throw failure
          }
          val result = invokeFor(operation, repository, FakeImageFileStorage(), imageEdit)
-         assertTrue(result.isSuccess)
+         assertSame(failure, result.exceptionOrNull())
          assertWriteRecorded(operation, repository)
       }
    }
@@ -299,11 +246,104 @@ class PersonUseCasesTest {
       }
    }
 
+   @Test
+   fun delete_missingPerson_doesNotRemoveOrCleanImage() = runTest {
+      val repository = FakePersonRepository()
+      val storage = FakeImageFileStorage()
+      var removals = 0
+      val recording = object : IPersonRepository by repository {
+         override suspend fun remove(person: Person): Result<Unit> {
+            removals++
+            return repository.remove(person)
+         }
+      }
+
+      val result = PersonUcDelete(recording, storage)("missing")
+
+      assertTrue(result.exceptionOrNull() is NoSuchElementException)
+      assertEquals(0, removals)
+      assertTrue(storage.deletedPaths.isEmpty())
+   }
+
+   @Test
+   fun delete_lookupFailures_preserveCauseWithoutDeleting() = runTest {
+      for (throwDirectly in listOf(false, true)) {
+         val failure = IllegalStateException("lookup failed")
+         val storage = FakeImageFileStorage()
+         var removals = 0
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override suspend fun findById(id: String): Result<Person?> {
+               if (throwDirectly) throw failure
+               return Result.failure(failure)
+            }
+            override suspend fun remove(person: Person): Result<Unit> {
+               removals++
+               return Result.success(Unit)
+            }
+         }
+
+         assertSame(failure, PersonUcDelete(repository, storage)(person.id).exceptionOrNull())
+         assertEquals(0, removals)
+         assertTrue(storage.deletedPaths.isEmpty())
+      }
+   }
+
+   @Test
+   fun delete_lookupCancellation_propagatesWithoutDeleting() = runTest {
+      for (throwDirectly in listOf(false, true)) {
+         val cancellation = CancellationException("lookup cancelled")
+         val storage = FakeImageFileStorage()
+         var removals = 0
+         val repository = object : IPersonRepository by FakePersonRepository() {
+            override suspend fun findById(id: String): Result<Person?> {
+               if (throwDirectly) throw cancellation
+               return Result.failure(cancellation)
+            }
+            override suspend fun remove(person: Person): Result<Unit> {
+               removals++
+               return Result.success(Unit)
+            }
+         }
+
+         assertCancellation(cancellation) { PersonUcDelete(repository, storage)(person.id) }
+         assertEquals(0, removals)
+         assertTrue(storage.deletedPaths.isEmpty())
+      }
+   }
+
+   @Test
+   fun delete_usesReloadedEntityAndItsCurrentImage() = runTest {
+      val current = person.copy(firstName = "Updated", imagePath = "/images/current.jpg")
+      val source = FakePersonRepository().apply { findResult = Result.success(current) }
+      val events = mutableListOf<String>()
+      val repository = object : IPersonRepository by source {
+         override suspend fun findById(id: String): Result<Person?> {
+            events += "find:$id"
+            return source.findById(id)
+         }
+         override suspend fun remove(person: Person): Result<Unit> {
+            events += "remove:${person.id}"
+            return source.remove(person)
+         }
+      }
+      val storage = object : IImageFileStorage by FakeImageFileStorage() {
+         override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> {
+            events += "image:$imagePath"
+            return Result.success(Unit)
+         }
+      }
+
+      assertTrue(PersonUcDelete(repository, storage)(person.id).isSuccess)
+      assertEquals(listOf(current), source.removed)
+      assertEquals(listOf("find:p1", "remove:p1", "image:/images/current.jpg"), events)
+   }
+
    private val operations = listOf("create", "update", "delete")
 
    private fun repositoryWithWrite(
       write: suspend () -> Result<Unit>,
    ): IPersonRepository = object : IPersonRepository by FakePersonRepository() {
+      override suspend fun findById(id: String): Result<Person?> = Result.success(person)
       override suspend fun create(person: Person): Result<Unit> = write()
       override suspend fun update(person: Person): Result<Unit> = write()
       override suspend fun remove(person: Person): Result<Unit> = write()
@@ -317,7 +357,7 @@ class PersonUseCasesTest {
    ): Result<Unit> = when (operation) {
       "create" -> PersonUcCreate(repository, imageEdit)(person)
       "update" -> PersonUcUpdate(repository, imageEdit)(person)
-      "delete" -> PersonUcDelete(repository, storage)(person)
+      "delete" -> PersonUcDelete(repository, storage)(person.id)
       else -> error("Unknown operation: $operation")
    }
 
@@ -343,20 +383,3 @@ class PersonUseCasesTest {
       }
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - Die Tests prüfen die Use Cases unabhängig von ViewModel, Compose, Koin und
- *   der konkreten Room-Datenbank.
- *
- * - Erfolgs- und Fehlerpfade belegen die entscheidende Reihenfolge: Eine
- *   Bild-Session wird nur nach erfolgreichem Create oder Update committed und
- *   eine Bilddatei nur nach erfolgreichem Delete entfernt.
- *
- * Lernziele:
- *
- * - Zusammengesetzte Operationen mit kleinen Fakes isoliert testen.
- * - Room-unabhängige Anwendungslogik ohne Android-UI überprüfen.
- * - Reihenfolgen und Seiteneffekte durch beobachtbare Aufrufe absichern.
- */

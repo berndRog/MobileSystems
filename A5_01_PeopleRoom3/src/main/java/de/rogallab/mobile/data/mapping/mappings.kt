@@ -2,15 +2,16 @@ package de.rogallab.mobile.data.mapping
 
 import de.rogallab.mobile.data.local.dtos.PersonDto
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.readmodels.PersonListItem
 
 fun PersonDto.toPerson(): Person =
    Person(
+      id = id,
       firstName = firstName,
       lastName = lastName,
       email = email,
       phone = phone,
       imagePath = imagePath,
-      id = id,
    )
 
 fun Person.toPersonDto(): PersonDto =
@@ -23,9 +24,11 @@ fun Person.toPersonDto(): PersonDto =
       imagePath = imagePath,
    )
 
-/*
- * Didaktik und Lernziele
- *
- * - Die Mapping-Funktionen verhindern, dass Room-Typen die Data-Schicht
- *   verlassen. ViewModels und UI arbeiten weiterhin nur mit Person.
- */
+fun PersonDto.toPersonListItem(): PersonListItem =
+   PersonListItem(
+      id = id,
+      fullName = "$firstName $lastName",
+      email = email,
+      phone = phone,
+      imagePath = imagePath,
+   )

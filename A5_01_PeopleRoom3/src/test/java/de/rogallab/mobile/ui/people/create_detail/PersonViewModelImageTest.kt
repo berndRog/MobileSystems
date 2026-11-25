@@ -12,6 +12,9 @@ import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.ui.people.toPersonForm
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakeImageEdit
@@ -60,8 +63,7 @@ class PersonViewModelImageTest {
          _repository = source,
          _stringProvider = stringProvider,
          _validator = validator,
-         _imageFileStorage = imageStorage,
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, imageStorage, ImageSelectionMode.REPLACE, 1),
          _personUcCreate = PersonUcCreate(source, imageEdit),
          _personUcUpdate = PersonUcUpdate(source, imageEdit),
          _effectDelegate = EffectDelegate(),
@@ -81,7 +83,7 @@ class PersonViewModelImageTest {
       viewModel.onIntent(PersonIntent.RetryLoad)
       advanceUntilIdle()
       assertNull(viewModel.stateFlow.value.loadFailure)
-      assertEquals(person, viewModel.stateFlow.value.person)
+      assertEquals(person.toPersonForm(), viewModel.stateFlow.value.form)
    }
 
    @Test
@@ -102,18 +104,18 @@ class PersonViewModelImageTest {
       viewModel.onIntent(PersonIntent.RetryLoad)
       advanceUntilIdle()
       assertNull(viewModel.stateFlow.value.loadFailure)
-      assertEquals("Ada", viewModel.stateFlow.value.person.firstName)
+      assertEquals("Ada", viewModel.stateFlow.value.form.firstName)
    }
 
    @Test
-   fun cancelledLoad_releasesLoadingWithoutFailure() = runTest(mainDispatcherRule.testDispatcher) {
+   fun cancelledLoad_doesNotPublishFailure() = runTest(mainDispatcherRule.testDispatcher) {
       val source = object : IPersonRepository by repository {
          override suspend fun findById(id: String): Result<Person?> =
             throw CancellationException("load cancelled")
       }
       val viewModel = createViewModel("p1", source)
       advanceUntilIdle()
-      assertFalse(viewModel.stateFlow.value.isLoading)
+      assertTrue(viewModel.stateFlow.value.isLoading)
       assertNull(viewModel.stateFlow.value.loadFailure)
    }
 
@@ -136,7 +138,7 @@ class PersonViewModelImageTest {
       advanceUntilIdle()
 
       assertEquals(listOf(sourceUri), storage.copiedUris)
-      assertEquals("/images/copied.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/copied.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -149,7 +151,7 @@ class PersonViewModelImageTest {
          viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
          advanceUntilIdle()
          assertEquals(listOf(sourceUri), storage.copiedUris)
-         assertNull(viewModel.stateFlow.value.person.imagePath)
+         assertNull(viewModel.stateFlow.value.form.imagePath)
          assertTrue(awaitItem() is PersonEffect.ShowError)
          cancelAndIgnoreRemainingEvents()
       }
@@ -166,7 +168,7 @@ class PersonViewModelImageTest {
       viewModel.effects.test {
          viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/image/1")))
          advanceUntilIdle()
-         assertNull(viewModel.stateFlow.value.person.imagePath)
+         assertNull(viewModel.stateFlow.value.form.imagePath)
          assertTrue(awaitItem() is PersonEffect.ShowError)
          expectNoEvents()
       }
@@ -177,7 +179,7 @@ class PersonViewModelImageTest {
       val viewModel = createViewModel()
       viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/new.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -188,7 +190,7 @@ class PersonViewModelImageTest {
       viewModel.onIntent(PersonIntent.CameraImageTaken("/images/two.jpg"))
       advanceUntilIdle()
       assertTrue("/images/one.jpg" in storage.deletedPaths)
-      assertEquals("/images/two.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/two.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -235,7 +237,7 @@ class PersonViewModelImageTest {
       advanceUntilIdle()
       assertFalse("/images/original.jpg" in storage.deletedPaths)
       assertFalse("/images/new.jpg" in storage.deletedPaths)
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/new.jpg", viewModel.stateFlow.value.form.imagePath)
       viewModel.onIntent(PersonIntent.Cancel)
       advanceUntilIdle()
       assertTrue("/images/new.jpg" in storage.deletedPaths)

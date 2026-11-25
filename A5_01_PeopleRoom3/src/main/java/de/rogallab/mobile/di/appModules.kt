@@ -17,6 +17,10 @@ import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.data.readmodels.PersonReadModel
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
@@ -60,6 +64,7 @@ fun appModule(
       )
       .setDriver(BundledSQLiteDriver())
       .setQueryCoroutineContext(dispatcherIo)
+      .addCallback(get<SeedDatabase>())
       .build()
    }
 
@@ -78,11 +83,18 @@ fun appModule(
    Alog.i(tag, "single    -> SeedDatabase")
    single<SeedDatabase> {
       SeedDatabase(
-         _personDao = get<IPersonDao>(),
-         _database = get<AppDatabase>(),
          _seed = get<Seed>(),
       )
    }
+
+   single<IPersonReadModel> {
+      PersonReadModel(
+         _personDao = get(),
+         _dispatcherIo = get(named("dispatcherIo")),
+      )
+   }
+
+   factory { PersonUcDelete(get(), get()) }
 
    Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
    single<IPersonRepository> {
@@ -110,8 +122,12 @@ fun appModule(
          _repository = repository,
          _stringProvider = get(),
          _validator = get<PersonValidator>(),
-         _imageFileStorage = get<IImageFileStorage>(),
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(
+            session = imageEdit,
+            storage = get<IImageFileStorage>(),
+            mode = ImageSelectionMode.REPLACE,
+            maxImages = 1,
+         ),
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _timing = get(),
@@ -122,14 +138,9 @@ fun appModule(
 
    Alog.i(tag, "viewModel -> PeopleViewModel")
    viewModel {
-      val repository = get<IPersonRepository>()
-
       PeopleViewModel(
-         _repository = repository,
-         _personUcDelete = PersonUcDelete(
-            _repository = repository,
-            _imageFileStorage = get<IImageFileStorage>(),
-         ),
+         _readModel = get<IPersonReadModel>(),
+         _personUcDelete = get<PersonUcDelete>(),
          _stringProvider = get(),
          _timing = get(),
          _effectDelegate =
@@ -137,34 +148,3 @@ fun appModule(
       )
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - A5_01_PeopleRoom3 übernimmt die aktuelle UI- und ViewModel-Architektur aus
- *   A4_01. Der neue Lernschritt ist ausschließlich die lokale Room-3-Schicht.
- *
- * - AppDatabase, IPersonDao, PersonDto und PersonRepository gehören deshalb zum
- *   A5_01-Modul. Ein databaseModule aus Shared wird nicht verwendet.
- *
- * - Die Datenbankkonfiguration entspricht weiterhin dem Kursstandard:
- *   BundledSQLiteDriver und ein eigener IO-Kontext für Room-Abfragen.
- *
- * - Allgemeine Dienste wie IImageFileStorage, IImageEdit und IStringProvider
- *   bleiben Shared-Infrastruktur und werden weiterhin per DI bezogen.
- *
- * - PersonUcCreate und PersonUcUpdate teilen sich bewusst dieselbe
- *   IImageEdit-Instanz mit PersonViewModel. PersonUcDelete kombiniert das
- *   Room-Repository mit der Bilddateiverwaltung.
- *
- * - PeopleViewModel behält die einfache Delete-Bestätigung aus A4_01. A5_01
- *   übernimmt bewusst nicht den Undo-Zustand aus A4_02.
- *
- * Lernziele:
- *
- * - Room 3 innerhalb einer Data-Schicht strukturieren.
- * - DAO/DTO und Domain-Modell über Repository und Mapping entkoppeln.
- * - Bestehende ViewModels gegen eine neue Persistenzimplementierung weiterverwenden.
- * - Zustandsbehaftete Abhängigkeiten im Composition Root bewusst teilen.
- * - Use Cases nur für zusammengesetzte Anwendungsoperationen bereitstellen.
- */

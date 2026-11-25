@@ -1,34 +1,16 @@
 package de.rogallab.mobile.ui.people.list
 
 import androidx.compose.runtime.Immutable
-import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.readmodels.PersonListItem
 
 @Immutable
 data class PeopleUiState(
    val isLoading: Boolean = false,
-   val people: List<Person> = emptyList(),
+   val listItems: List<PersonListItem> = emptyList(),
    val loadFailure: String? = null,
 )
 
 /*
- * Didaktik und Lernziele
- *
- * - PeopleUiState enthält die beobachtete Liste, den Ladestatus und einen
- *   dauerhaften Ladefehler bis zum nächsten RetryLoad.
- *
- * - Swipe-Gesten benötigen in A5_01 keinen zusätzlichen Screen-State.
- *   Swipe-to-Detail erzeugt Navigation; Swipe-to-Delete fordert zunächst eine
- *   Bestätigung über einen einmaligen Effect an.
- *
- * - Erst nach der Bestätigung ändert das Room-Repository die Daten. Die
- *   aktualisierte Liste kommt anschließend über observeAll() in den State.
- *
- * - Die offene Bestätigungs-Snackbar bleibt ein einmaliger Effect. Ein
- *   zusätzlicher Undo-State gehört nicht zu diesem Room-3-Lernschritt.
- *
- * Lernziele:
- *
- * - Gesten als Events verstehen, ohne dafür unnötigen State einzuführen.
- * - Bestätigungs-Snackbar und dauerhaften UI-State voneinander unterscheiden.
- * - Persistierten Repository-State weiterhin als Quelle der Listenanzeige nutzen.
+ * The list displays read-model projections, not editable domain entities.
+ * Retry restarts observation; deletion still requires a confirmation effect.
  */

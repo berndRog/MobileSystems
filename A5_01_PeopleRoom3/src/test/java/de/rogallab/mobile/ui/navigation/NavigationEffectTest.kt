@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.domain.readmodels.PersonListItem
+import kotlinx.coroutines.flow.flowOf
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -29,7 +32,9 @@ class NavigationEffectTest {
       val repository = FakePersonRepository()
 
       return PeopleViewModel(
-         _repository = repository,
+         _readModel = object : IPersonReadModel {
+            override fun observeListItems() = flowOf(Result.success(emptyList<PersonListItem>()))
+         },
          _personUcDelete = PersonUcDelete(
             repository,
             FakeImageFileStorage(),

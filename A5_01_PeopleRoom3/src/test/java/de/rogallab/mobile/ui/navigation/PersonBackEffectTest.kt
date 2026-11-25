@@ -8,6 +8,8 @@ import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
@@ -51,8 +53,7 @@ class PersonBackEffectTest {
          _repository = repository,
          _stringProvider = stringProvider,
          _validator = validator,
-         _imageFileStorage = imageFileStorage,
-         _imageEdit = imageEdit,
+         _images = ImageEditDelegate(imageEdit, imageFileStorage, ImageSelectionMode.REPLACE, 1),
          _personUcCreate = PersonUcCreate(repository, imageEdit),
          _personUcUpdate = PersonUcUpdate(repository, imageEdit),
          _effectDelegate = EffectDelegate(),

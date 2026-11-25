@@ -1,48 +1,36 @@
 package de.rogallab.mobile.data.local
 
-import de.rogallab.mobile.data.IPersonDao
-import de.rogallab.mobile.data.local.database.AppDatabase
-import de.rogallab.mobile.data.mapping.toPersonDto
-import de.rogallab.mobile.shared.domain.utilities.Alog
-import kotlin.coroutines.cancellation.CancellationException
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
+// Room commits the schema, seed data and database version in one creation transaction.
 class SeedDatabase(
-   private val _personDao: IPersonDao,
-   private val _database: AppDatabase,
-   private val _seed: Seed,
-) {
-
-   suspend fun seedPerson(): Boolean {
-      try {
-         if (_personDao.count() > 0) {
-            Alog.d(TAG, "seed: database already seeded")
-            return false
+   private val _seed: Seed
+) : RoomDatabase.Callback() {
+   override suspend fun onCreate(connection: SQLiteConnection) {
+      // DAOs would recursively open this database. Use Room's callback connection instead.
+      connection.prepare(
+         "INSERT INTO Person (id, firstName, lastName, email, phone, imagePath) VALUES (?, ?, ?, ?, ?, ?)"
+      ).use { statement ->
+         _seed.createPersonDtos().forEach { person ->
+            coroutineContext.ensureActive()
+            statement.bindText(1, person.id)
+            statement.bindText(2, person.firstName)
+            statement.bindText(3, person.lastName)
+            statement.bindNullableText(4, person.email)
+            statement.bindNullableText(5, person.phone)
+            statement.bindNullableText(6, person.imagePath)
+            statement.step()
+            statement.reset()
          }
-
-         _database.clearAllTables()
-         _seed.createPeopleList()
-         _personDao.insert(
-            _seed.people.map { person -> person.toPersonDto() }
-         )
-         return true
       }
-      catch (exception: CancellationException) {
-         throw exception
-      }
-      catch (throwable: Throwable) {
-         Alog.e(TAG, "seed: ${throwable.message}")
-         return false
-      }
+      coroutineContext.ensureActive()
    }
 
-   companion object {
-      private const val TAG = "<-SeedDatabase"
+   private fun SQLiteStatement.bindNullableText(index: Int, value: String?) {
+      if (value == null) bindNull(index) else bindText(index, value)
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - SeedDatabase verwendet unmittelbar das lokale IPersonDao von A5_01.
- * - Die Beispieldaten werden nur in eine leere Datenbank geschrieben.
- */

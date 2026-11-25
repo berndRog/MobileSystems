@@ -6,16 +6,15 @@ import de.rogallab.mobile.data.mapping.toPerson
 import de.rogallab.mobile.data.mapping.toPersonDto
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.shared.data.local.checkDeleted
 import de.rogallab.mobile.shared.data.local.checkInserted
 import de.rogallab.mobile.shared.data.local.checkUpdated
-import de.rogallab.mobile.shared.domain.utilities.Alog
+import de.rogallab.mobile.shared.data.local.checkDeleted
 import de.rogallab.mobile.shared.domain.utilities.resultOf
+import de.rogallab.mobile.shared.domain.utilities.Alog
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -23,64 +22,26 @@ class PersonRepository(
    private val _personDao: IPersonDao,
    private val _dispatcherIo: CoroutineDispatcher,
 ) : IPersonRepository {
-
-   private var _counterObserveAll = 0
-   private var _counterFindById = 0
-
-   override fun observeAll(): Flow<Result<List<Person>>> {
-      //_counterObserveAll++
-      //Alog.d(TAG,"observeAll(), counter=$_counterObserveAll")
-
-      return _personDao.observeAll()
-         .distinctUntilChanged()
-         .map { dtos: List<PersonDto> ->
-      //      if (_counterObserveAll == 1)
-      //         throw RuntimeException("Test exception in observeAll()")
-            Result.success(dtos.map(PersonDto::toPerson))
-         }
+   override fun observeAll(): Flow<Result<List<Person>>> =
+      _personDao.observeAll()
+         .map { dtos -> Result.success(dtos.map(PersonDto::toPerson)) }
          .flowOn(_dispatcherIo)
          .catch { throwable ->
             if (throwable is CancellationException) throw throwable
             emit(Result.failure(throwable))
          }
-   }
 
    override suspend fun findById(id: String): Result<Person?> =
       resultOf(
-         block = {
-              _personDao.findById(id)?.toPerson()
-         }
+         block = { _personDao.findById(id)?.toPerson() }
       )
 
-/*
-   override suspend fun findById(id: String): Result<Person?> {
-//      _counterFindById++
-//      Alog.d(TAG,"findById(), counter=$_counterFindById")
-
-      return try {
-//         if(_counterFindById == 1)
-//            throw RuntimeException("Test exception in findById()")
-//         else if(_counterFindById == 2)
-//            Result.success(null)
-//         else
-         Result.success(_personDao.findById(id)?.toPerson())
-      }
-      // don't handle CancellationException, let it propagate to the caller
-      // viewModelScope will catch it and cancel the coroutine
-      catch (e: CancellationException) {
-         throw e
-      }
-      // handle other exceptions and return a failure result
-      catch (e: Throwable) {
-         Result.failure(e)
-      }
-   }
-*/
    override suspend fun create(person: Person): Result<Unit> =
       resultOf(
          block = {
             val rowId = _personDao.insert(person.toPersonDto())
             checkInserted(rowId)
+            Alog.d(TAG, "create: $person")
          }
       )
 
@@ -89,7 +50,8 @@ class PersonRepository(
          block = {
             val rowsAffected = _personDao.update(person.toPersonDto())
             checkUpdated(rowsAffected)
-         },
+            Alog.d(TAG, "update: $person")
+         }
       )
 
    override suspend fun remove(person: Person): Result<Unit> =
@@ -97,123 +59,9 @@ class PersonRepository(
          block = {
             val rowsAffected = _personDao.delete(person.toPersonDto())
             checkDeleted(rowsAffected)
-         },
+            Alog.d(TAG, "remove: $person")
+         }
       )
 
-   companion object {
-      private const val TAG = "<-PersonRepository"
-   }
+   companion object { private const val TAG = "<-PersonRepository" }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - PersonRepository implementiert dieselbe Domain-Schnittstelle wie in A4_01.
- *   Für ViewModels ändert sich deshalb beim Wechsel zu Room 3 nichts.
- *
- * - Nur innerhalb des Repository werden Person und PersonDto ineinander
- *   überführt. Datenbankfehler werden als Result an die darüberliegende Schicht
- *   weitergereicht.
- *
- * - CancellationException wird nicht in Result.failure umgewandelt, damit die
- *   strukturierte Coroutine-Cancellation erhalten bleibt.
- */
-
-/*
-class PersonRepository(
-private val _personDao: IPersonDao,
-) : IPersonRepository {
-
-   override fun observeAll(): Flow<Result<List<Person>>> =
-      _personDao.observeAll()
-         .map { dtos: List<PersonDto> ->
-            Result.success(dtos.map(PersonDto::toPerson))
-         }
-         .catch { throwable ->
-            if (throwable is CancellationException) throw throwable
-            emit(Result.failure(throwable))
-         }
-
-   override suspend fun findById(id: String): Result<Person?> =
-//      try {
-//         Alog.d(TAG, "findById: $id")
-//         Result.success(_personDao.findById(id)?.toPerson())
-//      }
-//      catch (exception: CancellationException) {
-//         throw exception
-//      }
-//      catch (throwable: Throwable) {
-//         Result.failure(throwable)
-//      }
-      resultOf {
-         _personDao.findById(id)?.toPerson()
-      }
-
-   override suspend fun create(person: Person): Result<Unit> =
-//      try {
-//         _personDao.insert(person.toPersonDto())
-//         Alog.d(TAG, "create: $person")
-//         Result.success(Unit)
-//      }
-//      catch (exception: CancellationException) {
-//         throw exception
-//      }
-//      catch (throwable: Throwable) {
-//         Result.failure(throwable)
-//      }
-      resultOf {
-         _personDao.insert(person.toPersonDto())
-      }
-
-   override suspend fun update(person: Person): Result<Unit> =
-//      try {
-//         Alog.d(TAG, "update: $person")
-//         val changedRows = _personDao.update(person.toPersonDto())
-//         if (changedRows == 1)
-//            Result.success(Unit)
-//         else
-//            Result.failure(IllegalArgumentException("Person ${person.id} was not found."))
-//
-//      } catch (exception: CancellationException) {
-//         throw exception
-//      } catch (throwable: Throwable) {
-//         Result.failure(throwable)
-//      }
-
-      resultOf {
-         checkRows(_personDao.update(person.toPersonDto()), person)
-      }
-
-   override suspend fun remove(person: Person): Result<Unit> =
-//      try {
-//         val changedRows = _personDao.delete(person.toPersonDto())
-//         if (changedRows == 1)
-//            Result.success(Unit)
-//         else
-//            Result.failure(IllegalArgumentException("Person ${person.id} was not found."))
-//      } catch (exception: CancellationException) {
-//         throw exception
-//      } catch (throwable: Throwable) {
-//         Result.failure(throwable)
-//      }
-
-      resultOf {
-         checkRows(_personDao.delete(person.toPersonDto()), person)
-      }
-
-   private fun checkRows(changedRows: Int, person: Person): Result<Unit> =
-      if (changedRows == 1) {
-         Result.success(Unit)
-      } else {
-         Result.failure(
-            IllegalArgumentException("Person ${person.id} was not found.")
-         )
-      }
-
-
-   companion object {
-      private const val TAG = "<-PersonRepository"
-   }
-}
-
-*/

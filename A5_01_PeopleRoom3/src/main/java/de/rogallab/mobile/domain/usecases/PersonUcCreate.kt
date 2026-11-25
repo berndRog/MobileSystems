@@ -3,9 +3,7 @@ package de.rogallab.mobile.domain.usecases
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.resultOf
-import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.images.IImageEdit
-import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcCreate(
    private val _repository: IPersonRepository,
@@ -17,21 +15,11 @@ class PersonUcCreate(
          block = {
             _repository.create(person).getOrThrow()
 
-            try {
-               // Preserve the existing best-effort commit after persistence.
-               _imageEdit.commit()
-            } catch (e: CancellationException) {
-               throw e
-            } catch (e: Throwable) {
-               Alog.e(TAG, "commit person image failed: ${e.message}")
-            }
+            // Commit the image edit session only after successful persistence.
+            _imageEdit.commit()
          },
          onFinally = {}
       )
-
-   companion object {
-      private const val TAG = "<-PersonUcCreate"
-   }
 }
 
 /*
