@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import kotlin.coroutines.ContinuationInterceptor
@@ -110,6 +111,20 @@ fun appModule(
       )
    }
 
+   factory<PersonUcCreate> { parameters ->
+      PersonUcCreate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = parameters.get<IImageEdit>(),
+      )
+   }
+
+   factory<PersonUcUpdate> { parameters ->
+      PersonUcUpdate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = parameters.get<IImageEdit>(),
+      )
+   }
+
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
       // Both save use cases must share the ViewModel's image edit session.
@@ -126,15 +141,19 @@ fun appModule(
             mode = ImageSelectionMode.REPLACE,
             maxImages = 1,
          ),
-         _personUcCreate = PersonUcCreate(get<IPersonRepository>(), imageEdit),
-         _personUcUpdate = PersonUcUpdate(get<IPersonRepository>(), imageEdit),
+         _personUcCreate = get<PersonUcCreate> {
+            parametersOf(imageEdit)
+         },
+         _personUcUpdate = get<PersonUcUpdate> {
+            parametersOf(imageEdit)
+         },
          _timing = get<AppTiming>(),
          _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
       )
    }
 
    Alog.i(tag, "factory   -> PersonUcDelete")
-   factory {
+   factory<PersonUcDelete> {
       PersonUcDelete(
          _repository = get<IPersonRepository>(),
          _imageFileStorage = get<IImageFileStorage>()

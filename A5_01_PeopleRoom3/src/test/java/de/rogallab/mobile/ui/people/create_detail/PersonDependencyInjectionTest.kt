@@ -2,6 +2,9 @@ package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.usecases.PersonUcCreate
+import de.rogallab.mobile.domain.usecases.PersonUcUpdate
+import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import org.koin.core.parameter.parametersOf
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
@@ -30,6 +33,44 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class PersonDependencyInjectionTest {
    @get:Rule val dispatcherRule = MainDispatcherRule()
+
+   @Test fun useCases_areFactories_andSaveUsesTheSuppliedSession() =
+      runTest(dispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository()
+         var sessionsCreated = 0
+         val application = koinApplication {
+            modules(appModule(dispatcherRule.testDispatcher), module {
+               single<IPersonRepository> { repository }
+               single<IImageFileStorage> { FakeImageFileStorage() }
+               factory<IImageEdit> {
+                  sessionsCreated++
+                  FakeImageEdit()
+               }
+            })
+         }
+         try {
+            val session = FakeImageEdit()
+            val create = application.koin.get<PersonUcCreate> { parametersOf(session) }
+            val otherCreate = application.koin.get<PersonUcCreate> { parametersOf(session) }
+            val update = application.koin.get<PersonUcUpdate> { parametersOf(session) }
+            val otherUpdate = application.koin.get<PersonUcUpdate> { parametersOf(session) }
+            assertNotSame(create, otherCreate)
+            assertNotSame(update, otherUpdate)
+
+            val person = Person(id = "p1", firstName = "Ada", lastName = "Lovelace")
+            assertTrue(create(person).isSuccess)
+            assertTrue(update(person).isSuccess)
+            assertEquals(2, session.commitCount)
+            // Save factories must use the supplied session, not resolve another one.
+            assertEquals(0, sessionsCreated)
+            assertNotSame(
+               application.koin.get<PersonUcDelete>(),
+               application.koin.get<PersonUcDelete>(),
+            )
+         } finally {
+            application.close()
+         }
+      }
 
    @Test fun eachEditor_hasOneSessionSharedByItsDelegateAndSaveUseCases() =
       runTest(dispatcherRule.testDispatcher) {
