@@ -34,8 +34,6 @@ class Seed(
          "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "posteo.de", "yahoo.com", "web.de")
       val random = Random(0)
       for (index in firstNames.indices) {
-//         var indexFirst = random.nextInt(firstNames.size)
-//         var indexLast = random.nextInt(lastNames.size)
          val firstName = firstNames[index]
          val lastName = lastNames[index]
 

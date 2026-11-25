@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import de.rogallab.mobile.AppTiming
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.domain.IStringProvider
@@ -19,6 +19,7 @@ import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,12 +29,12 @@ class PeopleViewModel(
    private val _personUcDelete: PersonUcDelete,
    private val _stringProvider: IStringProvider,
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
-   private val _timing: AppTiming,
+   private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
    // StateFlow holds the persistent people list and load failure.
    private val _stateFlow = MutableStateFlow(PeopleUiState())
-   val stateFlow = _stateFlow.asStateFlow()
+   val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
 
    // Job used to observe changes from the repository.
    private var _observeJob: Job? = null
@@ -42,6 +43,22 @@ class PeopleViewModel(
    init {
       Alog.i(TAG, "init: observePeople()")
       observePeople()
+   }
+
+   // Dispatches incoming UI intents to the corresponding action.
+   fun onIntent(intent: PeopleIntent) {
+      Alog.d(TAG, "intent: $intent")
+
+      when (intent) {
+         PeopleIntent.Create -> navigateToPerson(null)
+         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
+         is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
+         PeopleIntent.RetryLoad ->
+            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
+               observePeople()
+            }
+      }
    }
 
    // Observes the repository and updates the list state.
@@ -83,22 +100,6 @@ class PeopleViewModel(
       }
    }
 
-   // Dispatches incoming UI intents to the corresponding action.
-   fun onIntent(intent: PeopleIntent) {
-      Alog.d(TAG, "intent: $intent")
-
-      when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
-         is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
-         is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
-         PeopleIntent.RetryLoad ->
-            if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
-               observePeople()
-            }
-      }
-   }
-
    // Emits navigation as a one-time effect; AppNavigation updates the back stack.
    private fun navigateToPerson(personId: String?) {
       viewModelScope.launch {
@@ -106,22 +107,13 @@ class PeopleViewModel(
       }
    }
 
-   // A swipe asks for confirmation before changing the repository.
+   // A swipe asks for confirmation before anything is deleted.
    private fun requestRemove(personId: String) {
-      val person = _stateFlow.value.people.find { it.id == personId }
-      if (person == null) {
-         viewModelScope.launch {
-            _effectDelegate.emit(PeopleEffect.ShowError(
-               _stringProvider.getString(R.string.error_person_not_found)
-            ))
-         }
-         return
-      }
-
+      val person = findPerson(personId) ?: return
       viewModelScope.launch {
          _effectDelegate.emit(PeopleEffect.ConfirmRemove(
             message = _stringProvider.getString(
-               R.string.message_person_remove_confirm, person.firstName, person.lastName
+               R.string.message_person_remove_confirm, person.fullName
             ),
             actionLabel = _stringProvider.getString(R.string.action_confirm),
             personId = person.id,
@@ -129,39 +121,38 @@ class PeopleViewModel(
       }
    }
 
-   // The confirmation action performs the repository operation.
+   // The confirmed action passes only the id; the use case reloads the person.
    private fun confirmRemove(personId: String) {
-      val person = _stateFlow.value.people.find { it.id == personId }
-      if (person == null) {
-         viewModelScope.launch {
-            _effectDelegate.emit(PeopleEffect.ShowError(
-               _stringProvider.getString(R.string.error_person_not_found)
-            ))
-         }
-         return
-      }
-      remove(person)
-   }
-
-   // Removes a person through the image-aware use case.
-   private fun remove(person: Person) {
+      val person = findPerson(personId) ?: return
       viewModelScope.launch {
          delay(_timing.delayWrite)
-
-         _personUcDelete(person)
+         _personUcDelete(person.id)
             .onSuccess {
                currentCoroutineContext().ensureActive()
-               val message = _stringProvider.getString(
-                  R.string.message_person_removed, person.fullName)
-               _effectDelegate.emit(PeopleEffect.ShowMessage(message))
+               _effectDelegate.emit(PeopleEffect.ShowMessage(
+                  _stringProvider.getString(R.string.message_person_removed, person.fullName)
+               ))
             }
-            .onFailure { throwable ->
-               if (throwable is CancellationException) throw throwable
+            .onFailure { error ->
+               if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               val error = _stringProvider.getString(R.string.error_person_remove)
-               _effectDelegate.emit(PeopleEffect.ShowError(error))
+               emitErrorNow(R.string.error_person_remove)
             }
       }
+   }
+
+   private fun findPerson(personId: String): Person? {
+      val person = _stateFlow.value.people.find { it.id == personId }
+      if (person == null) emitError(R.string.error_person_not_found)
+      return person
+   }
+
+   private fun emitError(resourceId: Int) {
+      viewModelScope.launch { emitErrorNow(resourceId) }
+   }
+
+   private suspend fun emitErrorNow(resourceId: Int) {
+      _effectDelegate.emit(PeopleEffect.ShowError(_stringProvider.getString(resourceId)))
    }
 
    companion object {

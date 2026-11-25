@@ -24,7 +24,7 @@
   <string name="action_confirm">Yes</string>
 
   <string name="message_person_saved">%1$s was saved.</string>
-  <string name="message_person_remove_confirm">Really delete %1$s %2$s?</string>
+  <string name="message_person_remove_confirm">Really delete %1$s?</string>
 
   <string name="error_people_observe">People could not be loaded.</string>
   <string name="error_person_not_found">Person was not found.</string>
@@ -32,7 +32,6 @@
   <string name="error_person_save">Person could not be saved.</string>
   <string name="error_person_remove">Person could not be deleted.</string>
   <string name="error_image_save">Image could not be saved locally.</string>
-  <string name="error_image_cleanup">Image could not be removed.</string>
 
   <string name="error_firstname_too_short">First name is too short.</string>
   <string name="error_firstname_too_long">First name is too long.</string>

@@ -55,8 +55,8 @@ class PersonViewModelImageTest {
    private fun createViewModel(
       personId: String? = null,
       source: IPersonRepository = repository,
-      imageEdit: IImageEdit = ImageEdit(storage),
       imageStorage: IImageFileStorage = storage,
+      imageEdit: IImageEdit = ImageEdit(imageStorage),
    ): PersonViewModel {
       return PersonViewModel(
          personId = personId,

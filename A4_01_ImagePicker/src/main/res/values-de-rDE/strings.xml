@@ -24,7 +24,7 @@
   <string name="action_confirm">Ja</string>
 
   <string name="message_person_saved">%1$s wurde gespeichert.</string>
-  <string name="message_person_remove_confirm">%1$s %2$s wirklich löschen?</string>
+  <string name="message_person_remove_confirm">%1$s wirklich löschen?</string>
 
   <string name="error_people_observe">Personen konnten nicht geladen werden.</string>
   <string name="error_person_not_found">Person wurde nicht gefunden.</string>

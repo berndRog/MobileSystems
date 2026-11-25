@@ -1,12 +1,12 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import de.rogallab.mobile.AppTiming
-import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -19,16 +19,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
 import de.rogallab.mobile.ui.navigation.PeopleKey
 import de.rogallab.mobile.ui.navigation.PopReason
+import org.koin.compose.koinInject
 
 private const val TAG = "<-AppNavigation"
 
@@ -37,12 +41,11 @@ fun AppNavigation(
    timing: AppTiming = koinInject()
 ) {
 
-   val nComp = remember { mutableIntStateOf(1) }
-   SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
-
    val navigationAnimations = remember(timing.animationDuration) {
       NavigationAnimations(timing.animationDuration)
    }
+   val nComp = remember { mutableIntStateOf(1) }
+   SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
    // Creates the standard saveable Navigation 3 back stack.
    val backStack = rememberNavBackStack(PeopleKey)
@@ -72,16 +75,21 @@ fun AppNavigation(
       onNavigateTo = { destination -> add(destination, backStack) },
    )
 
+   val snackbarBottomPadding = calculateSnackbarBottomPadding(
+      showListFab = backStack.lastOrNull() is PeopleKey,
+   )
+
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
       logNavigationOperation("initial", backStack.lastOrNull(), backStack)
    }
 
    Scaffold(
+      modifier = Modifier.fillMaxSize(),
       snackbarHost = {
          SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.imePadding()
+            modifier = Modifier.padding(bottom = snackbarBottomPadding),
          )
       },
    ) { innerPadding ->
@@ -117,6 +125,23 @@ fun AppNavigation(
    }
 }
 
+@Composable
+private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
+   val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
+
+   // Scaffold already keeps the snackbar above the system bar. Add the larger
+   // of the remaining IME height and the clearance required for the list FAB.
+   val density = LocalDensity.current
+   val systemBarBottom = ScaffoldDefaults.contentWindowInsets.getBottom(density)
+   val imeBottom = WindowInsets.ime.getBottom(density)
+   val fabClearance = with(density) {
+      if (showListFab) listFabSnackbarClearance.roundToPx() else 0
+   }
+   return with(density) {
+      maxOf((imeBottom - systemBarBottom).coerceAtLeast(0), fabClearance).toDp()
+   }
+}
+
 /*
  * Didaktik und Lernziele
  *
@@ -128,7 +153,7 @@ fun AppNavigation(
  * - A5_01_PeopleRoom3 führt Navigation und Bild-Lebenszyklus aus A4_01 fort.
  *   Neu ist die persistente Room-3-Schicht hinter dem Repository-Vertrag.
  *
- * - Ein navigationweit lebender SnackbarHost mit imePadding() zeigt Meldungen
+ * - Ein navigationweit lebender SnackbarHost mit Abstand zu Tastatur und FAB zeigt Meldungen
  *   auch nach einem Wechsel des Navigation-3-Backstacks weiter an.
  *   Save und Cancel behalten unterschiedliche Pop-Animationen.
  *

@@ -57,6 +57,7 @@ class PersonViewModelCoordinationTest {
       var change: suspend () -> Result<ImageChange> = { Result.success(ImageChange()) }
       var imports = 0
       var discards = 0
+      var discardOperation: suspend () -> Result<Unit> = { Result.success(Unit) }
       val rejected = mutableListOf<String>()
       var started = emptyList<String>()
       override fun start(originalPaths: List<String>) { started = originalPaths }
@@ -72,7 +73,7 @@ class PersonViewModelCoordinationTest {
       override suspend fun remove(path: String) = change()
       override suspend fun discard(): Result<Unit> {
          discards++
-         return Result.success(Unit)
+         return discardOperation()
       }
    }
    private val images = Images()
@@ -373,4 +374,113 @@ class PersonViewModelCoordinationTest {
          }
       }
 
+
+   @Test fun lateLoadOutcomes_afterAcceptedCancel_doNotRestartTheSession() =
+      runTest(dispatcherRule.testDispatcher) {
+         for (outcome in listOf("success", "failure", "throw")) {
+            val gate = CompletableDeferred<Unit>()
+            find = {
+               gate.await()
+               when (outcome) {
+                  "success" -> Result.success(person)
+                  "failure" -> Result.failure(IllegalStateException("late"))
+                  else -> throw IllegalStateException("late")
+               }
+            }
+            val vm = create()
+            runCurrent()
+            vm.effects.test {
+               vm.onIntent(PersonIntent.Cancel)
+               runCurrent()
+               assertEquals(PersonEffect.NavigateBack(BackReason.Cancel), awaitItem())
+               val state = vm.stateFlow.value
+               val started = images.started
+               gate.complete(Unit)
+               runCurrent()
+               assertEquals(state, vm.stateFlow.value)
+               assertEquals(started, images.started)
+               expectNoEvents()
+            }
+            store.clear()
+         }
+      }
+
+   @Test fun acceptedCancel_blocksRetryOfFailedLoad() = runTest(dispatcherRule.testDispatcher) {
+      find = { Result.failure(IllegalStateException("offline")) }
+      val vm = create()
+      runCurrent()
+      vm.effects.test {
+         vm.onIntent(PersonIntent.Cancel)
+         vm.onIntent(PersonIntent.RetryLoad)
+         runCurrent()
+         assertEquals(listOf("p1"), findIds)
+         assertEquals(PersonEffect.NavigateBack(BackReason.Cancel), awaitItem())
+         expectNoEvents()
+      }
+   }
+
+   @Test fun failedDiscard_allowsOneRetry_andKeepsClosingActionsBlocked() =
+      runTest(dispatcherRule.testDispatcher) {
+         val vm = create()
+         runCurrent()
+         images.discardOperation = { Result.failure(IllegalStateException("cleanup failed")) }
+         vm.effects.test {
+            vm.onIntent(PersonIntent.Cancel)
+            runCurrent()
+            assertTrue(awaitItem() is PersonEffect.ShowError)
+            vm.onIntent(PersonIntent.FirstNameChange("Grace"))
+            assertEquals("Grace", vm.stateFlow.value.form.firstName)
+            images.discardOperation = { Result.success(Unit) }
+            vm.onIntent(PersonIntent.Cancel)
+            vm.onIntent(PersonIntent.Cancel)
+            vm.onIntent(PersonIntent.Save)
+            runCurrent()
+            assertEquals(2, images.discards)
+            assertTrue(writes.isEmpty())
+            assertEquals(PersonEffect.NavigateBack(BackReason.Cancel), awaitItem())
+            expectNoEvents()
+         }
+      }
+
+   @Test fun cancelledDiscard_hasNoErrorOrNavigation_whetherThrownOrReturned() =
+      runTest(dispatcherRule.testDispatcher) {
+         for (throwDirectly in listOf(false, true)) {
+            images.discardOperation = {
+               val cancellation = CancellationException("discard cancelled")
+               if (throwDirectly) throw cancellation
+               Result.failure(cancellation)
+            }
+            val vm = create()
+            runCurrent()
+            vm.effects.test {
+               vm.onIntent(PersonIntent.Cancel)
+               runCurrent()
+               expectNoEvents()
+            }
+            store.clear()
+         }
+      }
+
+   @Test fun rejectedCameraFailure_afterCancellation_doesNotPublishAnError() =
+      runTest(dispatcherRule.testDispatcher) {
+         val rejecting = CompletableDeferred<Result<Unit>>()
+         val delegate = object : IImageEditDelegate by images {
+            override suspend fun rejectCamera(path: String): Result<Unit> =
+               withContext(NonCancellable) { rejecting.await() }
+         }
+         val editor = create(delegate = delegate)
+         runCurrent()
+         editor.onIntent(PersonIntent.Cancel)
+         runCurrent()
+         editor.effects.test {
+            // Cancel already published navigation; only the late camera result is relevant.
+            assertTrue(awaitItem() is PersonEffect.NavigateBack)
+            editor.onIntent(PersonIntent.CameraImageTaken(replacement))
+            runCurrent()
+            store.clear()
+            rejecting.complete(Result.failure(IllegalStateException("late cleanup")))
+            runCurrent()
+            expectNoEvents()
+         }
+      }
 }

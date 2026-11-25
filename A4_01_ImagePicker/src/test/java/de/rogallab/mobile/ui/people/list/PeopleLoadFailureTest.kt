@@ -13,7 +13,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate

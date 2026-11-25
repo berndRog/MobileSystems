@@ -22,20 +22,20 @@ After studying the module, students should be able to:
 
 | Source | Handler in `Shared` | Processing |
 | --- | --- | --- |
-| Gallery | `GalleryPickerHandlerSingle` | Photo Picker → content URI → `GalleryImageSelected` intent → copy to app storage in the ViewModel |
+| Gallery | `GalleryPickerHandlerSingle` | Photo Picker → content URI → `GalleryImageSelected` intent → import through ImageEditDelegate |
 | Camera | `CameraPickerHandler` | Prepare target file/URI → camera → confirm file → `CameraImageTaken` intent with internal path |
 
-**Gallery:** `PickVisualMedia` selects one image. Cancelling the picker produces no selection event. The ViewModel copies the selected image through `IImageFileStorage.copyImageToAppStorage()`. This module stores an app-owned image path instead of persisting the picker URI.
+**Gallery:** `PickVisualMedia` selects one image. Cancelling the picker produces no selection event. The ViewModel delegates import to `IImageEditDelegate.importGallery()`. The delegate copies the image through file storage and returns the changed selection as `Result<ImageChange>`. The app stores its own image path instead of the picker URI.
 
 **Camera:** `TakePicture` needs a writable destination before launch and returns a Boolean result. The handler creates a provisional file and passes its FileProvider URI to the external camera. It remembers the associated internal path, confirms a successful capture, and attempts cleanup on cancellation or failure. The FileProvider is declared in `Shared`.
 
-Both paths then converge: **internal path → `IImageEdit.replace()` → `PersonUiState.person.imagePath` → image display**.
+Both paths then converge: **gallery URI/camera path → ImageEditDelegate → `ImageChange` → `PersonUiState.person.imagePath` → image display**.
 
 ## Didactic approach
 
 Start with the visible actions, then compare their different technical requirements. `PersonScreen` uses `ImageSelection` and receives `onSelectPhoto`, `onTakePhoto`, and `onRemovePhoto`. `PersonAdapter` connects these callbacks to the handlers or intents and observes state lifecycle-aware. `ImageRenderer` uses Coil's `AsyncImage` or a placeholder icon when no image exists.
 
-Separate obtaining a file from managing its edit session. `IImageFileStorage` performs file operations; `ImageEdit` tracks original and currently selected images. A person uses one image, although the delegate accepts lists of paths.
+Separate obtaining a file from managing its edit session. `IImageFileStorage` performs file operations; `ImageEdit` tracks original and selected images. `ImageEditDelegate` coordinates imports, camera acceptance, replacement, removal, and rejected results. The ViewModel needs neither file storage nor ImageEdit directly. It uses `ImageSelectionMode.REPLACE` and `maxImages = 1`.
 
 | Action | Image-session behavior |
 | --- | --- |
@@ -52,13 +52,25 @@ A4_01 introduces `PersonUcCreate`, `PersonUcUpdate`, and `PersonUcDelete` in `do
 | --- | --- |
 | `PersonUcCreate` | `repository.create(person)` → on success, `imageEdit.commit()` |
 | `PersonUcUpdate` | `repository.update(person)` → on success, `imageEdit.commit()` |
-| `PersonUcDelete` | `repository.remove(person)` → on success, attempt image-file cleanup |
+| `PersonUcDelete` | person ID → `repository.findById(id)` → delete the current person → on success, clean up its image |
 
 The ViewModel processes intents, manages UI state, validates the form, selects the matching use case, and translates its result into effects. The use case coordinates the application operation; the repository provides person-data access. Dependencies are supplied through constructor injection. `suspend operator fun invoke(person)` lets the ViewModel call a use-case instance like a function, for example `_personUcUpdate(person)`.
 
 The learning step is to move the combined persistence/image operation out of the ViewModel and make its ordering independently testable. A failed repository write does not commit the image session; a failed person deletion leaves the image intact. Cleanup failures after successful person deletion are logged.
 
 Image-copy failures and camera errors become `ShowError` effects from the ViewModel and are displayed in a Snackbar. Successful saving emits `ShowMessage`, followed by `NavigateBack`. The image path remains state; the request for a message or navigation is an effect.
+
+## Boundary with Chapter 5
+
+ViewModels and all three person use cases process expected failures exclusively with `.onSuccess` and `.onFailure`. They use neither `try/catch/finally`, `getOrThrow()`, nor `resultOf()`. Cancellation propagates; `ensureActive()` prevents late side effects, while `cancelAndJoin()` waits for the previous collector during Retry. Completion handlers only reset `isSaving` and `isEditingImages`; they perform no cleanup.
+
+Persistence precedes image commit. Result failures from subsequent file cleanup are logged without turning a successful deletion into a failure. Koin creates one ImageEdit session per detail ViewModel and shares it between the delegate and both Save use cases. `PersonDependencyInjectionTest` verifies this contract.
+
+Deliberate limitation: ordinary exceptions unexpectedly thrown by repository, commit, or cleanup implementations are not additionally caught or converted to Results in these use cases. Unexpected cleanup throws are not treated as best-effort Results. ViewModel error reporting, loading-state recovery, and retrying Cancel are then not generally guaranteed; Save/image flags still reset on job completion. Existing technical safeguards in the repository, database initialization, and Shared remain intact. Production Shared components return expected file failures through Results or handle session cleanup internally.
+
+Shared's existing Room infrastructure remains supplied infrastructure here. Chapter 5 exposes persistence and introduces DTO, read model, list projection, form model, and extended exception handling. A4 continues to use `Person` for input and domain state; `PersonInputMapping.kt` contains input normalization. `IPersonRepository` already resides in `domain.repositories`.
+
+The Save overlay, image progress indicator, picker handlers, Back behavior, and Snackbar clearance above keyboard and FAB form the common UI baseline with A5. Delete confirmation receives one full name; tests use the real StringProvider with English and German resources.
 
 ## Suggested learning path
 

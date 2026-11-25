@@ -46,8 +46,7 @@ fun PeopleScreen(
             modifier = Modifier.animateItem(),
          ) {
             PersonCard(
-               firstName = person.firstName,
-               lastName = person.lastName,
+               fullName = person.fullName,
                email = person.email,
                phone = person.phone,
                imagePath = person.imagePath,

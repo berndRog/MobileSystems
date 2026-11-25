@@ -1,85 +1,32 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.images.IImageEdit
-import de.rogallab.mobile.shared.domain.utilities.resultOf
-
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcUpdate(
    private val _repository: IPersonRepository,
    private val _imageEdit: IImageEdit,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> =
-      resultOf(
-         block = {
-            // First update the person in the repository.
-            _repository.update(person).getOrThrow()
-
-            // Commit the replacement image only after successful persistence.
-            _imageEdit.commit()
-         },
-         onFinally = {}
-      )
-}
-
-/*
-class PersonUcUpdate(
-   private val _repository: IPersonRepository,
-   private val _imageEdit: IImageEdit,
-) {
    suspend operator fun invoke(person: Person): Result<Unit> {
-      try {
-         // First update the person in the repository.
-         val result = _repository.update(person)
-
-         // Commit the replacement image only after successful persistence.
-         if (result.isSuccess) {
+      currentCoroutineContext().ensureActive()
+      return _repository.update(person)
+         .onSuccess {
+            // Commit only after persistence; cancellation must keep the session open.
+            currentCoroutineContext().ensureActive()
             _imageEdit.commit()
          }
-
-         return result
-
-      } catch (e: CancellationException) {
-         // Coroutine cancellation must be propagated.
-         throw e
-
-      } catch (e: Exception) {
-         // Convert unexpected exceptions to Result.failure.
-         return Result.failure(e)
-
-      } finally {
-         // Always executed, even on return or exception.
-         // Do not discard the image edit session here:
-         // it may still be needed for a retry.
-      }
+         .onFailure { error ->
+            // Cancellation is control flow, not an expected persistence failure.
+            if (error is CancellationException) throw error
+            currentCoroutineContext().ensureActive()
+         }
    }
 }
-*/
-
-/*
-class PersonUcUpdate(
-   private val _repository: IPersonRepository,
-   private val _imageEdit: IImageEdit,
-) {
-
-   suspend operator fun invoke(person: Person): Result<Unit> {
-
-      // Updates the person before committing the replacement image.
-      val result = _repository.update(person)
-
-      if (result.isSuccess) {
-         // Commit the image edit session only after a successful repository write.
-         _imageEdit.commit()
-      }
-      // Persisted original images remain untouched when the update fails.
-
-      return result
-   }
-}
-*/
 
 /*
  * Didaktik und Lernziele

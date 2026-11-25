@@ -60,6 +60,7 @@ class PeopleViewModel(
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
       _observeJob = viewModelScope.launch {
          previousJob?.cancelAndJoin()
+         currentCoroutineContext().ensureActive()
          try {
             delay(_timing.delayRead)
             _readModel.observeListItems().collect { result: Result<List<PersonListItem>> ->
@@ -98,7 +99,7 @@ class PeopleViewModel(
 
    // A swipe asks for confirmation before anything is deleted.
    private fun requestRemove(personId: String) {
-      val item = findItem(personId) ?: return
+      val item = findPerson(personId) ?: return
       viewModelScope.launch {
          val message = _stringProvider.getString(
             R.string.message_person_remove_confirm,
@@ -109,19 +110,22 @@ class PeopleViewModel(
       }
    }
 
-   // The confirmed action passes only the id; the use case loads the aggregate.
+   // The confirmed action passes only the id; the use case reloads the person.
    private fun confirmRemove(personId: String) {
-      val item = findItem(personId) ?: return
+      val item = findPerson(personId) ?: return
       viewModelScope.launch {
          delay(_timing.delayWrite)
 
          _personUcDelete(item.id)
             .onSuccess {
+               currentCoroutineContext().ensureActive()
                _effectDelegate.emit(PeopleEffect.ShowMessage(
                   _stringProvider.getString(R.string.message_person_removed, item.fullName)
                ))
             }
             .onFailure { throwable ->
+               if (throwable is CancellationException) throw throwable
+               currentCoroutineContext().ensureActive()
                Alog.e(TAG, "remove failed", throwable)
                emitErrorNow(R.string.error_person_remove)
             }
@@ -129,7 +133,7 @@ class PeopleViewModel(
       }
    }
 
-   private fun findItem(personId: String): PersonListItem? {
+   private fun findPerson(personId: String): PersonListItem? {
       val item = _stateFlow.value.listItems.find { it.id == personId }
       if (item == null) emitError(R.string.error_person_not_found)
       return item

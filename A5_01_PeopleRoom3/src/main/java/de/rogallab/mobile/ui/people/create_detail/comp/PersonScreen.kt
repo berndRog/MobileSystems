@@ -102,7 +102,7 @@ fun PersonScreen(
       ImageSelection(
          fullName = "$firstName $lastName".trim(),
          imagePath = imagePath,
-         imageActionsEnabled = imageActionsEnabled && !isEditingImages && !isSaving,
+         imageActionsEnabled = imageActionsEnabled && !isLoading && !isSaving && !isEditingImages,
          height = 200.dp,
          onSelectPhoto = onSelectPhoto,
          onTakePhoto = onTakePhoto,

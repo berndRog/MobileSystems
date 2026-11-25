@@ -28,8 +28,8 @@ class Seed(
          "Imhoff", "Jung", "Klein", "Lang", "Meier", "Neumann", "Olbrich", "Peters",
          "Quart", "Richter", "Schmidt", "Thormann", "Ulrich", "Vogel", "Wagner", "Xander",
          "Yakov", "Zander")
-      val emailProvider = mutableListOf("gmail.com", "icloud.com", "outlook.com", "yahoo.com",
-         "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "yahoo.com", "web.de")
+      val emailProvider = mutableListOf("gmail.com", "icloud.com", "outlook.com",
+         "t-online.de", "gmx.de", "freenet.de", "mailbox.org", "posteo.de", "yahoo.com", "web.de")
       val random = Random(0)
 
       val drawables = listOf(

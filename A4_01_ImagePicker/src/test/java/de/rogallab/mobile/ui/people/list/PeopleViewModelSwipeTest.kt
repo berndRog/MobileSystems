@@ -3,7 +3,7 @@ package de.rogallab.mobile.ui.people.list
 import app.cash.turbine.test
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
@@ -84,7 +84,9 @@ class PeopleViewModelSwipeTest {
    @Test
    fun requestRemove_emitsConfirmationWithoutDeleting() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace))
+         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
+         }
          val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
@@ -97,8 +99,7 @@ class PeopleViewModelSwipeTest {
             assertEquals(
                stringProvider.getString(
                   R.string.message_person_remove_confirm,
-                  ada.firstName,
-                  ada.lastName,
+                  ada.fullName,
                ),
                effect.message,
             )
@@ -116,7 +117,9 @@ class PeopleViewModelSwipeTest {
    @Test
    fun confirmRemove_deletesPersonAndUpdatesState() =
       runTest(mainDispatcherRule.testDispatcher) {
-         val repository = FakePersonRepository(listOf(ada, grace))
+         val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
+         }
          val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
@@ -132,6 +135,7 @@ class PeopleViewModelSwipeTest {
    fun cancelledRemove_keepsPersonAndImage_withoutErrorEffect() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakePersonRepository(listOf(ada)).apply {
+            findResult = Result.success(ada)
             removeResult = Result.failure(CancellationException("cancelled delete"))
          }
          val store = ViewModelStore()
@@ -155,6 +159,7 @@ class PeopleViewModelSwipeTest {
    fun failedConfirmRemove_emitsErrorAndKeepsPerson() =
       runTest(mainDispatcherRule.testDispatcher) {
          val repository = FakePersonRepository(listOf(ada, grace)).apply {
+            findResult = Result.success(ada)
             removeResult = Result.failure(IllegalStateException("delete failed"))
          }
          val viewModel = createViewModel(repository)

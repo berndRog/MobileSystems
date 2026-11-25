@@ -203,4 +203,29 @@ class PeopleViewModelSwipeTest {
             cancelAndIgnoreRemainingEvents()
          }
       }
+
+   @Test
+   fun cancelledRemove_keepsProjectionAndImage_withoutErrorEffect() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val repository = FakePersonRepository().apply {
+            findResult = Result.success(ada)
+            removeResult = Result.failure(kotlinx.coroutines.CancellationException("cancelled delete"))
+         }
+         val readModel = FakePersonReadModel(listOf(adaItem))
+         val viewModel = createViewModel(repository, readModel)
+         val store = androidx.lifecycle.ViewModelStore().also { it.put("people", viewModel) }
+         try {
+            advanceUntilIdle()
+            viewModel.effects.test {
+               viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+               advanceUntilIdle()
+               assertEquals(listOf(adaItem), viewModel.stateFlow.value.listItems)
+               assertTrue(repository.removed.isEmpty())
+               assertTrue(imageFileStorage.deletedPaths.isEmpty())
+               expectNoEvents()
+            }
+         } finally {
+            store.clear()
+         }
+      }
 }

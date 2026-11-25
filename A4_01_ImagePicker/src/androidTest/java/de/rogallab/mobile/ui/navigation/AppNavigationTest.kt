@@ -16,7 +16,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.ui.navigation.comp.AppNavigation
 import de.rogallab.mobile.ui.theme.AppTheme
@@ -83,7 +83,7 @@ class AppNavigationTest {
    @Test fun deleteConfirmationSnackbarStaysAboveListFab() {
       compose.onNodeWithText("Test Person").performTouchInput { swipeLeft() }
 
-      val message = context.getString(R.string.message_person_remove_confirm, "Test", "Person")
+      val message = context.getString(R.string.message_person_remove_confirm, "Test Person")
       compose.waitUntil(15_000) {
          compose.onAllNodesWithText(message).fetchSemanticsNodes().isNotEmpty()
       }

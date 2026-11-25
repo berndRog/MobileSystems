@@ -11,7 +11,7 @@ import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.IEffectSource

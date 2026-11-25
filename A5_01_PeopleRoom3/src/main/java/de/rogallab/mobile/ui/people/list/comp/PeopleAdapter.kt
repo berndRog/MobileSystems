@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.rogallab.mobile.R
@@ -89,6 +90,7 @@ fun PeopleAdapter(
       },
       floatingActionButton = {
          ExtendedFloatingActionButton(
+            modifier = Modifier.testTag("peopleCreateFab"),
             containerColor = colorScheme.secondary,
             onClick = { viewModel.onIntent(PeopleIntent.Create) },
             icon = {

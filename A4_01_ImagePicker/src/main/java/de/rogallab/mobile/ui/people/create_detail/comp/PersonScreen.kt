@@ -10,7 +10,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +30,6 @@ import de.rogallab.mobile.shared.ui.images.ImageSelection
 import de.rogallab.mobile.ui.people.PersonValidator
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
    isNew: Boolean,
@@ -74,6 +73,7 @@ fun PersonScreen(
    Column(
       modifier = modifier
    ) {
+      if (isEditingImages) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
       InputValueString(
          value = firstName,
          onValueChange = onFirstNameChange,

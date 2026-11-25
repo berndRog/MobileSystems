@@ -1,9 +1,10 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.images.IImageEdit
-import de.rogallab.mobile.shared.domain.utilities.resultOf
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.cancellation.CancellationException
 
 class PersonUcCreate(
@@ -11,76 +12,22 @@ class PersonUcCreate(
    private val _imageEdit: IImageEdit,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> =
-      resultOf(
-         block = {
-            // First create the person in the repository.
-            _repository.create(person).getOrThrow()
-
-            // Commit the image only after successful persistence.
-            _imageEdit.commit()
-         },
-         onFinally = {}
-      )
-
-}
-
-/*
-class    PersonUcCreate(
-   private val _repository: IPersonRepository,
-   private val _imageEdit: IImageEdit,
-) {
    suspend operator fun invoke(person: Person): Result<Unit> {
-      try {
-         // Creates the person before committing the image edit session.
-         val result = _repository.create(person)
-
-         // Commit the image only after successful persistence.
-         if (result.isSuccess) {
+      currentCoroutineContext().ensureActive()
+      return _repository.create(person)
+         .onSuccess {
+            // Commit only after persistence; cancellation must keep the session open.
+            currentCoroutineContext().ensureActive()
             _imageEdit.commit()
          }
-         return result
-      }
-
-      // Coroutine cancellation must be propagated.
-      catch (e: CancellationException) {
-         throw e
-      }
-
-      // Convert unexpected exceptions to Result.failure.
-      catch (e: Exception) {
-         return Result.failure(e)
-      }
-
-      // Always executed, including return and exception.
-      finally {
-         // Suitable for cleanup, but not for discarding
-      }
+         .onFailure { error ->
+            // Cancellation is control flow, not an expected persistence failure.
+            if (error is CancellationException) throw error
+            currentCoroutineContext().ensureActive()
+         }
    }
 }
-*/
 
-/*
-class    PersonUcCreate(
-   private val _repository: IPersonRepository,
-   private val _imageEdit: IImageEdit,
-) {
-
-   suspend operator fun invoke(person: Person): Result<Unit> {
-
-      // Creates the person before committing the image edit session.
-      val result = _repository.create(person)
-
-      if (result.isSuccess) {
-         // Commit the image edit session only after a successful repository write.
-         _imageEdit.commit()
-      }
-      // A failed repository write keeps the selected image available for retry.
-
-      return result
-   }
-}
-*/
 /*
  * Didaktik und Lernziele
  *

@@ -22,20 +22,20 @@ Nach der Bearbeitung können Studierende:
 
 | Quelle | Handler in `Shared` | Verarbeitung |
 | --- | --- | --- |
-| Galerie | `GalleryPickerHandlerSingle` | Photo Picker → Content-URI → `GalleryImageSelected`-Intent → Kopieren in den App-Speicher im ViewModel |
+| Galerie | `GalleryPickerHandlerSingle` | Photo Picker → Content-URI → `GalleryImageSelected`-Intent → Import über den ImageEditDelegate |
 | Kamera | `CameraPickerHandler` | Zieldatei/URI vorbereiten → Kamera → Datei bestätigen → `CameraImageTaken`-Intent mit internem Pfad |
 
-**Galerie:** `PickVisualMedia` wählt ein Bild aus. Beim Abbrechen entsteht kein Auswahlereignis. Das ViewModel kopiert das gewählte Bild über `IImageFileStorage.copyImageToAppStorage()`. Dieses Modul speichert einen app-eigenen Bildpfad statt der Picker-URI.
+**Galerie:** `PickVisualMedia` wählt ein Bild aus. Beim Abbrechen entsteht kein Auswahlereignis. Das ViewModel delegiert den Import an `IImageEditDelegate.importGallery()`. Der Delegate kopiert das Bild über den Dateispeicher und liefert die geänderte Auswahl als `Result<ImageChange>`. Gespeichert wird ein app-eigener Bildpfad statt der Picker-URI.
 
 **Kamera:** `TakePicture` benötigt vor dem Start ein beschreibbares Ziel und liefert einen Boolean zurück. Der Handler legt eine vorläufige Datei an und übergibt deren FileProvider-URI an die externe Kamera. Er merkt sich den zugehörigen internen Pfad, bestätigt eine erfolgreiche Aufnahme und versucht bei Abbruch oder Fehler aufzuräumen. Der FileProvider ist in `Shared` deklariert.
 
-Anschließend laufen beide Wege zusammen: **interner Pfad → `IImageEdit.replace()` → `PersonUiState.person.imagePath` → Bildanzeige**.
+Anschließend laufen beide Wege zusammen: **Galerie-URI/Kamerapfad → ImageEditDelegate → `ImageChange` → `PersonUiState.person.imagePath` → Bildanzeige**.
 
 ## Didaktischer Ansatz
 
 Ausgangspunkt sind die sichtbaren Aktionen; danach werden ihre unterschiedlichen technischen Voraussetzungen verglichen. `PersonScreen` nutzt `ImageSelection` und erhält `onSelectPhoto`, `onTakePhoto` und `onRemovePhoto`. `PersonAdapter` verbindet diese Callbacks mit Handlern beziehungsweise Intents und beobachtet State lifecycle-aware. `ImageRenderer` verwendet Coils `AsyncImage` oder ein Platzhalter-Icon, wenn kein Bild vorhanden ist.
 
-Dateibeschaffung und Verwaltung der Edit-Session werden getrennt betrachtet. `IImageFileStorage` führt Dateioperationen aus; `ImageEdit` merkt sich ursprüngliche und aktuell ausgewählte Bilder. Eine Person verwendet ein Bild, der Delegate nimmt jedoch Listen von Pfaden entgegen.
+Dateibeschaffung und Verwaltung der Edit-Session werden getrennt betrachtet. `IImageFileStorage` führt Dateioperationen aus; `ImageEdit` merkt sich ursprüngliche und aktuell ausgewählte Bilder. `ImageEditDelegate` koordiniert Import, Kameraübernahme, Ersetzen, Entfernen und abgewiesene Ergebnisse. Das ViewModel benötigt weder Dateispeicher noch ImageEdit direkt. Es verwendet `ImageSelectionMode.REPLACE` und `maxImages = 1`.
 
 | Aktion | Verhalten der Bild-Session |
 | --- | --- |
@@ -52,13 +52,25 @@ A4_01 führt `PersonUcCreate`, `PersonUcUpdate` und `PersonUcDelete` in `domain/
 | --- | --- |
 | `PersonUcCreate` | `repository.create(person)` → bei Erfolg `imageEdit.commit()` |
 | `PersonUcUpdate` | `repository.update(person)` → bei Erfolg `imageEdit.commit()` |
-| `PersonUcDelete` | `repository.remove(person)` → bei Erfolg Aufräumen der Bilddatei versuchen |
+| `PersonUcDelete` | Personen-ID → `repository.findById(id)` → aktuelle Person löschen → bei Erfolg Bilddatei aufräumen |
 
 Das ViewModel verarbeitet Intents, verwaltet UI-State, validiert das Formular, wählt den passenden Use Case und übersetzt dessen Ergebnis in Effects. Der Use Case koordiniert die Anwendungsoperation; das Repository stellt den Zugriff auf Personendaten bereit. Abhängigkeiten werden über Constructor Injection übergeben. Mit `suspend operator fun invoke(person)` kann das ViewModel eine Use-Case-Instanz wie eine Funktion aufrufen, etwa `_personUcUpdate(person)`.
 
 Der Lernschritt besteht darin, die zusammengesetzte Persistenz-/Bildoperation aus dem ViewModel auszulagern und ihre Reihenfolge unabhängig zu testen. Ein fehlgeschlagener Repository-Schreibzugriff führt nicht zum Commit der Bild-Session; bei fehlgeschlagener Personenlöschung bleibt das Bild erhalten. Aufräumfehler nach erfolgreicher Personenlöschung werden protokolliert.
 
 Fehler beim Kopieren und Kamera-Fehler werden zu `ShowError`-Effects aus dem ViewModel und in einer Snackbar ausgegeben. Erfolgreiches Speichern erzeugt `ShowMessage`, danach `NavigateBack`. Der Bildpfad bleibt State; die Anforderung einer Meldung oder Navigation ist ein Effect.
+
+## Abgrenzung zu Kapitel 5
+
+ViewModels und die drei Personen-Use-Cases verarbeiten erwartete Fehler ausschließlich mit `.onSuccess` und `.onFailure`. Sie verwenden weder `try/catch/finally` noch `getOrThrow()` oder `resultOf()`. Cancellation wird weitergegeben; `ensureActive()` verhindert verspätete Seiteneffekte, `cancelAndJoin()` wartet bei Retry auf den vorherigen Collector. Completion-Handler setzen ausschließlich `isSaving` und `isEditingImages` zurück und führen kein Cleanup aus.
+
+Persistierung erfolgt vor dem Image-Commit. Result-Fehler beim nachgelagerten Datei-Cleanup werden protokolliert, ohne eine erfolgreiche Löschung als Fehlschlag auszugeben. Koin erzeugt pro Detail-ViewModel eine gemeinsame ImageEdit-Session für Delegate und beide Save-Use-Cases. `PersonDependencyInjectionTest` sichert dies ab.
+
+Bewusste Grenze: Unerwartet geworfene gewöhnliche Exceptions aus Repository-, Commit- oder Cleanup-Implementierungen werden in diesen Use Cases nicht zusätzlich abgefangen oder in Results umgewandelt. Ein unerwarteter Cleanup-Wurf wird nicht als Best-Effort-Result behandelt. Im ViewModel sind dann Fehlermeldung, Ladezustandsrücksetzung und erneutes Cancel nicht allgemein garantiert; die Save-/Image-Flags werden weiterhin bei Job-Abschluss zurückgesetzt. Die bestehenden technischen Absicherungen in Repository, Datenbankinitialisierung und Shared bleiben erhalten. Die produktiven Shared-Komponenten liefern erwartete Dateifehler über Results beziehungsweise behandeln Session-Cleanup intern.
+
+Die vorhandene Room-Infrastruktur in Shared bleibt bereitgestellt und wird hier nicht neu erklärt. Kapitel 5 macht die Persistenz sichtbar und führt DTO, ReadModel, Listenprojektion, Formmodell sowie die erweiterte Exception-Behandlung ein. A4 verwendet weiterhin `Person` als Eingabe- und Domainmodell; `PersonInputMapping.kt` enthält die Eingabenormalisierung. `IPersonRepository` liegt bereits in `domain.repositories`.
+
+Save-Overlay, Fortschrittsanzeige für Bildoperationen, Picker-Handler, Back-Verhalten und Snackbar-Abstände zu Tastatur und FAB bilden die gemeinsame UI-Basis mit A5. Die Löschbestätigung erhält genau einen vollständigen Namen; Tests verwenden dafür den echten StringProvider mit deutschen und englischen Ressourcen.
 
 ## Vorgeschlagener Lernpfad
 

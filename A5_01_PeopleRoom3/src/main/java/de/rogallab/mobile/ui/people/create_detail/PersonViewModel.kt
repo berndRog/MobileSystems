@@ -72,7 +72,7 @@ class PersonViewModel(
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
          is PersonIntent.ImageFailed -> showError(intent.message)
          PersonIntent.RetryLoad ->
-            if (!_isNew && !_stateFlow.value.isLoading &&
+            if (!_isClosing && !_isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
                loadPerson(_personId!!)
             }
@@ -89,6 +89,7 @@ class PersonViewModel(
             delay(_timing.delayRead)
             val person = _repository.findById(id).getOrThrow()
             currentCoroutineContext().ensureActive()
+            if (_isClosing) return@launch
             if (person == null) {
                _stateFlow.update {
                   it.copy(isLoading = false, loadFailure = PersonLoadFailure.NotFound(
@@ -105,6 +106,7 @@ class PersonViewModel(
             throw e
          } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
+            if (_isClosing) return@launch
             _stateFlow.update {
                it.copy(isLoading = false, loadFailure = PersonLoadFailure.Failed(
                   _stringProvider.getString(R.string.error_person_load)))
@@ -162,6 +164,7 @@ class PersonViewModel(
          viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             _images.rejectCamera(path).onFailure { error ->
                if (error is CancellationException) throw error
+               currentCoroutineContext().ensureActive()
                if (!_isClosing) showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
             }
          }
@@ -192,6 +195,7 @@ class PersonViewModel(
       // Enter try/finally immediately, even if the scope is cancelled before dispatch.
       viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
          try {
+            currentCoroutineContext().ensureActive()
             delay(_timing.delayWrite)
             val result =
                if (_isNew) _personUcCreate(person)
@@ -224,10 +228,12 @@ class PersonViewModel(
       viewModelScope.launch {
          try {
             _images.discard().getOrThrow()
+            currentCoroutineContext().ensureActive()
             _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             _isClosing = false
             showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
          }

@@ -51,7 +51,7 @@ Der Anwendungsablauf bleibt vertraut; die Persistenzgrenze wird sichtbar gemacht
 
 Die in A4_01 eingeführten Domain-Use-Cases behalten ihre Aufgabe: Personenpersistenz und Bild-Session-Commit beziehungsweise Aufräumen koordinieren. Sie rufen `IPersonRepository` auf; der konkrete Room-Zugriff gehört zur Data-Schicht.
 
-`SeedDatabase` prüft `count()` und fügt Beispielpersonen nur bei leerer Tabelle ein. Damit steht ein Ausgangsdatenbestand bereit, ohne eine vorhandene, nicht leere Tabelle zu überschreiben.
+`SeedDatabase` ist ein suspendierender Room-3-Callback für `onCreate(connection)`. Er verwendet die bereitgestellte Verbindung, vorhandene Converter und gebundene SQL-Parameter innerhalb der Erzeugungstransaktion. Er läuft genau beim erstmaligen Erstellen der Datenbank. Eine vorhandene oder absichtlich geleerte Datenbank wird beim erneuten Öffnen nicht neu befüllt. `MainApplication` öffnet die Datenbank kontrolliert asynchron; `resultOf()` protokolliert Fehler. Die Ausgangsdaten entsprechen A4, ohne bestehende Datenbanken zu überschreiben.
 
 ## DI-Container für den Datenbankzugriff
 
@@ -66,14 +66,26 @@ Koin setzt die Datenbankabhängigkeiten in `di/appModules.kt` zusammen. `MainApp
 
 `single` hält pro Registrierung eine Instanz im Container; `get<T>()` löst eine registrierte Abhängigkeit auf. So entsteht die Kette **AppDatabase → IPersonDao → PersonRepository**, die von den konsumierenden Objekten gemeinsam verwendet wird. Koin ruft die konfigurierten Erzeugungsfunktionen auf und stellt Abhängigkeiten bereit; Room generiert die konkreten Datenbank-/DAO-Implementierungen.
 
-Die `viewModel`-Definitionen übergeben `IPersonReadModel` zur Listenbeobachtung an `PeopleViewModel`. `PersonViewModel` und die Personen-Use-Cases erhalten `IPersonRepository`, um Domain-Entities zu laden und Schreiboperationen auszuführen. Die Empfänger erhalten ihre Abhängigkeiten, statt selbst Datenbanken zu erzeugen. Auch `SeedDatabase` erhält dieselbe registrierte Datenbank und dasselbe DAO; `MainApplication` bezieht es vor dem Seeding mit `get()`. `Shared` stellt weiterhin allgemeine Dienste wie Bildspeicher bereit, während die Datenbankregistrierungen lokal zu A5_01 gehören.
+Die `viewModel`-Definitionen übergeben `IPersonReadModel` zur Listenbeobachtung an `PeopleViewModel`. `PersonViewModel` und die Personen-Use-Cases erhalten `IPersonRepository` aus `domain.repositories`. `SeedDatabase` erhält den Seed-Datenlieferanten und wird am Room-Builder als Erstellungs-Callback registriert. `MainApplication` öffnet die Datenbank über eine Reader-Verbindung, um die Erstellung auszulösen. Shared stellt weiterhin Bildspeicher und ImageEdit bereit.
+
+## Erweiterungen gegenüber A4_01
+
+Vier Modelle haben getrennte Aufgaben: `PersonForm` hält unveränderte Benutzereingaben, `Person` die fachliche Entität, `PersonListItem` die Anzeigeprojektion und `PersonDto` die Persistenzdaten. `PersonInputMapping.kt` bildet zwischen Form und Domain ab; `data/mapping/mappings.kt` enthält die DTO-/Projektions-Mapper. Normalisierung und Validierung erfolgen vor dem Speichern eines unveränderlichen Snapshots. Das Repository lädt Domain-Entities und schreibt; ausschließlich das ReadModel beobachtet die Liste. Die Sortierung nach Nachname und Vorname bleibt eine bewusste A5-Eigenschaft.
+
+Kapitel 5 führt `try/catch/finally`, `getOrThrow()` und `resultOf()` ein. Einmaliges Laden und Speichern verwenden `getOrThrow()`, wenn Result-Fehler und geworfene Exceptions denselben Fehlerpfad haben. Flows verwenden weiterhin `.onSuccess`/`.onFailure`. Cancellation wird weitergeworfen. `finally` ersetzt beim Save-/Image-State die A4-Completion-Handler; `ensureActive()`, `cancelAndJoin()` und `_isClosing` bleiben für Koordination und verspätete Ergebnisse erforderlich. Die A4-Grenze für unerwartete Exceptions wird damit gezielt erweitert.
+
+Bildverarbeitung und UI bleiben vertraut: `ImageEditDelegate` mit `REPLACE` und maximal einem Bild, gemeinsame Session für Delegate und Create-/Update-Use-Case, Persistierung vor Commit und Cleanup erst nach erfolgreichem Delete. Create/Update sind parametrisierte Koin-Factories mit `parametersOf(imageEdit)`; Delete ist eine eigenständige Factory und lädt die aktuelle Person anhand der ID. Picker bleiben komponiert; Save-Overlay, Bildfortschritt, Back-Sperren und Snackbar-Abstände entsprechen A4.
+
+## Tests
+
+Gemeinsame Verhaltensprüfungen decken Cancellation, Retry, Save/Cancel, Discard, Bildaktionen und die gemeinsame Session ab. Navigations- und Galerie-Integrationstests führen die A4-Prüfungen mit Form-/ReadModel-Anpassungen fort. Die Löschbestätigung wird mit dem echten StringProvider in Deutsch und Englisch geprüft. Zusätzliche A5-Tests behandeln Form-Mapping, ReadModel, Repository, DAO-Rückgabewerte, unerwartete Exceptions sowie einmalige Datenbankerstellung, Wiederöffnen geleerter Datenbanken und Rollback. Technische Shared-Bildtests werden nicht dupliziert.
 
 ## Vorgeschlagener Lernpfad
 
 1. **Schema lesen:** Jede Eigenschaft von `PersonDto` einer Spalte zuordnen; Identität über Primary Key, Nullability und Bildpfadreferenz erklären.
 2. **DAO lesen:** Annotationen und SQL-Abfragen den jeweiligen Benutzeroperationen zuordnen.
 3. **Schreiben und Beobachten verfolgen:** Einen Namen ändern und Mapping, Update sowie das neu sortierte Listenergebnis nachvollziehen.
-4. **Persistenz prüfen:** Eine geänderte Person speichern, die App neu starten und die geladenen Werte vergleichen. Die Seed-Bedingung lesen und erklären, warum eine vorhandene, nicht leere Tabelle erhalten bleibt.
+4. **Persistenz prüfen:** Eine geänderte Person speichern, die App neu starten und die geladenen Werte vergleichen. Den Erstellungs-Callback lesen und erklären, warum auch eine absichtlich geleerte Datenbank leer bleibt.
 5. **DI verfolgen:** `startKoin` → `appModule()` → Datenbank → DAO → Repository → ViewModel/Use Case nachvollziehen. Erklären, welche Objekte als `single` registriert sind und warum die Empfänger nicht selbst eine Datenbank erzeugen.
 6. **Grenzen und Fehler untersuchen:** `PersonRepositoryTest` lesen. Ein Fake-DAO prüft dort Fehler-/Erfolgsergebnisse für Update und Delete. Diese Repository-Tests von Tests echter Room-Abfragen unterscheiden.
 

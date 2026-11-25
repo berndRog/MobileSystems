@@ -26,8 +26,7 @@ import de.rogallab.mobile.shared.ui.images.ImageRenderer
 
 @Composable
 fun PersonCard(
-   firstName: String,
-   lastName: String,
+   fullName: String,
    email: String?,
    phone: String?,
    imagePath: String?,
@@ -64,7 +63,7 @@ fun PersonCard(
                .padding(start = 8.dp),
          ) {
             Text(
-               text = "$firstName $lastName",
+               text = fullName,
                style = MaterialTheme.typography.bodyLarge,
             )
             email?.let { value ->
