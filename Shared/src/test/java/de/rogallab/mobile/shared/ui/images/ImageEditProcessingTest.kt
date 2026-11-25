@@ -124,7 +124,7 @@ class ImageEditProcessingTest {
       job.join()
       assertEquals(listOf(original, "/images/a.jpg"), change!!.paths)
       assertFalse("/images/b.jpg" in storage.files)
-      assertEquals(change!!.paths!!.toSet(), storage.files)
+      assertEquals(change.paths!!.toSet(), storage.files)
    }
 
    @Test fun duplicateCameraAndOriginalResults_doNotChangeSelectionOrDeleteFiles() = runTest {
