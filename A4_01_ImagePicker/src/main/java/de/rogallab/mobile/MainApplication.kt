@@ -52,10 +52,6 @@ class MainApplication : Application() {
       val job = appScope.launch {
          seedDatabase.seedPerson()
       }
-      appScope.launch {
-         job.join()   // waits until seeding is finished
-      }
-
    }
 
    companion object {
