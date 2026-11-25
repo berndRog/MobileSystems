@@ -1,11 +1,8 @@
-package de.rogallab.mobile.ui.people
-
-import de.rogallab.mobile.ui.people.create_detail.PersonForm
+package de.rogallab.mobile.ui.people.create_detail
 
 import android.content.Context
 import android.util.Patterns
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 
 /**

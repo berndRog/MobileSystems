@@ -13,7 +13,7 @@ import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
-import de.rogallab.mobile.ui.people.PersonValidator
+import de.rogallab.mobile.ui.people.create_detail.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent

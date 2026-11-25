@@ -14,13 +14,11 @@ import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
 import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
-import de.rogallab.mobile.ui.people.toPersonForm
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
-import de.rogallab.mobile.ui.people.PersonValidator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.advanceUntilIdle

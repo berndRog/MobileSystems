@@ -22,7 +22,7 @@ import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.data.readmodels.PersonReadModel
 import de.rogallab.mobile.domain.readmodels.IPersonReadModel
 import de.rogallab.mobile.shared.domain.IStringProvider
-import de.rogallab.mobile.ui.people.PersonValidator
+import de.rogallab.mobile.ui.people.create_detail.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.list.PeopleEffect

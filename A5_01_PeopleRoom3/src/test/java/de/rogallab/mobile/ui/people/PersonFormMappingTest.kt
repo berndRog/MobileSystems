@@ -2,6 +2,9 @@ package de.rogallab.mobile.ui.people
 
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.ui.people.create_detail.PersonForm
+import de.rogallab.mobile.ui.people.create_detail.normalized
+import de.rogallab.mobile.ui.people.create_detail.toPerson
+import de.rogallab.mobile.ui.people.create_detail.toPersonForm
 import org.junit.Assert.*
 import org.junit.Test
 

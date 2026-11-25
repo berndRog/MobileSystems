@@ -1,8 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
-import de.rogallab.mobile.ui.people.PersonValidator
-import de.rogallab.mobile.ui.people.toPersonForm
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person

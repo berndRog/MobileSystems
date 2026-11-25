@@ -1,7 +1,6 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
-import de.rogallab.mobile.ui.people.PersonValidator
 import android.net.Uri
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider

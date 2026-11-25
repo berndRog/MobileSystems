@@ -6,11 +6,6 @@ import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.entities.Person
-import de.rogallab.mobile.ui.people.PersonValidator
-import de.rogallab.mobile.ui.people.normalized
-import de.rogallab.mobile.ui.people.toNullableInput
-import de.rogallab.mobile.ui.people.toPerson
-import de.rogallab.mobile.ui.people.toPersonForm
 import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate

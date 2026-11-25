@@ -16,7 +16,6 @@ import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.shared.ui.images.ImageEdit
 import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
 import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
-import de.rogallab.mobile.ui.people.PersonValidator
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.flow.first

@@ -1,6 +1,4 @@
-package de.rogallab.mobile.ui.people
-
-import de.rogallab.mobile.ui.people.create_detail.PersonForm
+package de.rogallab.mobile.ui.people.create_detail
 
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
