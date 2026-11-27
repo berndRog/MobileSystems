@@ -1,7 +1,13 @@
 package de.rogallab.mobile.ui.navigation.comp
 
-import de.rogallab.mobile.AppTiming
-import org.koin.compose.koinInject
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,20 +18,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.rememberSnackbarController
 import de.rogallab.mobile.ui.navigation.NavigationAnimations
 import de.rogallab.mobile.ui.navigation.PeopleKey
 import de.rogallab.mobile.ui.navigation.PopReason
+import org.koin.compose.koinInject
 
 private const val TAG = "<-AppNavigation"
 
 @Composable
-fun AppNavigation(timing: AppTiming = koinInject()) {
+fun AppNavigation(
+   timing: AppTiming = koinInject()
+) {
 
    val navigationAnimations = remember(timing.animationDuration) {
       NavigationAnimations(timing.animationDuration)
@@ -33,10 +47,10 @@ fun AppNavigation(timing: AppTiming = koinInject()) {
    val nComp = remember { mutableIntStateOf(1) }
    SideEffect { Alog.c(TAG, "Composition #${nComp.intValue++}") }
 
-   // Reuse the Navigation 3 back stack introduced in the preceding examples.
+   // Creates the standard saveable Navigation 3 back stack.
    val backStack = rememberNavBackStack(PeopleKey)
 
-   // One SnackbarHostState is shared by all destinations.
+   // One SnackbarHostState and one visible host are shared by all destinations.
    val snackbarHostState = remember { SnackbarHostState() }
    // The controller and its CoroutineScope live above NavDisplay. Therefore a
    // Snackbar started by one destination can remain active after navigation.
@@ -44,14 +58,13 @@ fun AppNavigation(timing: AppTiming = koinInject()) {
       snackbarHostState = snackbarHostState,
    )
 
-   // Selects the visible pop animation for Save or Cancel.
+   // Selects the visible remove animation for Save or Cancel.
    var currentPopReason by remember { mutableStateOf(PopReason.Cancel) }
 
    val navEntryProvider = appNavEntryProvider(
       backStack = backStack,
       onMessage = snackbarController::showMessage,
       onError = snackbarController::showError,
-      snackbarHostState = snackbarHostState,
       onConfirmRemove = { message, actionLabel, onAction ->
          snackbarController.showAction(message, actionLabel, onAction)
       },
@@ -62,41 +75,71 @@ fun AppNavigation(timing: AppTiming = koinInject()) {
       onNavigateTo = { destination -> add(destination, backStack) },
    )
 
+   val snackbarBottomPadding = calculateSnackbarBottomPadding(
+      showListFab = backStack.lastOrNull() is PeopleKey,
+   )
+
    // Logs the initial or restored back stack.
    LaunchedEffect(backStack) {
-      logNavigationOperation(
-         operation = "initial",
-         destination = backStack.lastOrNull(),
-         backStack = backStack,
-      )
+      logNavigationOperation("initial", backStack.lastOrNull(), backStack)
    }
 
-   NavDisplay(
-      backStack = backStack,
-
-      // Handles system back navigation as a cancel operation.
-      onBack = {
-         currentPopReason = PopReason.Cancel
-         remove(backStack)
+   Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      snackbarHost = {
+         SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.padding(bottom = snackbarBottomPadding),
+         )
       },
+   ) { innerPadding ->
+      NavDisplay(
+         modifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding),
+         backStack = backStack,
 
-      // Preserves saveable Compose state and ViewModels per NavEntry.
-      entryDecorators = listOf(
-         rememberSaveableStateHolderNavEntryDecorator(
-            rememberSaveableStateHolder()
+         // Handles system back navigation as a cancel operation.
+         onBack = {
+            currentPopReason = PopReason.Cancel
+            remove(backStack)
+         },
+
+         // Preserves saveable Compose state and ViewModels per NavEntry.
+         entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(
+               rememberSaveableStateHolder()
+            ),
+            rememberViewModelStoreNavEntryDecorator(),
          ),
-         rememberViewModelStoreNavEntryDecorator(),
-      ),
 
-      // Navigation behavior remains unchanged from chapter 3.
-      transitionSpec = navigationAnimations.enterTransitionSpec,
-      popTransitionSpec =
-         navigationAnimations.popTransitionSpec(currentPopReason),
-      predictivePopTransitionSpec =
-         navigationAnimations.predictivePopTransitionSpec,
+         // Keeps the visible navigation animations from the previous project.
+         transitionSpec = navigationAnimations.enterTransitionSpec,
+         popTransitionSpec =
+            navigationAnimations.popTransitionSpec(currentPopReason),
+         predictivePopTransitionSpec =
+            navigationAnimations.predictivePopTransitionSpec,
 
-      entryProvider = navEntryProvider,
-   )
+         entryProvider = navEntryProvider,
+      )
+   }
+}
+
+@Composable
+private fun calculateSnackbarBottomPadding(showListFab: Boolean): Dp {
+   val listFabSnackbarClearance = 88.dp // 56 dp FAB + 16 dp edge + 16 dp gap
+
+   // Scaffold already keeps the snackbar above the system bar. Add the larger
+   // of the remaining IME height and the clearance required for the list FAB.
+   val density = LocalDensity.current
+   val systemBarBottom = ScaffoldDefaults.contentWindowInsets.getBottom(density)
+   val imeBottom = WindowInsets.ime.getBottom(density)
+   val fabClearance = with(density) {
+      if (showListFab) listFabSnackbarClearance.roundToPx() else 0
+   }
+   return with(density) {
+      maxOf((imeBottom - systemBarBottom).coerceAtLeast(0), fabClearance).toDp()
+   }
 }
 
 /*
@@ -107,9 +150,12 @@ fun AppNavigation(timing: AppTiming = koinInject()) {
  *   NavKeys den Screens zu, BackStackOperations enthält add/remove und Logging.
  *   Zusätzliche Screen-Aktionen werden als Callback an den Provider übergeben.
  *
- * - A4_01_ImagePicker baut auf Navigation und Swipe-Gesten auf, übernimmt aber
- *   bewusst nicht die zusätzliche Undo-Mechanik. Neu ist in diesem Schritt der
- *   Bild-Lebenszyklus im Person-Feature.
+ * - A5_01_PeopleRoom3 führt Navigation und Bild-Lebenszyklus aus A4_01 fort.
+ *   Neu ist die persistente Room-3-Schicht hinter dem Repository-Vertrag.
+ *
+ * - Ein navigationweit lebender SnackbarHost mit Abstand zu Tastatur und FAB zeigt Meldungen
+ *   auch nach einem Wechsel des Navigation-3-Backstacks weiter an.
+ *   Save und Cancel behalten unterschiedliche Pop-Animationen.
  *
  * - Navigation und Meldungsausgabe bleiben getrennt:
  *
@@ -129,7 +175,8 @@ fun AppNavigation(timing: AppTiming = koinInject()) {
  *   A4_02_ImagePickerUndo benötigt den länger lebenden temporären Removal-State.
  *
  * - Der Person-Screen ergänzt unabhängig davon Gallery/Camera und temporäre
- *   Bilddateien. Save bestätigt die Edit-Session, Cancel verwirft sie.
+ *   Bilddateien. Save bestätigt die Edit-Session, Cancel und System-Back
+ *   verwerfen sie.
  *
  * Lernziele:
  *

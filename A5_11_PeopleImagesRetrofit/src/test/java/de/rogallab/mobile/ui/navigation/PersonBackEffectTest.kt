@@ -7,10 +7,13 @@ import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
 import de.rogallab.mobile.testing.FakeImageFileStorage
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
-import de.rogallab.mobile.ui.people.PersonValidator
+import de.rogallab.mobile.ui.people.create_detail.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonIntent
@@ -36,34 +39,33 @@ class PersonBackEffectTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   private val context =
-      ApplicationProvider.getApplicationContext<android.content.Context>()
+   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
    @Test
-   fun cancel_emitsNavigateBackWithCancelReason() =
-      runTest(mainDispatcherRule.testDispatcher) {
-         val imageFileStorage = FakeImageFileStorage()
-         val repository = FakePersonRepository()
-         val viewModel = PersonViewModel(
-            personId = null,
-            _repository = repository,
-            _stringProvider = stringProvider,
-            _validator = validator,
-            _imageFileStorage = imageFileStorage,
-            _personUcCreate = PersonUcCreate(repository, imageFileStorage),
-            _personUcUpdate = PersonUcUpdate(repository, imageFileStorage),
-            _effectDelegate = EffectDelegate(),
-         )
+   fun cancel_emitsNavigateBackWithCancelReason() = runTest(mainDispatcherRule.testDispatcher) {
+      val imageFileStorage = FakeImageFileStorage()
+      val repository = FakePersonRepository()
+      val imageEdit = ImageEdit(imageFileStorage)
+      val viewModel = PersonViewModel(
+         personId = null,
+         _repository = repository,
+         _stringProvider = stringProvider,
+         _validator = validator,
+         _images = ImageEditDelegate(imageEdit, imageFileStorage, ImageSelectionMode.REPLACE, 1),
+         _personUcCreate = PersonUcCreate(repository, imageEdit, _imageFileStorage = de.rogallab.mobile.testing.FakeImageFileStorage()),
+         _personUcUpdate = PersonUcUpdate(repository, imageEdit, _imageFileStorage = de.rogallab.mobile.testing.FakeImageFileStorage()),
+         _effectDelegate = EffectDelegate(),
+      )
 
-         viewModel.effects.test {
-            viewModel.onIntent(PersonIntent.Cancel)
-            advanceUntilIdle()
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.Cancel)
+         advanceUntilIdle()
 
-            val effect = awaitItem() as PersonEffect.NavigateBack
-            assertEquals(BackReason.Cancel, effect.reason)
-            cancelAndIgnoreRemainingEvents()
-         }
+         val effect = awaitItem() as PersonEffect.NavigateBack
+         assertEquals(BackReason.Cancel, effect.reason)
+         cancelAndIgnoreRemainingEvents()
       }
+   }
 }

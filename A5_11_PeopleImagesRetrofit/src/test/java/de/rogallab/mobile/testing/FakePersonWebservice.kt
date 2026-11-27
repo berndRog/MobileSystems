@@ -14,6 +14,7 @@ class FakePersonWebservice : IPersonWebservice {
    var uploadResult = personDto(imageUrl = IMAGE_URL)
    var deleteImageResult = personDto(imageUrl = null)
    var uploadFailure: Throwable? = null
+   var getAllFailure: Throwable? = null
    var deleteResponse: Response<Unit> = Response.success(Unit)
 
    var createdDto: PersonDto? = null
@@ -22,6 +23,7 @@ class FakePersonWebservice : IPersonWebservice {
 
    override suspend fun getAll(): List<PersonDto> {
       calls += "getAll"
+      getAllFailure?.let { throw it }
       return people
    }
 

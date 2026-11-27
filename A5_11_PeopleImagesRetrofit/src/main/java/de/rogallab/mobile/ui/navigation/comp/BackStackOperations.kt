@@ -10,8 +10,10 @@ internal fun add(
    destination: NavKey,
    backStack: MutableList<NavKey>,
 ) {
+   // put at the end of the list, so that it becomes the current destination.
    backStack.add(destination)
-   logNavigationOperation("push", destination, backStack)
+
+   logNavigationOperation("add", destination, backStack)
 }
 
 // Removes the current destination while preserving the root destination.
@@ -19,14 +21,12 @@ internal fun remove(
    backStack: MutableList<NavKey>,
 ) {
    if (backStack.size > 1) {
+      // remove the last destination, so that the previous one becomes the current destination.
       val removedDestination = backStack.removeLastOrNull()
-      logNavigationOperation("remove", removedDestination, backStack)
+      logNavigationOperation("pop", removedDestination, backStack)
    } else {
       logNavigationOperation(
-         "pop ignored - root remains",
-         backStack.lastOrNull(),
-         backStack,
-      )
+         "pop ignored - root remains", backStack.lastOrNull(), backStack)
    }
 }
 

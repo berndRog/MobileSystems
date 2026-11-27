@@ -5,15 +5,22 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.repositories.IPersonRepository
+import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
 import de.rogallab.mobile.shared.domain.utilities.StringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.images.ImageEdit
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.testing.FakeImageFileStorage
+import de.rogallab.mobile.testing.FakeImageEdit
 import de.rogallab.mobile.testing.FakePersonRepository
 import de.rogallab.mobile.testing.MainDispatcherRule
-import de.rogallab.mobile.ui.people.PersonValidator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -43,17 +50,82 @@ class PersonViewModelImageTest {
    private val validator = PersonValidator(context)
    private val stringProvider = StringProvider(context)
 
-   private fun createViewModel(personId: String? = null) =
-      PersonViewModel(
+   private fun createViewModel(
+      personId: String? = null,
+      source: IPersonRepository = repository,
+      imageStorage: IImageFileStorage = storage,
+      imageEdit: IImageEdit = ImageEdit(imageStorage),
+   ): PersonViewModel {
+      return PersonViewModel(
          personId = personId,
-         _repository = repository,
+         _repository = source,
          _stringProvider = stringProvider,
          _validator = validator,
-         _imageFileStorage = storage,
-         _personUcCreate = PersonUcCreate(repository, storage),
-         _personUcUpdate = PersonUcUpdate(repository, storage),
+         _images = ImageEditDelegate(imageEdit, imageStorage, ImageSelectionMode.REPLACE, 1),
+         _personUcCreate = PersonUcCreate(source, imageEdit, _imageFileStorage = de.rogallab.mobile.testing.FakeImageFileStorage()),
+         _personUcUpdate = PersonUcUpdate(source, imageEdit, _imageFileStorage = de.rogallab.mobile.testing.FakeImageFileStorage()),
          _effectDelegate = EffectDelegate(),
       )
+   }
+
+   @Test
+   fun failedLoad_staysVisibleUntilRetry() = runTest(mainDispatcherRule.testDispatcher) {
+      repository.findResult = Result.failure(IllegalStateException("offline"))
+      val viewModel = createViewModel("p1")
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.Failed)
+      assertFalse(viewModel.stateFlow.value.isLoading)
+
+      val person = Person(firstName = "Ada", lastName = "Lovelace", id = "p1")
+      repository.findResult = Result.success(person)
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertNull(viewModel.stateFlow.value.loadFailure)
+      assertEquals(person.toPersonForm(), viewModel.stateFlow.value.form)
+   }
+
+   @Test
+   fun thrownLoad_setsRetryableFailureAndReleasesLoading() = runTest(mainDispatcherRule.testDispatcher) {
+      var throwOnFind = true
+      val source = object : IPersonRepository by repository {
+         override suspend fun findById(id: String): Result<Person?> {
+            if (throwOnFind) throw IllegalStateException("unexpected load failure")
+            return Result.success(Person(firstName = "Ada", lastName = "Lovelace", id = id))
+         }
+      }
+      val viewModel = createViewModel("p1", source)
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.Failed)
+      assertFalse(viewModel.stateFlow.value.isLoading)
+
+      throwOnFind = false
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertNull(viewModel.stateFlow.value.loadFailure)
+      assertEquals("Ada", viewModel.stateFlow.value.form.firstName)
+   }
+
+   @Test
+   fun cancelledLoad_doesNotPublishFailure() = runTest(mainDispatcherRule.testDispatcher) {
+      val source = object : IPersonRepository by repository {
+         override suspend fun findById(id: String): Result<Person?> =
+            throw CancellationException("load cancelled")
+      }
+      val viewModel = createViewModel("p1", source)
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.isLoading)
+      assertNull(viewModel.stateFlow.value.loadFailure)
+   }
+
+   @Test
+   fun missingPerson_showsPersistentNotFound() = runTest(mainDispatcherRule.testDispatcher) {
+      val viewModel = createViewModel("missing")
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.NotFound)
+      viewModel.onIntent(PersonIntent.RetryLoad)
+      advanceUntilIdle()
+      assertTrue(viewModel.stateFlow.value.loadFailure is PersonLoadFailure.NotFound)
+   }
 
    @Test
    fun galleryImageSelected_copiesImageAndUpdatesState() = runTest(mainDispatcherRule.testDispatcher) {
@@ -64,7 +136,7 @@ class PersonViewModelImageTest {
       advanceUntilIdle()
 
       assertEquals(listOf(sourceUri), storage.copiedUris)
-      assertEquals("/images/copied.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/copied.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -77,9 +149,26 @@ class PersonViewModelImageTest {
          viewModel.onIntent(PersonIntent.GalleryImageSelected(sourceUri))
          advanceUntilIdle()
          assertEquals(listOf(sourceUri), storage.copiedUris)
-         assertNull(viewModel.stateFlow.value.person.imagePath)
+         assertNull(viewModel.stateFlow.value.form.imagePath)
          assertTrue(awaitItem() is PersonEffect.ShowError)
          cancelAndIgnoreRemainingEvents()
+      }
+   }
+
+   @Test
+   fun thrownGalleryCopy_emitsShowErrorAndKeepsState() = runTest(mainDispatcherRule.testDispatcher) {
+      val imageStorage = object : IImageFileStorage by storage {
+         override suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String> =
+            throw IllegalStateException("unexpected copy failure")
+      }
+      val viewModel = createViewModel(imageStorage = imageStorage)
+
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/image/1")))
+         advanceUntilIdle()
+         assertNull(viewModel.stateFlow.value.form.imagePath)
+         assertTrue(awaitItem() is PersonEffect.ShowError)
+         expectNoEvents()
       }
    }
 
@@ -88,7 +177,7 @@ class PersonViewModelImageTest {
       val viewModel = createViewModel()
       viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/new.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -99,7 +188,7 @@ class PersonViewModelImageTest {
       viewModel.onIntent(PersonIntent.CameraImageTaken("/images/two.jpg"))
       advanceUntilIdle()
       assertTrue("/images/one.jpg" in storage.deletedPaths)
-      assertEquals("/images/two.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/two.jpg", viewModel.stateFlow.value.form.imagePath)
    }
 
    @Test
@@ -119,38 +208,23 @@ class PersonViewModelImageTest {
    }
 
    @Test
-   fun saveReplacement_deletesLocalTemporaryButNeverServerUrl() = runTest(mainDispatcherRule.testDispatcher) {
-      val originalUrl =
-         "http://127.0.0.1:5081/peopleapi/v1/images/original.jpg"
-      val original = Person(
-         firstName = "Ada",
-         lastName = "Lovelace",
-         imagePath = originalUrl,
-         id = "p1",
-      )
+   fun saveReplacement_deletesPersistedOriginalOnlyAfterSuccessfulSave() = runTest(mainDispatcherRule.testDispatcher) {
+      val original = Person(firstName = "Ada",lastName = "Lovelace",imagePath = "/images/original.jpg",id = "p1")
       repository.findResult = Result.success(original)
       val viewModel = createViewModel("p1")
       advanceUntilIdle()
       viewModel.onIntent(PersonIntent.CameraImageTaken("/images/new.jpg"))
       advanceUntilIdle()
-      assertFalse(originalUrl in storage.deletedPaths)
+      assertFalse("/images/original.jpg" in storage.deletedPaths)
       viewModel.onIntent(PersonIntent.Save)
       advanceUntilIdle()
-      assertFalse(originalUrl in storage.deletedPaths)
-      assertTrue("/images/new.jpg" in storage.deletedPaths)
+      assertTrue("/images/original.jpg" in storage.deletedPaths)
       assertEquals(1, repository.updated.size)
    }
 
    @Test
-   fun failedSave_keepsServerUrlAndLocalReplacementForRetry() = runTest(mainDispatcherRule.testDispatcher) {
-      val originalUrl =
-         "http://127.0.0.1:5081/peopleapi/v1/images/original.jpg"
-      val original = Person(
-         firstName = "Ada",
-         lastName = "Lovelace",
-         imagePath = originalUrl,
-         id = "p1",
-      )
+   fun failedSave_keepsPersistedOriginalAndReplacementPending() = runTest(mainDispatcherRule.testDispatcher) {
+      val original = Person(firstName = "Ada",lastName = "Lovelace",imagePath = "/images/original.jpg",id = "p1")
       repository.findResult = Result.success(original)
       repository.updateResult = Result.failure(IllegalStateException("write failed"))
       val viewModel = createViewModel("p1")
@@ -159,33 +233,68 @@ class PersonViewModelImageTest {
       advanceUntilIdle()
       viewModel.onIntent(PersonIntent.Save)
       advanceUntilIdle()
-      assertFalse(originalUrl in storage.deletedPaths)
+      assertFalse("/images/original.jpg" in storage.deletedPaths)
       assertFalse("/images/new.jpg" in storage.deletedPaths)
-      assertEquals("/images/new.jpg", viewModel.stateFlow.value.person.imagePath)
+      assertEquals("/images/new.jpg", viewModel.stateFlow.value.form.imagePath)
       viewModel.onIntent(PersonIntent.Cancel)
       advanceUntilIdle()
       assertTrue("/images/new.jpg" in storage.deletedPaths)
    }
 
    @Test
-   fun cancelWithServerImage_doesNotDeleteRemoteUrl() = runTest(mainDispatcherRule.testDispatcher) {
-      val originalUrl =
-         "http://127.0.0.1:5081/peopleapi/v1/images/original.jpg"
-      repository.findResult = Result.success(
-         Person(
-            firstName = "Ada",
-            lastName = "Lovelace",
-            imagePath = originalUrl,
-            id = "p1",
-         )
-      )
-      val viewModel = createViewModel("p1")
-      advanceUntilIdle()
+   fun thrownSave_emitsErrorAndReleasesSaving() = runTest(mainDispatcherRule.testDispatcher) {
+      val source = object : IPersonRepository by repository {
+         override suspend fun create(person: Person): Result<Unit> =
+            throw IllegalStateException("unexpected write failure")
+      }
+      val viewModel = createViewModel(source = source)
+      viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+      viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
 
-      viewModel.onIntent(PersonIntent.Cancel)
-      advanceUntilIdle()
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.Save)
+         assertTrue(viewModel.stateFlow.value.isSaving)
+         advanceUntilIdle()
+         assertFalse(viewModel.stateFlow.value.isSaving)
+         assertTrue(awaitItem() is PersonEffect.ShowError)
+         expectNoEvents()
+      }
+   }
 
-      assertFalse(originalUrl in storage.deletedPaths)
+   @Test
+   fun cancelledSave_releasesSavingWithoutError() = runTest(mainDispatcherRule.testDispatcher) {
+      val source = object : IPersonRepository by repository {
+         override suspend fun create(person: Person): Result<Unit> =
+            throw CancellationException("save cancelled")
+      }
+      val viewModel = createViewModel(source = source)
+      viewModel.onIntent(PersonIntent.FirstNameChange("Ada"))
+      viewModel.onIntent(PersonIntent.LastNameChange("Lovelace"))
+
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.Save)
+         assertTrue(viewModel.stateFlow.value.isSaving)
+         advanceUntilIdle()
+         assertFalse(viewModel.stateFlow.value.isSaving)
+         expectNoEvents()
+      }
+   }
+
+   @Test
+   fun failedCancel_staysOnFormForCleanupRetry() = runTest(mainDispatcherRule.testDispatcher) {
+      val imageEdit = object : IImageEdit by FakeImageEdit() {
+         override suspend fun discard() {
+            throw IllegalStateException("cleanup failed")
+         }
+      }
+      val viewModel = createViewModel(imageEdit = imageEdit)
+
+      viewModel.effects.test {
+         viewModel.onIntent(PersonIntent.Cancel)
+         advanceUntilIdle()
+         assertTrue(awaitItem() is PersonEffect.ShowError)
+         expectNoEvents()
+      }
    }
 
    @Test

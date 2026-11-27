@@ -1,14 +1,16 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlin.coroutines.cancellation.CancellationException
+import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 
 class PersonUcCreate(
    private val _repository: IPersonRepository,
+   private val _imageEdit: IImageEdit,
    private val _imageFileStorage: IImageFileStorage,
 ) {
 
@@ -19,6 +21,7 @@ class PersonUcCreate(
 
             // Remove local transport state only after all server requests succeed.
             deleteLocalImageQuietly(person.imagePath)
+            _imageEdit.commit()
          },
          onFinally = {}
       )

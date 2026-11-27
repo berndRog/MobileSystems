@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.navigation
 
 import app.cash.turbine.test
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.domain.readmodels.PersonListItem
+import kotlinx.coroutines.flow.flowOf
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
 import de.rogallab.mobile.testing.FakeImageFileStorage
@@ -24,12 +27,18 @@ class NavigationEffectTest {
    @get:Rule
    val mainDispatcherRule = MainDispatcherRule()
 
-   // Creates the ViewModel with the dependencies required by A4_01.
+   // Creates the ViewModel with the dependencies required by A5_01.
    private fun createViewModel(): PeopleViewModel {
       val repository = FakePersonRepository()
+
       return PeopleViewModel(
-         _repository = repository,
-         _personUcDelete = PersonUcDelete(repository, FakeImageFileStorage()),
+         _readModel = object : IPersonReadModel {
+            override fun observeListItems() = flowOf(Result.success(emptyList<PersonListItem>()))
+         },
+         _personUcDelete = PersonUcDelete(
+            repository,
+            FakeImageFileStorage(),
+         ),
          _stringProvider = FakeStringProvider(),
          _effectDelegate = EffectDelegate(),
       )

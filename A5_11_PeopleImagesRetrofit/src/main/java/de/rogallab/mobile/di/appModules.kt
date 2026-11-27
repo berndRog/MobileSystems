@@ -1,36 +1,62 @@
 package de.rogallab.mobile.di
 
-import de.rogallab.mobile.AppTiming
+import retrofit2.Retrofit
 import de.rogallab.mobile.data.remote.IPersonWebservice
+import de.rogallab.mobile.data.remote.isRemoteImageUrl
+import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
+import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.data.remote.Seed
 import de.rogallab.mobile.data.remote.SeedApi
 import de.rogallab.mobile.data.repositories.PersonRepository
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
-import de.rogallab.mobile.shared.data.network.NetworkExceptionMapper
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
-import de.rogallab.mobile.ui.people.PersonValidator
+import de.rogallab.mobile.shared.domain.images.IImageEdit
+import de.rogallab.mobile.shared.domain.images.ImageSelectionMode
+import de.rogallab.mobile.shared.ui.images.ImageEditDelegate
+import de.rogallab.mobile.data.readmodels.PersonReadModel
+import de.rogallab.mobile.domain.readmodels.IPersonReadModel
+import de.rogallab.mobile.shared.domain.IStringProvider
+import de.rogallab.mobile.ui.people.create_detail.PersonValidator
 import de.rogallab.mobile.ui.people.create_detail.PersonEffect
 import de.rogallab.mobile.ui.people.create_detail.PersonViewModel
 import de.rogallab.mobile.ui.people.list.PeopleEffect
 import de.rogallab.mobile.ui.people.list.PeopleViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import retrofit2.Retrofit
+import kotlin.coroutines.ContinuationInterceptor
+import kotlin.coroutines.CoroutineContext
 
-fun appModule(): Module = module {
-
-   single { AppTiming() }
+fun appModule(
+   dispatcherIo: CoroutineContext = Dispatchers.IO
+): Module = module {
 
    val tag = "<-appModule"
 
-   Alog.i(tag, "single    -> IPersonWebservice")
+   Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
+   single { AppTiming() }
+
+   Alog.i(tag, "single    -> CoroutineContext mit Dispatcher.IO")
+   single<CoroutineContext>(named("dispatcherIo")) {
+      dispatcherIo
+   }
+   single<CoroutineDispatcher>(named("dispatcherIo")) {
+      // Reuse the injected dispatcher for Retrofit list observation.
+      requireNotNull(
+         get<CoroutineContext>(named("dispatcherIo"))[ContinuationInterceptor] as? CoroutineDispatcher
+      ) { "dispatcherIo must contain a CoroutineDispatcher" }
+   }
+
    single<IPersonWebservice> {
       get<Retrofit>().create(IPersonWebservice::class.java)
    }
@@ -41,22 +67,23 @@ fun appModule(): Module = module {
          _imageFileStorage = get<IImageFileStorage>(),
       )
    }
-
-   Alog.i(tag, "single    -> SeedApi")
    single<SeedApi> {
-      SeedApi(
-         _personWeb = get<IPersonWebservice>(),
-         _seed = get<Seed>(),
+      SeedApi(_personWeb = get(), _seed = get())
+   }
+
+   Alog.i(tag, "single    -> PersonReadModel: IPersonReadModel")
+   single<IPersonReadModel> {
+      PersonReadModel(
+         _repository = get<PersonRepository>(),
+         _dispatcherIo = get(named("dispatcherIo")),
       )
    }
 
    Alog.i(tag, "single    -> PersonRepository: IPersonRepository")
-   single<IPersonRepository> {
-      PersonRepository(
-         _webservice = get<IPersonWebservice>(),
-         _networkExceptionMapper = get<NetworkExceptionMapper>(),
-      )
+   single<PersonRepository> {
+      PersonRepository(_webservice = get(), _networkExceptionMapper = get<NetworkExceptionMapper>())
    }
+   single<IPersonRepository> { get<PersonRepository>() }
 
    Alog.i(tag, "single    -> PersonValidator")
    single<PersonValidator> {
@@ -65,79 +92,79 @@ fun appModule(): Module = module {
       )
    }
 
+   // Server URLs are owned by the REST API, never by local file storage.
+   factory<IImageEdit> {
+      val storage = get<IImageFileStorage>()
+      de.rogallab.mobile.shared.ui.images.ImageEdit(
+         object : IImageFileStorage by storage {
+            override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
+               if (imagePath?.isRemoteImageUrl() == true) Result.success(Unit)
+               else storage.deleteImageFromAppStorage(imagePath)
+         }
+      )
+   }
+
+   Alog.i(tag, "factory   -> PersonUcCreate")
+   factory<PersonUcCreate> { parameters ->
+      PersonUcCreate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = parameters.get<IImageEdit>(),
+         _imageFileStorage = get<IImageFileStorage>(),
+      )
+   }
+
+   Alog.i(tag, "factory   -> PersonUcUpdate")
+   factory<PersonUcUpdate> { parameters ->
+      PersonUcUpdate(
+         _repository = get<IPersonRepository>(),
+         _imageEdit = parameters.get<IImageEdit>(),
+         _imageFileStorage = get<IImageFileStorage>(),
+      )
+   }
+
    Alog.i(tag, "viewModel -> PersonViewModel")
    viewModel { parameters ->
-      val repository = get<IPersonRepository>()
-      val imageFileStorage = get<IImageFileStorage>()
+      // Both save use cases must share the ViewModel's image edit session.
+      val imageEdit = get<IImageEdit>()
 
       PersonViewModel(
          personId = parameters.getOrNull<String>(),
-         _repository = repository,
-         _stringProvider = get(),
+         _repository = get<IPersonRepository>(),
+         _stringProvider = get<IStringProvider>(),
          _validator = get<PersonValidator>(),
-         _imageFileStorage = imageFileStorage,
-         _personUcCreate = PersonUcCreate(repository, imageFileStorage),
-         _personUcUpdate = PersonUcUpdate(repository, imageFileStorage),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+         _images = ImageEditDelegate(
+            session = imageEdit,
+            storage = get<IImageFileStorage>(),
+            mode = ImageSelectionMode.REPLACE,
+            maxImages = 1,
+         ),
+         _personUcCreate = get<PersonUcCreate> {
+            parametersOf(imageEdit)
+         },
+         _personUcUpdate = get<PersonUcUpdate> {
+            parametersOf(imageEdit)
+         },
+         _timing = get<AppTiming>(),
+         _effectDelegate = get<EffectDelegate<PersonEffect>>(personEffectQualifier),
+      )
+   }
+
+   Alog.i(tag, "factory   -> PersonUcDelete")
+   factory<PersonUcDelete> {
+      PersonUcDelete(
+         _repository = get<IPersonRepository>(),
+         _imageFileStorage = get<IImageFileStorage>()
       )
    }
 
    Alog.i(tag, "viewModel -> PeopleViewModel")
    viewModel {
-      val repository = get<IPersonRepository>()
-
       PeopleViewModel(
-         _repository = repository,
-         _personUcDelete = PersonUcDelete(
-            _repository = repository,
-            _imageFileStorage = get<IImageFileStorage>(),
-         ),
-         _stringProvider = get(),
-         _timing = get(),
-         _effectDelegate =
-            get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
+         _readModel = get<IPersonReadModel>(),
+         _personUcDelete = get<PersonUcDelete>(),
+         _stringProvider = get<IStringProvider>(),
+         _timing = get<AppTiming>(),
+         _effectDelegate = get<EffectDelegate<PeopleEffect>>(peopleEffectQualifier),
       )
    }
 }
-
-/*
- * Didaktik und Lernziele
- *
- * - A5_11_PeopleImagesRetrofit behält denselben Repository-Port wie A5_10.
- *   Personendaten verwenden weiterhin den bereits bekannten JSON-Vertrag.
- *
- * - Die generische Netzwerk-Infrastruktur mit OkHttp, Json und Retrofit liegt in
- *   Shared. Dieses Modul registriert nur die projektspezifische Schnittstelle
- *   IPersonWebservice und erzeugt daraus den Client für PeopleImagesApi.
- *   Auch der NetworkExceptionMapper kommt aus Shared und wird dem
- *   projektspezifischen Repository injiziert.
- *
- * - Seed und SeedApi demonstrieren zusätzlich eine Initialisierung über REST:
- *   countAll() prüft, ob der Server leer ist. Danach werden Personendaten als
- *   JSON und Bilddateien jeweils über den getrennten Multipart-Endpunkt gesendet.
- *
- * - Die Abhängigkeitskette lautet damit:
- *
- *      PeopleViewModel / PersonViewModel
- *          -> IPersonRepository
- *          -> PersonRepository
- *          -> IPersonWebservice
- *          -> Retrofit
- *          -> OkHttp
- *          -> PeopleImagesApi
- *
- * - IImageFileStorage verwaltet lokale Galerie-, Kamera- und Seed-Dateien nur bis
- *   zum erfolgreichen Upload. Persistente Bilder und deren URLs gehören danach
- *   vollständig PeopleImagesApi.
- *
- * - Die drei Person-Use-Cases werden hier mit Repository und Dateispeicher
- *   zusammengesetzt. Create und Update räumen lokale Transportdateien erst nach
- *   Erfolg auf; Delete respektiert die Zuständigkeit des Servers für Bild-URLs.
- *
- * Lernziele:
- *
- * - Use Cases als explizite Anwendungsgrenze per Constructor Injection einsetzen.
- * - Client- und Serverressourcen bereits im Composition Root klar zuordnen.
- */

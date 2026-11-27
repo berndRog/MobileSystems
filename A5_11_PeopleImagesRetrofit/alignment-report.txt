@@ -1,0 +1,407 @@
+A5_11 an A5_01 angeglichen
+Stand: 27.11.2026
+
+ERGEBNIS
+
+Alle 26 Kotlin-Dateien unter src/main/java/de/rogallab/mobile/ui sind
+quelltextidentisch mit A5_01_PeopleRoom3, einschließlich Kommentaren,
+Methodennamen, Methodenreihenfolge, Imports und Navigation.
+Geprüft durch git diff --no-index zwischen den vollständigen ui-Verzeichnissen
+(Exitcode 0, keine Ausgabe).
+
+Übertragen:
+- PersonListItem, IPersonReadModel, PeopleUiState.listItems und die vollständige
+  Listen-UI; Person wird dort nicht mehr als Anzeigeobjekt verwendet.
+- PersonForm, toPersonForm(), toPerson(), normalized() und PersonValidator.
+  Die Referenz nennt die Mapping-Datei PersonInputMapping.kt und die Projektion
+  toPersonListItem(); diese tatsächlichen Referenznamen wurden übernommen.
+- Unveränderte explizite Change-Methoden, Normalisierung erst beim Speichern.
+- Beide ViewModels einschließlich Result-/Exception-/Cancellation-Verarbeitung,
+  Retry, cancelAndJoin, Ladefehler/NotFound, unveränderlichem Save-Snapshot,
+  Statusflags und _isClosing.
+- Gemeinsamer ImageEditDelegate/ImageChange sowie Kamera-/Galerie-Handler,
+  Sperren und Save-/Cancel-Koordination aus der Referenz und dem unveränderten
+  Shared-Modul.
+- Konsolidierte Effects, Adapter, Screens, Cards, Navigation und Snackbar-
+  Koordination.
+- Referenztests für Mapping, Ladefehler, konkurrierende Beobachtungsjobs,
+  Cancellation, Validierung, Save/Delete, Bildkoordination, Effects und DI.
+- Instrumented Tests für Navigation und echten Galerie-Dateiimport.
+
+VERBLEIBENDE UI-UNTERSCHIEDE (VOLLSTÄNDIG)
+
+Unter ui/: keine.
+Die beiden strings.xml entsprechen ebenfalls der Referenz, mit genau einer
+beabsichtigten Abweichung je Sprachdatei:
+  app_name = "A5_11 PeopleImagesRetrofit" statt "A5_01 PeopleRoom3".
+Es gibt keine REST-Sonderbehandlung in einem ViewModel, Adapter oder Screen.
+
+VERBLEIBENDE DOMAIN-UNTERSCHIEDE (VOLLSTÄNDIG)
+
+Person, PersonListItem, IPersonReadModel und IPersonRepository stimmen mit der
+Referenz überein, einschließlich Package-Struktur. observeAll() ist kein Teil
+des fachlichen Repository-Interfaces mehr.
+
+1. domain/usecases/PersonUcCreate.kt:
+   Zusätzlicher IImageFileStorage-Parameter und deleteLocalImageQuietly().
+   Nach vollständigem HTTP-/Upload-Erfolg wird die lokale Transportdatei
+   bestmöglich gelöscht, anschließend die gemeinsame IImageEdit-Session
+   committed. Bei Repository-/Upload-Fehlern bleiben Datei und Session erhalten.
+   Weitere Unterschiede sind die dazugehörigen Imports und Erläuterungen.
+2. domain/usecases/PersonUcUpdate.kt:
+   Entsprechende zusätzliche Transportdatei-Bereinigung vor dem Session-Commit.
+   HTTP(S)-Referenzen werden niemals lokal gelöscht. Imports und Erläuterungen
+   beschreiben die REST-Koordination.
+3. domain/usecases/PersonUcDelete.kt:
+   Derselbe id-basierte Aufruf wie in der Referenz lädt zuerst die aktuelle
+   Person. Die lokale Bereinigung wird ausschließlich für lokale Pfade
+   ausgeführt. Persistente Serverbilder löscht die bestehende REST-API zusammen
+   mit der Person. Dazu bleiben pfadbezogene Imports/Kommentare erforderlich.
+4. domain/usecases/ImagePathExtensions.kt:
+   Zusätzliche, bestehende REST-spezifische Unterscheidung lokaler Pfade und
+   HTTP(S)-URLs. In A5_01 nicht erforderlich.
+
+Keine weiteren Domain-Dateien oder fachlichen Schnittstellen weichen ab.
+
+TECHNISCH NOTWENDIGE DATA-/DI-ABWEICHUNGEN
+
+- Retrofit-Service, Netzwerk-DTOs, JSON-Vertrag und Multipart-/Bildendpunkte
+  bleiben unverändert. Keine Room-Abhängigkeit wurde hinzugefügt.
+- PersonRepository behält den bestehenden In-Memory-StateFlow des bekannten
+  Serverzustands. Ein initiales GET lädt die Liste; erfolgreiche Create-/Update-
+  Antworten ersetzen/ergänzen Personen, erfolgreicher Delete entfernt sie.
+  observeAll() bleibt ausschließlich eine konkrete Data-Schnittstelle.
+- PersonReadModel beobachtet diesen Zustand und erzeugt in der Data-Schicht
+  PersonListItem-Projektionen. Anders als Room wird kein DAO-Flow beobachtet;
+  die Projektion entsteht aus dem bereits gemappten Serverzustand des
+  Repository. Die UI sieht ausschließlich IPersonReadModel.
+- flowOn verwendet den injizierten IO-Dispatcher. Fehler werden als Result
+  weitergegeben; Cancellation wird nicht in einen fachlichen Fehler umgewandelt.
+  Bestehende HTTP-404-Behandlung und NetworkExceptionMapper bleiben erhalten.
+- Upload-Rollback bei fehlgeschlagenem Create, getrennte Bildänderung bei Update
+  und serverseitige Bildlöschung bleiben erhalten. Lokale Dateien bleiben bei
+  fehlgeschlagenem Upload für einen erneuten Save verfügbar.
+- Koin bindet Repository und ReadModel an dieselbe konkrete Repository-Instanz.
+  Beide Save-Use-Cases und der Delegate teilen genau eine ImageEdit-Session
+  pro Editor, wie in der Referenz.
+- Die REST-spezifische IImageEdit-Bindung verwendet die vorhandene Shared-
+  Implementierung mit einer lokalen Storage-Delegation, die Server-URLs von
+  Dateilöschungen ausschließt. Keine neue generische Schnittstelle/Klasse.
+- MainApplication lädt das App-Modul nach dem Shared-Bildmodul, damit die
+  REST-spezifische Session-Bindung wirksam ist.
+- Remote Änderungen durch andere Clients werden ohne erneutes GET nicht
+  automatisch gepusht; eine solche Serverfunktion gehört nicht zum bestehenden
+  REST-Vertrag. Änderungen dieses Clients werden laufend beobachtet.
+
+TESTS UND VERIFIKATION
+
+Erfolgreich:
+  ./gradlew assembleDebug test compileDebugAndroidTestKotlin --console=plain
+  BUILD SUCCESSFUL
+  App: 111 lokale Tests bestanden.
+  Der test-Sammelauftrag schließt auch :Shared:test ein.
+  Die verfügbare Task-Liste enthält ausschließlich Debug-Unit-Test-Varianten;
+  ein testReleaseUnitTest-Task ist in diesem Projekt nicht vorhanden.
+  Beide compileDebugAndroidTestKotlin-Tasks (App und Shared) erfolgreich.
+
+Instrumented Tests wurden kompiliert, nicht auf einem Gerät ausgeführt.
+
+Neue Retrofit-ReadModel-Tests prüfen Projektion/Serverbildpfad, Create/Update/
+Delete am selben Collector, fehlgeschlagene Writes, HTTP-/Netzwerkfehler,
+erneutes Laden und Cancellation.
+Die vorhandenen HTTP-/Multipart-/Rollback-Tests bleiben erhalten.
+Die drei REST-spezifischen ViewModel-Bildtests wurden in
+PersonViewModelRemoteImageTest übernommen und laufen über die produktive
+REST-DI-Bindung. PersonUseCasesTest erhält die Transportdatei-Tests;
+PersonUseCasesReferenceTest ergänzt die Session-/Lookup-Verträge der Referenz.
+Flow-Cancellation wird nach Typ und Meldung geprüft, da flowOn bei der
+Stacktrace-Wiederherstellung eine Exception-Kopie erstellen kann.
+
+git diff --check: abschließend ohne Fehler geprüft.
+Referenz, Shared und build-logic: keine Quelländerungen.
+Vorhandene lokale Änderungen in anderen Projekten bleiben erhalten.
+Keine Commits; keine Änderungen im Git-Index vorgemerkt.
+
+NEUE, GEÄNDERTE UND ENTFERNTE DATEIEN
+
+M = geändert, D = entfernt; Zeilen ohne Status = neu.
+Die neuen Package-Dateien ersetzen die unter D aufgeführten alten Dateien.
+Zusätzlich neu: alignment-report.txt (dieser Bericht).
+
+M	src/main/java/de/rogallab/mobile/MainApplication.kt
+M	src/main/java/de/rogallab/mobile/data/mapping/mappings.kt
+M	src/main/java/de/rogallab/mobile/data/repositories/PersonRepository.kt
+M	src/main/java/de/rogallab/mobile/di/appModules.kt
+D	src/main/java/de/rogallab/mobile/domain/IPersonRepository.kt
+M	src/main/java/de/rogallab/mobile/domain/entities/Person.kt
+M	src/main/java/de/rogallab/mobile/domain/usecases/PersonUcCreate.kt
+M	src/main/java/de/rogallab/mobile/domain/usecases/PersonUcDelete.kt
+M	src/main/java/de/rogallab/mobile/domain/usecases/PersonUcUpdate.kt
+M	src/main/java/de/rogallab/mobile/ui/navigation/NavigationAnimations.kt
+M	src/main/java/de/rogallab/mobile/ui/navigation/PopReason.kt
+M	src/main/java/de/rogallab/mobile/ui/navigation/comp/AppNavEntryProvider.kt
+M	src/main/java/de/rogallab/mobile/ui/navigation/comp/AppNavigation.kt
+M	src/main/java/de/rogallab/mobile/ui/navigation/comp/BackStackOperations.kt
+D	src/main/java/de/rogallab/mobile/ui/people/PersonFormMapping.kt
+D	src/main/java/de/rogallab/mobile/ui/people/PersonValidator.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonEffect.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonIntent.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonUiState.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModel.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/comp/PersonAdapter.kt
+M	src/main/java/de/rogallab/mobile/ui/people/create_detail/comp/PersonScreen.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/PeopleIntent.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/PeopleUiState.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/PeopleViewModel.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/comp/PeopleAdapter.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/comp/PeopleScreen.kt
+M	src/main/java/de/rogallab/mobile/ui/people/list/comp/PersonCard.kt
+M	src/main/res/values-de-rDE/strings.xml
+M	src/main/res/values/strings.xml
+M	src/test/java/de/rogallab/mobile/domain/usecases/PersonUseCasesTest.kt
+M	src/test/java/de/rogallab/mobile/testing/FakePersonRepository.kt
+M	src/test/java/de/rogallab/mobile/testing/FakePersonWebservice.kt
+M	src/test/java/de/rogallab/mobile/ui/navigation/NavigationEffectTest.kt
+M	src/test/java/de/rogallab/mobile/ui/navigation/PersonBackEffectTest.kt
+M	src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelImageTest.kt
+M	src/test/java/de/rogallab/mobile/ui/people/list/PeopleViewModelSwipeTest.kt
+src/androidTest/java/de/rogallab/mobile/ui/navigation/AppNavigationTest.kt
+src/androidTest/java/de/rogallab/mobile/ui/people/create_detail/GalleryImageIntegrationTest.kt
+src/main/java/de/rogallab/mobile/data/readmodels/PersonReadModel.kt
+src/main/java/de/rogallab/mobile/domain/readmodels/IPersonReadModel.kt
+src/main/java/de/rogallab/mobile/domain/readmodels/PersonListItem.kt
+src/main/java/de/rogallab/mobile/domain/repositories/IPersonRepository.kt
+src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonForm.kt
+src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonInputMapping.kt
+src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonLoadFailure.kt
+src/main/java/de/rogallab/mobile/ui/people/create_detail/PersonValidator.kt
+src/test/java/de/rogallab/mobile/data/readmodels/PersonReadModelTest.kt
+src/test/java/de/rogallab/mobile/domain/usecases/PersonUseCasesReferenceTest.kt
+src/test/java/de/rogallab/mobile/testing/FakeImageEdit.kt
+src/test/java/de/rogallab/mobile/testing/ObservationProbe.kt
+src/test/java/de/rogallab/mobile/ui/people/PersonFormMappingTest.kt
+src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonDependencyInjectionTest.kt
+src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelCoordinationTest.kt
+src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelRemoteImageTest.kt
+src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelTest.kt
+src/test/java/de/rogallab/mobile/ui/people/list/PeopleConfirmationStringTest.kt
+src/test/java/de/rogallab/mobile/ui/people/list/PeopleViewModelLoadTest.kt
+src/test/java/de/rogallab/mobile/ui/people/list/SnackbarDeleteConfirmationTest.kt
+
+SYSTEMATISCHE BESTANDSAUFNAHME VOR DER ÜBERTRAGUNG
+
+Für jede Kotlin-Datei wurden Existenz und vollständiger Quelltext verglichen.
+Bei Abweichungen stehen nachfolgend die ursprünglich vorhandenen
+Funktionsdeklarationen beider Seiten. Gleiche Methodennamen bedeuten dabei
+nicht gleiche Implementierung: insbesondere Coroutine-, Formular-, Listen-,
+Bild- und Navigation-Rümpfe wurden aus der Referenz übernommen.
+
+Einordnung:
+- Unterschiede unter UI und in UI-Tests: veraltete Implementierung; angeglichen.
+- Domain-Entity/Repository-Packages und fehlendes ReadModel: angeglichen.
+- Drei Domain-Use-Cases und Pfadklassifikation: REST-Koordination wie oben.
+- Data/local, DAO und Datenbanktests: ausschließlich Room-Referenz, nicht kopiert.
+- Data/remote, Webservice-Doubles, HTTP-/Bildtests: notwendige REST-Implementierung,
+  erhalten; neue Data-ReadModel-Tests verwenden den vorhandenen Webservice-Double.
+- DI-Infrastruktur: konkrete Persistenzimplementierungen verschieden, fachliche
+  ViewModel-Abhängigkeiten identisch.
+- Referenz-Dateinamen wurden auch dort beibehalten, wo der Arbeitsauftrag
+  verkürzte oder abweichende Bezeichnungen verwendet.
+
+
+UI
+  ui/MainActivity.kt: identisch
+  ui/navigation/NavKeys.kt: identisch
+  ui/navigation/NavigationAnimations.kt: abweichender Quellcode
+    Methoden Referenz: popTransitionSpec(
+    Methoden Ziel vorher: popTransitionSpec(
+  ui/navigation/PopReason.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/navigation/comp/AppNavEntryProvider.kt: abweichender Quellcode
+    Methoden Referenz: appNavEntryProvider(
+    Methoden Ziel vorher: appNavEntryProvider(
+  ui/navigation/comp/AppNavigation.kt: abweichender Quellcode
+    Methoden Referenz: AppNavigation(; calculateSnackbarBottomPadding(showListFab: Boolean): Dp
+    Methoden Ziel vorher: AppNavigation(timing: AppTiming
+  ui/navigation/comp/BackStackOperations.kt: abweichender Quellcode
+    Methoden Referenz: add(; remove(; logNavigationOperation(
+    Methoden Ziel vorher: add(; remove(; logNavigationOperation(
+  ui/people/PersonFormMapping.kt: nur Ziel
+    Methoden Ziel vorher: String.toNullableInput(): String?; Person.normalized(): Person
+  ui/people/PersonValidator.kt: nur Ziel
+    Methoden Ziel vorher: validatePerson(; validateFirstName(; validateLastName(; validateEmail(; validatePhone(
+  ui/people/create_detail/PersonEffect.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/people/create_detail/PersonForm.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  ui/people/create_detail/PersonInputMapping.kt: nur Referenz
+    Methoden Referenz: String.toNullableInput(): String?; PersonForm.normalized(): PersonForm; Person.toPersonForm(): PersonForm; PersonForm.toPerson(): Person
+  ui/people/create_detail/PersonIntent.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/people/create_detail/PersonLoadFailure.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  ui/people/create_detail/PersonUiState.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/people/create_detail/PersonValidator.kt: nur Referenz
+    Methoden Referenz: validatePerson(; validateFirstName(; validateLastName(; validateEmail(; validatePhone(
+  ui/people/create_detail/PersonViewModel.kt: abweichender Quellcode
+    Methoden Referenz: onIntent(intent: PersonIntent); loadPerson(id: String); changeFirstName(firstName: String); changeLastName(lastName: String); changeEmail(email: String); changePhone(phone: String); changeImagePath(imagePath: String?); beginImageChange(): Boolean; changeImages(; storeGalleryImage(uri: Uri); storeCameraImage(path: String); removeImage(path: String?); save(); cancel(); showError(message: String); showErrorNow(message: String)
+    Methoden Ziel vorher: loadPerson(id: String); onIntent(intent: PersonIntent); changeFirstName(firstName: String); changeLastName(lastName: String); changeEmail(email: String); changePhone(phone: String); storeGalleryImage(sourceUri: Uri); storeCameraImage(imagePath: String); removeImage(imagePath: String?); replaceImage(imagePath: String?); showError(message: String); save(); cancel(); deleteTemporaryImageQuietly(imagePath: String?)
+  ui/people/create_detail/comp/PersonAdapter.kt: abweichender Quellcode
+    Methoden Referenz: PersonAdapter(
+    Methoden Ziel vorher: PersonAdapter(
+  ui/people/create_detail/comp/PersonScreen.kt: abweichender Quellcode
+    Methoden Referenz: PersonScreen(
+    Methoden Ziel vorher: PersonScreen(
+  ui/people/list/PeopleEffect.kt: identisch
+  ui/people/list/PeopleIntent.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/people/list/PeopleUiState.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  ui/people/list/PeopleViewModel.kt: abweichender Quellcode
+    Methoden Referenz: onIntent(intent: PeopleIntent); observePeople(); navigateToPerson(personId: String?); requestRemove(personId: String); confirmRemove(personId: String); findPerson(personId: String): PersonListItem?
+    Methoden Ziel vorher: onIntent(intent: PeopleIntent); navigateToPerson(personId: String?); requestRemove(personId: String); confirmRemove(personId: String); observePeople(); remove(person: Person); emitPersonNotFound()
+  ui/people/list/comp/PeopleAdapter.kt: abweichender Quellcode
+    Methoden Referenz: PeopleAdapter(
+    Methoden Ziel vorher: PeopleAdapter(
+  ui/people/list/comp/PeopleScreen.kt: abweichender Quellcode
+    Methoden Referenz: PeopleScreen(
+    Methoden Ziel vorher: PeopleScreen(
+  ui/people/list/comp/PersonCard.kt: abweichender Quellcode
+    Methoden Referenz: PersonCard(
+    Methoden Ziel vorher: PersonCard(
+  ui/theme/Theme.kt: identisch
+  ui/theme/Type.kt: identisch
+
+Domain
+  domain/IPersonRepository.kt: nur Ziel
+    Methoden Ziel vorher: observeAll(): Flow<Result<List<Person>>>; findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+  domain/entities/Person.kt: abweichender Quellcode
+    Methoden Referenz: (keine Funktionsdeklarationen)
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  domain/readmodels/IPersonReadModel.kt: nur Referenz
+    Methoden Referenz: observeListItems(): Flow<Result<List<PersonListItem>>>
+  domain/readmodels/PersonListItem.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  domain/repositories/IPersonRepository.kt: nur Referenz
+    Methoden Referenz: findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+  domain/usecases/ImagePathExtensions.kt: nur Ziel
+    Methoden Ziel vorher: String?.isLocalImagePath(): Boolean
+  domain/usecases/PersonUcCreate.kt: abweichender Quellcode
+    Methoden Referenz: invoke(person: Person): Result<Unit>
+    Methoden Ziel vorher: invoke(person: Person): Result<Unit>; deleteLocalImageQuietly(imagePath: String?)
+  domain/usecases/PersonUcDelete.kt: abweichender Quellcode
+    Methoden Referenz: invoke(personId: String): Result<Unit>
+    Methoden Ziel vorher: invoke(person: Person): Result<Unit>
+  domain/usecases/PersonUcUpdate.kt: abweichender Quellcode
+    Methoden Referenz: invoke(person: Person): Result<Unit>
+    Methoden Ziel vorher: invoke(person: Person): Result<Unit>; deleteLocalImageQuietly(imagePath: String?)
+
+Data
+  data/IPersonDao.kt: nur Referenz
+    Methoden Referenz: observeAll(): Flow<List<PersonDto>>; findById(personId: String): PersonDto?; insert(personDto: PersonDto): Long; insert(personDtos: List<PersonDto>); update(personDto: PersonDto): Int; delete(personDto: PersonDto): Int; count(): Int
+  data/local/Seed.kt: nur Referenz
+    Methoden Referenz: createPersonDtos(): List<PersonDto>
+  data/local/SeedDatabase.kt: nur Referenz
+    Methoden Referenz: onCreate(connection: SQLiteConnection); SQLiteStatement.bindNullableText(index: Int, value: String?)
+  data/local/database/AppDatabase.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  data/local/dtos/PersonDto.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  data/mapping/mappings.kt: abweichender Quellcode
+    Methoden Referenz: PersonDto.toPerson(): Person; Person.toPersonDto(): PersonDto; PersonDto.toPersonListItem(): PersonListItem
+    Methoden Ziel vorher: PersonDto.toPerson(): Person; Person.toPersonDto(): PersonDto
+  data/readmodels/PersonReadModel.kt: nur Referenz
+    Methoden Referenz: observeListItems(): Flow<Result<List<PersonListItem>>>
+  data/remote/IPersonWebservice.kt: nur Ziel
+    Methoden Ziel vorher: getAll(): List<PersonDto>; countAll(): Int; getById(; create(; update(; uploadImage(; deleteImage(; delete(
+  data/remote/ImageRequestPart.kt: nur Ziel
+    Methoden Ziel vorher: String.isRemoteImageUrl(): Boolean; String.toImageRequestPart(): MultipartBody.Part
+  data/remote/Seed.kt: nur Ziel
+    Methoden Ziel vorher: createPeopleList(); deleteLocalImages(); createImages()
+  data/remote/SeedApi.kt: nur Ziel
+    Methoden Ziel vorher: seedPerson(): Boolean; rollback(createdIds: List<String>)
+  data/remote/dtos/PersonDto.kt: nur Ziel
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  data/repositories/PersonRepository.kt: abweichender Quellcode
+    Methoden Referenz: findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+    Methoden Ziel vorher: observeAll(): Flow<Result<List<Person>>>; findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; rollbackCreate(id: String); remove(person: Person): Result<Unit>; refresh(); upsertPerson(person: Person); removePersonFromState(id: String); sorted(people: List<Person>): List<Person>
+
+Dependency Injection
+  di/appModules.kt: abweichender Quellcode
+    Methoden Referenz: appModule(
+    Methoden Ziel vorher: appModule(): Module
+  di/effectModule.kt: identisch
+
+Unit-Tests und Test-Doubles
+  src/test/java/de/rogallab/mobile/data/PersonDaoTest.kt: nur Referenz
+    Methoden Referenz: setUp(); tearDown(); insert_returnsSQLiteRowIdAndPreservesBusinessId(); insert_existingId_abortsAndKeepsOriginal(); insertList_returnsUnitAndStoresAllPeople(); update_existingPerson_returnsOneAndPersistsChanges(); update_missingPerson_returnsZero(); delete_existingPerson_returnsOneAndRemovesPerson(); delete_missingPerson_returnsZero()
+  src/test/java/de/rogallab/mobile/data/SeedDatabaseTest.kt: nur Referenz
+    Methoden Referenz: open(; requestOpen(); assertCounts(people: Int); insertFailureCallback(shouldFail: () -> Boolean; onCreate(connection: SQLiteConnection); expectCreationFailure(); assertCreationRolledBack(); tearDown(); firstCreation_persistsOriginalPersonSeed(); repeatedOpenRequests_doNotInsertAdditionalData(); closeAndReopen_doesNotRepeatSeed(); allTablesCleared_stayEmptyOnRepeatedAccessAndReopen(); deletedPerson_isNotRestored(); insertFailure_rollsBackSchemaAndSeed_thenReopenCanRetry(); failedCreation_canBeRetriedOnSameRoomInstance(); cancellation_propagatesAndRollsBack_thenReopenCanRetry(); onCreate(connection: SQLiteConnection); existingDatabaseWithoutSeedCallback_keepsItsDataUnchanged(); existingEmptyDatabaseWithoutSeedCallback_isNotSeeded()
+  src/test/java/de/rogallab/mobile/data/mapping/PersonMappingsTest.kt: nur Ziel
+    Methoden Ziel vorher: personToPersonDto_mapsLocalImagePathToImageUrlString(); personDtoToPerson_preservesNullImageReference()
+  src/test/java/de/rogallab/mobile/data/readmodels/PersonReadModelTest.kt: nur Referenz
+    Methoden Referenz: observing(observation: Flow<List<PersonDto>>): IPersonDao; observeAll(): Flow<List<PersonDto>>; observeListItems_mapsAllFieldsAndPreservesNulls(); observeListItems_emitsEmptyAndUpdatedListsInDaoOrder(); observeListItems_returnsUpstreamFailureAndCompletes(); observeListItems_propagatesCancellation(); observeListItems_canCollectAgainAfterFailure(); observeListItems_collectorCancellation_cancelsUpstream(); observeListItems_usesInjectedDispatcher(); appModule_resolvesReadModelWithDaoAndDispatcherFromPlainAndCombinedContexts()
+  src/test/java/de/rogallab/mobile/data/repositories/FakePersonDao.kt: nur Referenz
+    Methoden Referenz: observeAll(): Flow<List<PersonDto>>; findById(personId: String): PersonDto?; count(): Int; insert(personDto: PersonDto): Long; insert(personDtos: List<PersonDto>); update(personDto: PersonDto): Int; delete(personDto: PersonDto): Int
+  src/test/java/de/rogallab/mobile/data/repositories/PersonRepositoryDeleteTest.kt: nur Ziel
+    Methoden Ziel vorher: (keine Funktionsdeklarationen)
+  src/test/java/de/rogallab/mobile/data/repositories/PersonRepositoryImageTest.kt: nur Ziel
+    Methoden Ziel vorher: createWithLocalImage_sendsJsonThenUploadsFile(); createWhenUploadFails_rollsBackCreatedPerson(); createWhenServerIsUnreachable_rollsBackAndMapsFailure(); updateWithServerUrl_keepsImageWithoutMultipartRequest(); updateWithLocalImage_sendsJsonThenUploadsFile(); updateWithoutImage_sendsJsonThenDeletesServerImage(); imageFile(): File; person(imagePath: String?)
+  src/test/java/de/rogallab/mobile/data/repositories/PersonRepositoryTest.kt: nur Referenz
+    Methoden Referenz: setup(); tearDown(); create_persistsPerson(); updateAndRemove_returnDaoFailuresAsResults(); create_existingId_returnsFailureAndKeepsOriginal(); updateAndRemove_unexpectedRowCounts_returnFailures(); update(personDto: PersonDto): Int; delete(personDto: PersonDto): Int; writeOperations_rethrowCancellation(); create_invalidRowId_returnsFailure(); insert(personDto: PersonDto): Long; findById_missing_returnsSuccessWithNull(); findById_handlesExceptionsAndPropagatesCancellation(); findById(personId: String): PersonDto?; appModule_resolvesRepositoryWithDao()
+  src/test/java/de/rogallab/mobile/domain/usecases/PersonUseCasesTest.kt: abweichender Quellcode
+    Methoden Referenz: setUp(); tearDown(); create_success_commitsImageEdit(); create_failure_doesNotCommitImageEdit(); update_success_commitsImageEdit(); update_failure_doesNotCommitImageEdit(); delete_success_removesPersonAndImage(); delete_repositoryFailure_keepsImage(); delete_imageCleanupFailure_keepsSuccessfulDeleteResult(); repositoryExceptions_becomeFailuresWithoutImageChanges(); repositoryResultFailures_preserveCauseWithoutImageChanges(); repositoryCancellation_propagatesWhetherThrownOrReturned(); imageCleanupExceptions_keepSuccessfulPersistence(); deleteImageFromAppStorage(imagePath: String?): Result<Unit>; imageCleanupCancellation_propagatesWhetherThrownOrReturned(); deleteImageFromAppStorage(imagePath: String?): Result<Unit>; imageCommitExceptions_becomeFailuresAfterPersistence(); commit(); imageCommitCancellation_propagatesForCreateAndUpdate(); commit(); delete_missingPerson_doesNotRemoveOrCleanImage(); remove(person: Person): Result<Unit>; delete_lookupFailures_preserveCauseWithoutDeleting(); findById(id: String): Result<Person?>; remove(person: Person): Result<Unit>; delete_lookupCancellation_propagatesWithoutDeleting(); findById(id: String): Result<Person?>; remove(person: Person): Result<Unit>; delete_usesReloadedEntityAndItsCurrentImage(); findById(id: String): Result<Person?>; remove(person: Person): Result<Unit>; deleteImageFromAppStorage(imagePath: String?): Result<Unit>; repositoryWithWrite(; findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>; invokeFor(; assertWriteRecorded(operation: String, repository: FakePersonRepository); assertCancellation(
+    Methoden Ziel vorher: setUp(); tearDown(); create_success_deletesLocalTransportFile(); create_failure_keepsLocalTransportFile(); create_remoteUrl_neverDeletesLocalFile(); update_success_deletesLocalReplacement(); update_failure_keepsLocalReplacement(); update_remoteUrl_neverDeletesLocalFile(); delete_remoteUrl_isOwnedByServer(); delete_success_removesPossibleLocalFile(); delete_repositoryFailure_keepsLocalFile(); cleanupFailure_keepsSuccessfulRepositoryResult(); repositoryExceptions_becomeFailuresWithoutImageChanges(); repositoryResultFailures_preserveCauseWithoutImageChanges(); repositoryCancellation_propagatesWhetherThrownOrReturned(); imageCleanupExceptions_keepSuccessfulPersistence(); deleteImageFromAppStorage(imagePath: String?): Result<Unit>; imageCleanupCancellation_propagatesWhetherThrownOrReturned(); deleteImageFromAppStorage(imagePath: String?): Result<Unit>; imageCleanupResultFailures_keepSuccessfulPersistenceForAllWrites(); repositoryWithWrite(; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>; invokeFor(; assertWriteRecorded(operation: String, repository: FakePersonRepository); assertCancellation(
+  src/test/java/de/rogallab/mobile/testing/FakeImageEdit.kt: nur Referenz
+    Methoden Referenz: start(imagePaths: List<String>); replace(imagePaths: List<String>): List<String>; add(imagePaths: List<String>): List<String>; remove(imagePath: String): List<String>; commit(); discard()
+  src/test/java/de/rogallab/mobile/testing/FakeImageFileStorage.kt: identisch
+  src/test/java/de/rogallab/mobile/testing/FakePersonRepository.kt: abweichender Quellcode
+    Methoden Referenz: findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+    Methoden Ziel vorher: observeAll(): Flow<Result<List<Person>>>; findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+  src/test/java/de/rogallab/mobile/testing/FakePersonWebservice.kt: nur Ziel
+    Methoden Ziel vorher: getAll(): List<PersonDto>; countAll(): Int; getById(id: String): PersonDto; create(person: PersonDto): PersonDto; update(id: String, person: PersonDto): PersonDto; uploadImage(; deleteImage(id: String): PersonDto; delete(id: String): Response<Unit>; personDto(
+  src/test/java/de/rogallab/mobile/testing/FakeStringProvider.kt: identisch
+  src/test/java/de/rogallab/mobile/testing/MainDispatcherRule.kt: identisch
+  src/test/java/de/rogallab/mobile/testing/ObservationProbe.kt: nur Referenz
+    Methoden Referenz: observe(): Flow<Result<List<T>>>
+  src/test/java/de/rogallab/mobile/ui/navigation/NavigationEffectTest.kt: abweichender Quellcode
+    Methoden Referenz: createViewModel(): PeopleViewModel; observeListItems(); create_emitsNavigateToWithNullPersonId(); detail_emitsNavigateToWithPersonId()
+    Methoden Ziel vorher: createViewModel(): PeopleViewModel; create_emitsNavigateToWithNullPersonId(); detail_emitsNavigateToWithPersonId()
+  src/test/java/de/rogallab/mobile/ui/navigation/PersonBackEffectTest.kt: abweichender Quellcode
+    Methoden Referenz: cancel_emitsNavigateBackWithCancelReason()
+    Methoden Ziel vorher: cancel_emitsNavigateBackWithCancelReason()
+  src/test/java/de/rogallab/mobile/ui/people/PersonFormMappingTest.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonDependencyInjectionTest.kt: nur Referenz
+    Methoden Referenz: (keine Funktionsdeklarationen)
+  src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelCoordinationTest.kt: nur Referenz
+    Methoden Referenz: findById(id: String): Result<Person?>; create(person: Person); update(person: Person); persist(value: Person): Result<Unit>; start(originalPaths: List<String>); importGallery(uris: List<Uri>): Result<ImageChange>; acceptCamera(path: String); rejectCamera(path: String): Result<Unit>; remove(path: String); discard(): Result<Unit>; create(; deleteImageFromAppStorage(imagePath: String?): Result<Unit>; rejectCamera(path: String): Result<Unit>
+  src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelImageTest.kt: abweichender Quellcode
+    Methoden Referenz: createViewModel(; failedLoad_staysVisibleUntilRetry(); thrownLoad_setsRetryableFailureAndReleasesLoading(); findById(id: String): Result<Person?>; cancelledLoad_doesNotPublishFailure(); findById(id: String): Result<Person?>; missingPerson_showsPersistentNotFound(); galleryImageSelected_copiesImageAndUpdatesState(); galleryCopyFailure_emitsShowErrorAndKeepsState(); thrownGalleryCopy_emitsShowErrorAndKeepsState(); copyImageToAppStorage(sourceUri: Uri): Result<String>; imagePathChange_updatesState(); replacingUnsavedImage_deletesPreviousReplacement(); cancel_deletesUnsavedReplacementAndEmitsNavigateBack(); saveReplacement_deletesPersistedOriginalOnlyAfterSuccessfulSave(); failedSave_keepsPersistedOriginalAndReplacementPending(); thrownSave_emitsErrorAndReleasesSaving(); create(person: Person): Result<Unit>; cancelledSave_releasesSavingWithoutError(); create(person: Person): Result<Unit>; failedCancel_staysOnFormForCleanupRetry(); discard(); imageStorageFailed_isForwardedAsShowErrorString()
+    Methoden Ziel vorher: createViewModel(personId: String?; galleryImageSelected_copiesImageAndUpdatesState(); galleryCopyFailure_emitsShowErrorAndKeepsState(); imagePathChange_updatesState(); replacingUnsavedImage_deletesPreviousReplacement(); cancel_deletesUnsavedReplacementAndEmitsNavigateBack(); saveReplacement_deletesLocalTemporaryButNeverServerUrl(); failedSave_keepsServerUrlAndLocalReplacementForRetry(); cancelWithServerImage_doesNotDeleteRemoteUrl(); imageStorageFailed_isForwardedAsShowErrorString()
+  src/test/java/de/rogallab/mobile/ui/people/create_detail/PersonViewModelTest.kt: nur Referenz
+    Methoden Referenz: viewModel(id: String?
+  src/test/java/de/rogallab/mobile/ui/people/list/PeopleConfirmationStringTest.kt: nur Referenz
+    Methoden Referenz: observeListItems()
+  src/test/java/de/rogallab/mobile/ui/people/list/PeopleViewModelLoadTest.kt: nur Referenz
+    Methoden Referenz: observeListItems(); create()
+  src/test/java/de/rogallab/mobile/ui/people/list/PeopleViewModelSwipeTest.kt: abweichender Quellcode
+    Methoden Referenz: observeListItems(): Flow<Result<List<PersonListItem>>>; createViewModel(; failedObservation_staysVisibleUntilRetry(); requestRemove_dismissedConfirmationKeepsPerson(); confirmRemove_deletesPersonAndUpdatesState(); thrownConfirmRemove_emitsErrorAndKeepsTheProjection(); remove(person: Person): Result<Unit>; failedConfirmRemove_emitsErrorAndKeepsPerson(); cancelledRemove_keepsProjectionAndImage_withoutErrorEffect()
+    Methoden Ziel vorher: createViewModel(repository: FakePersonRepository); requestRemove_emitsConfirmationWithoutDeleting(); confirmRemove_deletesPersonAndUpdatesState(); failedConfirmRemove_emitsErrorAndKeepsPerson(); networkFailure_emitsSharedNetworkMessage()
+  src/test/java/de/rogallab/mobile/ui/people/list/SnackbarDeleteConfirmationTest.kt: nur Referenz
+    Methoden Referenz: dismissedConfirmation_doesNotInvokeDeleteAction(); confirmedSnackbar_invokesDeleteActionExactlyOnce()
+
+Instrumented Tests
+  src/androidTest/java/de/rogallab/mobile/ui/navigation/AppNavigationTest.kt: nur Referenz
+    Methoden Referenz: openCreate(); awaitList(); assertSnackbarAboveListFab(message: String); observeListItems(): Flow<Result<List<PersonListItem>>>; findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+  src/androidTest/java/de/rogallab/mobile/ui/people/create_detail/GalleryImageIntegrationTest.kt: nur Referenz
+    Methoden Referenz: findById(id: String): Result<Person?>; create(person: Person): Result<Unit>; update(person: Person): Result<Unit>; remove(person: Person): Result<Unit>
+  src/androidTest/java/de/rogallab/mobile/ui/people/list/comp/SwipeCardTest.kt: identisch
+

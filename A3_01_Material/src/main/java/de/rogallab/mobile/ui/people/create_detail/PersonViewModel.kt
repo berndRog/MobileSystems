@@ -6,8 +6,6 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.IStringProvider
-import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
-import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput
@@ -133,30 +131,9 @@ class PersonViewModel(
       if (_stateFlow.value.isSaving || _stateFlow.value.isLoading)
          return
 
-      // Normalize all form values before validation and persistence.
-      var person = _stateFlow.value.person.normalized()
-
-      // sanitized email address ä,ö,ü-> ae,oe,ue etc.
-      if (person.email != null) {
-         val email = sanitizeEmailInput(person.email)
-         if (email != person.email) {
-            _stateFlow.update { state ->
-               state.copy(person = state.person.copy(email = email))
-            }
-            person = _stateFlow.value.person.normalized()
-         }
-      }
-
-      // sanitized phone, leave only valid characters
-      if (person.phone != null) {
-         val phone = sanitizePhoneInput(person.phone)
-         if (phone != person.phone) {
-            _stateFlow.update { state ->
-               state.copy(person = state.person.copy(phone = phone))
-            }
-            person = _stateFlow.value.person.normalized()
-         }
-      }
+      // Publish the normalized snapshot even when validation fails.
+      val person = _stateFlow.value.person.normalized()
+      _stateFlow.update { state -> state.copy(person = person) }
 
       // Validate the complete person before accessing the repository.
       val error = _validator.validatePerson(person)

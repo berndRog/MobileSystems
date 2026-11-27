@@ -1,9 +1,8 @@
-package de.rogallab.mobile.ui.people
+package de.rogallab.mobile.ui.people.create_detail
 
 import android.content.Context
 import android.util.Patterns
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 
 /**
@@ -60,12 +59,12 @@ class PersonValidator(
    // Validates the complete person in the same order used by the save action.
    // The first validation error is returned; null means that all fields are valid.
    fun validatePerson(
-      person: Person,
+      form: PersonForm,
    ): String? =
-      validateFirstName(person.firstName)
-         ?: validateLastName(person.lastName)
-         ?: validateEmail(person.email.orEmpty())
-         ?: validatePhone(person.phone.orEmpty())
+      validateFirstName(form.firstName)
+         ?: validateLastName(form.lastName)
+         ?: validateEmail(form.email.orEmpty())
+         ?: validatePhone(form.phone.orEmpty())
 
    // Validates the first name against the configured minimum and maximum length.
    fun validateFirstName(

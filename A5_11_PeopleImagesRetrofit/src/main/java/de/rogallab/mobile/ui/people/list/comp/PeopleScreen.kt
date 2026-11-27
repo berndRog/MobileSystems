@@ -11,13 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.entities.Person
+import de.rogallab.mobile.domain.readmodels.PersonListItem
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.components.SwipeCard
 
 @Composable
 fun PeopleScreen(
-   people: List<Person>,
+   people: List<PersonListItem>,
    onDetail: (String) -> Unit,
    onDelete: (String) -> Unit,
    modifier: Modifier = Modifier,
@@ -35,7 +35,7 @@ fun PeopleScreen(
    ) {
       items(
          items = people,
-         key = { person: Person -> person.id },
+         key = { person: PersonListItem -> person.id },
       ) { person ->
 
          SwipeCard(
@@ -46,8 +46,7 @@ fun PeopleScreen(
             modifier = Modifier.animateItem(),
          ) {
             PersonCard(
-               firstName = person.firstName,
-               lastName = person.lastName,
+               fullName = person.fullName,
                email = person.email,
                phone = person.phone,
                imagePath = person.imagePath,
@@ -59,28 +58,7 @@ fun PeopleScreen(
 }
 
 /*
- * Didaktik und Lernziele
- *
- * - A4_01 verwendet die gemeinsame SwipeCard aus Shared. Die PersonCard bleibt
- *   der konkrete Inhalt der Karte.
- *
- *      StartToEnd -> Detail einer bestehenden Person
- *      EndToStart -> Löschvorgang anfordern
- *
- * - Ein Tap auf PersonCard und Swipe StartToEnd verwenden denselben onDetail-
- *   Callback. Create bleibt davon getrennt und wird über den FAB ausgelöst.
- *
- * - Die LazyColumn verwendet stabile Person-IDs als Keys. Modifier.animateItem()
- *   animiert die Listenänderung, nachdem das Repository eine bestätigte Löschung
- *   ausgeführt und observeAll() die neue Liste geliefert hat.
- *
- * - Da A4_01 kein Undo enthält, benötigt der Screen weder restoredPersonId noch
- *   einen eigenen LazyListState für das gezielte Wiederanzeigen eines Elements.
- *   Diese Erweiterung folgt in A4_02_ImagePickerUndo.
- *
- * Lernziele:
- *
- * - Gemeinsame UI-Komponenten über Modulgrenzen hinweg wiederverwenden.
- * - Stabile Keys und animateItem() bei dynamischen Listen einsetzen.
- * - Delete-Bestätigung und Undo als getrennte Ausbaustufen verstehen.
+ * The stateless list displays PersonListItem projections.
+ * Stable IDs preserve item identity when the read model emits a changed list.
+ * SwipeCard requests details or deletion; confirmation belongs to the adapter.
  */

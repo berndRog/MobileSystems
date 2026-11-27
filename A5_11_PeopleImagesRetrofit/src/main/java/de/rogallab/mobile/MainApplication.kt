@@ -48,12 +48,12 @@ class MainApplication : Application() {
          )
 
          // A5_11 provides the PeopleImages-specific webservice client and repository.
-         modules(appModule())
          modules(effectModule())
 
          // Shared utilities and local image storage.
          modules(utilitiesModule())
          modules(imageStorageModule(Globals.imageDirectoryName))
+         modules(appModule())
       }
 
       // Seed PeopleImagesApi only when its People table is empty.

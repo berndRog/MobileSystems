@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.utilities.resultOf
 import kotlin.coroutines.cancellation.CancellationException
@@ -12,9 +12,12 @@ class PersonUcDelete(
    private val _imageFileStorage: IImageFileStorage,
 ) {
 
-   suspend operator fun invoke(person: Person): Result<Unit> =
+   suspend operator fun invoke(personId: String): Result<Unit> =
       resultOf(
          block = {
+            val person = _repository.findById(personId).getOrThrow()
+               ?: throw NoSuchElementException("Person $personId not found")
+
             _repository.remove(person).getOrThrow()
 
             // Remote URLs belong to the server; only clean up local files.

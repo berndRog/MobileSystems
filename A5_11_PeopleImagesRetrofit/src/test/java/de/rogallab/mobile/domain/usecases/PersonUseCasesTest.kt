@@ -1,6 +1,6 @@
 package de.rogallab.mobile.domain.usecases
 
-import de.rogallab.mobile.domain.IPersonRepository
+import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import kotlin.coroutines.cancellation.CancellationException
 import org.junit.Assert.assertSame
@@ -42,10 +42,10 @@ class PersonUseCasesTest {
 
    @Test
    fun create_success_deletesLocalTransportFile() = runTest {
-      val repository = FakePersonRepository()
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcCreate(repository, storage)(localPerson)
+      val result = PersonUcCreate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(localPerson), repository.created)
@@ -54,12 +54,12 @@ class PersonUseCasesTest {
 
    @Test
    fun create_failure_keepsLocalTransportFile() = runTest {
-      val repository = FakePersonRepository().apply {
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }.apply {
          createResult = Result.failure(IllegalStateException("upload failed"))
       }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcCreate(repository, storage)(localPerson)
+      val result = PersonUcCreate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
 
       assertTrue(result.isFailure)
       assertTrue(storage.deletedPaths.isEmpty())
@@ -67,10 +67,10 @@ class PersonUseCasesTest {
 
    @Test
    fun create_remoteUrl_neverDeletesLocalFile() = runTest {
-      val repository = FakePersonRepository()
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcCreate(repository, storage)(remotePerson)
+      val result = PersonUcCreate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(remotePerson)
 
       assertTrue(result.isSuccess)
       assertTrue(storage.deletedPaths.isEmpty())
@@ -78,10 +78,10 @@ class PersonUseCasesTest {
 
    @Test
    fun update_success_deletesLocalReplacement() = runTest {
-      val repository = FakePersonRepository()
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcUpdate(repository, storage)(localPerson)
+      val result = PersonUcUpdate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(localPerson), repository.updated)
@@ -90,12 +90,12 @@ class PersonUseCasesTest {
 
    @Test
    fun update_failure_keepsLocalReplacement() = runTest {
-      val repository = FakePersonRepository().apply {
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }.apply {
          updateResult = Result.failure(IllegalStateException("update failed"))
       }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcUpdate(repository, storage)(localPerson)
+      val result = PersonUcUpdate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
 
       assertTrue(result.isFailure)
       assertTrue(storage.deletedPaths.isEmpty())
@@ -103,10 +103,10 @@ class PersonUseCasesTest {
 
    @Test
    fun update_remoteUrl_neverDeletesLocalFile() = runTest {
-      val repository = FakePersonRepository()
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcUpdate(repository, storage)(remotePerson)
+      val result = PersonUcUpdate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(remotePerson)
 
       assertTrue(result.isSuccess)
       assertTrue(storage.deletedPaths.isEmpty())
@@ -114,10 +114,10 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_remoteUrl_isOwnedByServer() = runTest {
-      val repository = FakePersonRepository(listOf(remotePerson))
+      val repository = FakePersonRepository().apply { findResult = Result.success(remotePerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcDelete(repository, storage)(remotePerson)
+      val result = PersonUcDelete(repository, storage)(remotePerson.id)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(remotePerson), repository.removed)
@@ -126,10 +126,10 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_success_removesPossibleLocalFile() = runTest {
-      val repository = FakePersonRepository(listOf(localPerson))
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcDelete(repository, storage)(localPerson)
+      val result = PersonUcDelete(repository, storage)(localPerson.id)
 
       assertTrue(result.isSuccess)
       assertEquals(listOf(localPerson), repository.removed)
@@ -138,12 +138,12 @@ class PersonUseCasesTest {
 
    @Test
    fun delete_repositoryFailure_keepsLocalFile() = runTest {
-      val repository = FakePersonRepository(listOf(localPerson)).apply {
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }.apply {
          removeResult = Result.failure(IllegalStateException("delete failed"))
       }
       val storage = FakeImageFileStorage()
 
-      val result = PersonUcDelete(repository, storage)(localPerson)
+      val result = PersonUcDelete(repository, storage)(localPerson.id)
 
       assertTrue(result.isFailure)
       assertTrue(storage.deletedPaths.isEmpty())
@@ -151,12 +151,12 @@ class PersonUseCasesTest {
 
    @Test
    fun cleanupFailure_keepsSuccessfulRepositoryResult() = runTest {
-      val repository = FakePersonRepository()
+      val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
       val storage = FakeImageFileStorage().apply {
          deleteResult = Result.failure(IllegalStateException("cleanup failed"))
       }
 
-      val result = PersonUcCreate(repository, storage)(localPerson)
+      val result = PersonUcCreate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
 
       assertTrue(result.isSuccess)
       assertFalse(storage.deletedPaths.isEmpty())
@@ -206,7 +206,7 @@ class PersonUseCasesTest {
    @Test
    fun imageCleanupExceptions_keepSuccessfulPersistence() = runTest {
       for (operation in operations) {
-         val repository = FakePersonRepository()
+         val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
          val failure = IllegalStateException("cleanup threw")
          val storage = object : IImageFileStorage by FakeImageFileStorage() {
             override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> =
@@ -221,7 +221,7 @@ class PersonUseCasesTest {
    fun imageCleanupCancellation_propagatesWhetherThrownOrReturned() = runTest {
       for (operation in operations) {
          for (throwDirectly in listOf(false, true)) {
-            val repository = FakePersonRepository()
+            val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
             val cancellation = CancellationException("cleanup cancelled")
             val storage = object : IImageFileStorage by FakeImageFileStorage() {
                override suspend fun deleteImageFromAppStorage(imagePath: String?): Result<Unit> {
@@ -240,7 +240,7 @@ class PersonUseCasesTest {
    @Test
    fun imageCleanupResultFailures_keepSuccessfulPersistenceForAllWrites() = runTest {
       for (operation in operations) {
-         val repository = FakePersonRepository()
+         val repository = FakePersonRepository().apply { findResult = Result.success(localPerson) }
          val storage = FakeImageFileStorage().apply {
             deleteResult = Result.failure(IllegalStateException("cleanup failed"))
          }
@@ -255,6 +255,7 @@ class PersonUseCasesTest {
    private fun repositoryWithWrite(
       write: suspend () -> Result<Unit>,
    ): IPersonRepository = object : IPersonRepository by FakePersonRepository() {
+      override suspend fun findById(id: String): Result<Person?> = Result.success(localPerson)
       override suspend fun create(person: Person): Result<Unit> = write()
       override suspend fun update(person: Person): Result<Unit> = write()
       override suspend fun remove(person: Person): Result<Unit> = write()
@@ -265,9 +266,9 @@ class PersonUseCasesTest {
       repository: IPersonRepository,
       storage: IImageFileStorage,
    ): Result<Unit> = when (operation) {
-      "create" -> PersonUcCreate(repository, storage)(localPerson)
-      "update" -> PersonUcUpdate(repository, storage)(localPerson)
-      "delete" -> PersonUcDelete(repository, storage)(localPerson)
+      "create" -> PersonUcCreate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
+      "update" -> PersonUcUpdate(repository, de.rogallab.mobile.testing.FakeImageEdit(), storage)(localPerson)
+      "delete" -> PersonUcDelete(repository, storage)(localPerson.id)
       else -> error("Unknown operation: $operation")
    }
 
