@@ -116,37 +116,35 @@ class PersonViewModel(
 
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(firstName = firstName.trim()))
+         state.copy(person = state.person.copy(firstName = firstName))
       }
 
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(lastName = lastName.trim()))
+         state.copy(person = state.person.copy(lastName = lastName))
       }
 
    private fun changeEmail(email: String) {
-      var emailNullable: String? = email.toNullableInput()
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(email = emailNullable))
+         state.copy(person = state.person.copy(email = email.toNullableInput()))
       }
    }
 
    private fun changePhone(phone: String) {
-      var phoneNullable: String? = phone.toNullableInput()
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(phone = phoneNullable))
+         state.copy(person = state.person.copy(phone = phone.toNullableInput()))
       }
    }
 
    // Validates and persists the current person.
    private fun save() {
 
+      val state = _stateFlow.value
       // Prevent multiple concurrent save operations.
-      if (_stateFlow.value.isSaving || _stateFlow.value.isLoading ||
-         _stateFlow.value.loadFailure != null) return
+      if (state.isSaving || state.isLoading || state.loadFailure != null) return
 
       // Normalize all form values before validation and persistence.
-      var person = _stateFlow.value.person.normalized()
+      var person = state.person.normalized()
 
       // Sanitize the email address before final validation.
       if (person.email != null) {

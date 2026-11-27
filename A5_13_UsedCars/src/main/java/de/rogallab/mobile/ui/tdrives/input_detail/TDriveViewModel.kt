@@ -55,6 +55,7 @@ class TDriveViewModel(
       }
       .toInstant(_localTimeZone)
    private var _isSaving = false
+   private var _isClosing = false
    private val _stateFlow = MutableStateFlow(
       if (_isNew) {
          val tDrive = TDrive(id = newUuid(), start = defaultStart)
@@ -72,11 +73,17 @@ class TDriveViewModel(
    }
 
    fun onIntent(intent: TDriveIntent) {
+      if ((_isSaving || _isClosing) &&
+         (intent is TDriveIntent.PersonChanged ||
+            intent is TDriveIntent.CarChanged ||
+            intent is TDriveIntent.StartChanged ||
+            intent is TDriveIntent.CompletedChanged)) return
+
       when (intent) {
-         is TDriveIntent.PersonChanged -> update { it.copy(personId = intent.personId) }
-         is TDriveIntent.CarChanged -> update { it.copy(carId = intent.carId) }
-         is TDriveIntent.StartChanged -> _stateFlow.update { state: TDriveUiState -> state.copy(startInput = intent.value) }
-         is TDriveIntent.CompletedChanged -> update { it.copy(isCompleted = intent.value) }
+         is TDriveIntent.PersonChanged -> changePerson(intent.personId)
+         is TDriveIntent.CarChanged -> changeCar(intent.carId)
+         is TDriveIntent.StartChanged -> changeStart(intent.value)
+         is TDriveIntent.CompletedChanged -> changeCompleted(intent.value)
          TDriveIntent.Save -> save()
          TDriveIntent.Cancel -> navigateBack(BackReason.Cancel)
       }
@@ -132,9 +139,28 @@ class TDriveViewModel(
          }
       }
    }
-   private fun update(transform: (TDrive) -> TDrive) {
-      _stateFlow.update { state: TDriveUiState -> state.tDrive?.let { state.copy(tDrive = transform(it)) } ?: state }
-   }
+   private fun changePerson(personId: String?) =
+      _stateFlow.update { state ->
+         val tDrive = state.tDrive ?: return@update state
+         state.copy(tDrive = tDrive.copy(personId = personId))
+      }
+
+   private fun changeCar(carId: String?) =
+      _stateFlow.update { state ->
+         val tDrive = state.tDrive ?: return@update state
+         state.copy(tDrive = tDrive.copy(carId = carId))
+      }
+
+   private fun changeStart(startInput: String) =
+      _stateFlow.update { state ->
+         state.copy(startInput = startInput)
+      }
+
+   private fun changeCompleted(isCompleted: Boolean) =
+      _stateFlow.update { state ->
+         val tDrive = state.tDrive ?: return@update state
+         state.copy(tDrive = tDrive.copy(isCompleted = isCompleted))
+      }
    private fun save() {
       if (_isSaving) return
       val state = _stateFlow.value
@@ -153,6 +179,7 @@ class TDriveViewModel(
 
          val result = if (_isNew) _tDriveRepository.create(normalized) else _tDriveRepository.update(normalized)
          result.onSuccess {
+            _isClosing = true
             _effectDelegate.emit(TDriveEffect.ShowMessage(_stringProvider.getString(R.string.message_test_drive_saved)))
             _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
          }.onFailure { throwable ->
@@ -164,7 +191,10 @@ class TDriveViewModel(
          _isSaving = false
       }
    }
-   private fun navigateBack(reason: BackReason) { viewModelScope.launch { _effectDelegate.emit(TDriveEffect.NavigateBack(reason)) } }
+   private fun navigateBack(reason: BackReason) {
+      _isClosing = true
+      viewModelScope.launch { _effectDelegate.emit(TDriveEffect.NavigateBack(reason)) }
+   }
    private fun showError(message: String) { viewModelScope.launch { showErrorNow(message) } }
    private suspend fun showErrorNow(message: String) { _effectDelegate.emit(TDriveEffect.ShowError(message)) }
 }

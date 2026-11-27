@@ -77,11 +77,18 @@ class TDriveViewModel(
    }
 
    fun onIntent(intent: TDriveIntent) {
+      // Text and selection edits stay available while images are processed.
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is TDriveIntent.PersonChanged ||
+            intent is TDriveIntent.CarChanged ||
+            intent is TDriveIntent.StartChanged ||
+            intent is TDriveIntent.CompletedChanged)) return
+
       when (intent) {
-         is TDriveIntent.PersonChanged -> updateForm { it.copy(personId = intent.personId) }
-         is TDriveIntent.CarChanged -> updateForm { it.copy(carId = intent.carId) }
-         is TDriveIntent.StartChanged -> updateForm { it.copy(startInput = intent.value) }
-         is TDriveIntent.CompletedChanged -> updateForm { it.copy(isCompleted = intent.value) }
+         is TDriveIntent.PersonChanged -> changePerson(intent.personId)
+         is TDriveIntent.CarChanged -> changeCar(intent.carId)
+         is TDriveIntent.StartChanged -> changeStart(intent.value)
+         is TDriveIntent.CompletedChanged -> changeCompleted(intent.value)
          TDriveIntent.RetryLoad ->
             if (!_isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is TDriveLoadFailure.Failed) {
@@ -214,10 +221,25 @@ class TDriveViewModel(
    }
 
    // Raw input is stored unchanged; normalization happens on Save.
-   private fun updateForm(transform: (TDriveForm) -> TDriveForm) {
-      if (_stateFlow.value.isSaving || _isClosing) return
-      _stateFlow.update { it.copy(form = transform(it.form)) }
-   }
+   private fun changePerson(personId: String?) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(personId = personId))
+      }
+
+   private fun changeCar(carId: String?) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(carId = carId))
+      }
+
+   private fun changeStart(startInput: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(startInput = startInput))
+      }
+
+   private fun changeCompleted(isCompleted: Boolean) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(isCompleted = isCompleted))
+      }
 
    private fun save() {
       val state = _stateFlow.value

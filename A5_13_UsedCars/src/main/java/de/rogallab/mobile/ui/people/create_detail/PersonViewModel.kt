@@ -47,6 +47,7 @@ class PersonViewModel(
    // Prevent duplicate repository writes while a Save operation is running.
    // This is internal processing state and therefore not part of PersonUiState.
    private var _isSaving = false
+   private var _isClosing = false
 
    // The initial state depends on whether a person is created or edited.
    private val _initialState =
@@ -116,6 +117,12 @@ class PersonViewModel(
 
    // Dispatcher: Single public entry point for all events coming from the UI layer.
    fun onIntent(intent: PersonIntent) {
+      if ((_isSaving || _isClosing) &&
+         (intent is PersonIntent.FirstNameChange ||
+            intent is PersonIntent.LastNameChange ||
+            intent is PersonIntent.EmailChange ||
+            intent is PersonIntent.PhoneChange)) return
+
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
@@ -142,28 +149,26 @@ class PersonViewModel(
    // Update only the first name while keeping all other state values.
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state: PersonUiState ->
-         state.copy(person = state.person.copy(firstName = firstName.trim()))
+         state.copy(person = state.person.copy(firstName = firstName))
       }
 
    // Update only the last name while keeping all other state values.
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state: PersonUiState ->
-         state.copy(person = state.person.copy(lastName = lastName.trim()))
+         state.copy(person = state.person.copy(lastName = lastName))
       }
 
    // Updates the optional email address while keeping all other state values.
    private fun changeEmail(email: String) {
-      var emailNullable: String? = email.toNullableInput()
       _stateFlow.update { state: PersonUiState ->
-         state.copy(person = state.person.copy(email = emailNullable))
+         state.copy(person = state.person.copy(email = email.toNullableInput()))
       }
    }
 
    // Updates the optional phone number while keeping all other state values.
    private fun changePhone(phone: String) {
-      var phoneNullable: String? = phone.toNullableInput()
       _stateFlow.update { state: PersonUiState ->
-         state.copy(person = state.person.copy(phone = phoneNullable))
+         state.copy(person = state.person.copy(phone = phone.toNullableInput()))
       }
    }
 
@@ -245,6 +250,7 @@ class PersonViewModel(
       val images = _imageEdit.replace(listOfNotNull(imagePath))
 
       // Reflect the resulting edit-session selection in PersonUiState.
+      if (_isSaving || _isClosing) return
       _stateFlow.update { state: PersonUiState ->
          state.copy(person = state.person.copy(imagePath = images.firstOrNull()))
       }
@@ -321,6 +327,7 @@ class PersonViewModel(
                _imageEdit.commit()
                deleteUploadedLocalImageQuietly(person.imagePath)
 
+               _isClosing = true
                // First show the success message...
                val message = _stringProvider.getString(
                   R.string.message_person_saved,
@@ -348,6 +355,7 @@ class PersonViewModel(
 
    // Discard the current edit session and navigate back without saving.
    private fun cancel() {
+      _isClosing = true
       viewModelScope.launch {
 
          // Remove only images created during the current edit session.

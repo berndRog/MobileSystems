@@ -5,12 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.AppTiming
 import de.rogallab.mobile.R
-import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput
-import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
-import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.domain.repositories.IPersonRepository
 import de.rogallab.mobile.domain.usecases.PersonUcCreate
 import de.rogallab.mobile.domain.usecases.PersonUcUpdate
@@ -62,11 +59,18 @@ class PersonViewModel(
    }
 
    fun onIntent(intent: PersonIntent) {
+      // Text and selection edits stay available while images are processed.
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is PersonIntent.FirstNameChange ||
+            intent is PersonIntent.LastNameChange ||
+            intent is PersonIntent.EmailChange ||
+            intent is PersonIntent.PhoneChange)) return
+
       when (intent) {
-         is PersonIntent.FirstNameChange -> updateForm { it.copy(firstName = intent.firstName.trim()) }
-         is PersonIntent.LastNameChange -> updateForm { it.copy(lastName = intent.lastName.trim()) }
-         is PersonIntent.EmailChange -> updateForm { it.copy(email = intent.email.toNullableInput()) }
-         is PersonIntent.PhoneChange -> updateForm { it.copy(phone = intent.phone.toNullableInput()) }
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
+         is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
+         is PersonIntent.EmailChange -> changeEmail(intent.email)
+         is PersonIntent.PhoneChange -> changePhone(intent.phone)
          is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
@@ -117,10 +121,32 @@ class PersonViewModel(
       }
    }
 
-   // Keep the familiar Person state; block edits while saving or closing.
-   private fun updateForm(transform: (Person) -> Person) {
+   // Update each input explicitly in the Person state.
+   private fun changeFirstName(firstName: String) =
+      _stateFlow.update { state ->
+         state.copy(person = state.person.copy(firstName = firstName))
+      }
+
+   private fun changeLastName(lastName: String) =
+      _stateFlow.update { state ->
+         state.copy(person = state.person.copy(lastName = lastName))
+      }
+
+   private fun changeEmail(email: String) =
+      _stateFlow.update { state ->
+         state.copy(person = state.person.copy(email = email.toNullableInput()))
+      }
+
+   private fun changePhone(phone: String) =
+      _stateFlow.update { state ->
+         state.copy(person = state.person.copy(phone = phone.toNullableInput()))
+      }
+
+   private fun changeImagePath(imagePath: String?) {
       if (_stateFlow.value.isSaving || _isClosing) return
-      _stateFlow.update { it.copy(person = transform(it.person)) }
+      _stateFlow.update { state ->
+         state.copy(person = state.person.copy(imagePath = imagePath))
+      }
    }
 
    // All image entry points run on Main, like the other UI intents.
@@ -139,7 +165,7 @@ class PersonViewModel(
          operation()
             .onSuccess { change ->
                currentCoroutineContext().ensureActive()
-               change.paths?.let { paths -> updateForm { it.copy(imagePath = paths.firstOrNull()) } }
+               change.paths?.let { paths -> changeImagePath(paths.firstOrNull()) }
                if (change.failedImports > 0) {
                   showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
                }
@@ -183,43 +209,19 @@ class PersonViewModel(
       val state = _stateFlow.value
       if (state.isSaving || state.isEditingImages || _isClosing || state.isLoading || state.loadFailure != null) return
 
-      // Normalize all form values before validation and persistence.
-      var person = _stateFlow.value.person.normalized()
-
-      // Sanitize the email before validation.
-      if (person.email != null) {
-         val email = sanitizeEmailInput(person.email)
-         if (email != person.email) {
-            // Show the sanitized value in the UI as well.
-            _stateFlow.update { state  ->
-               state.copy(person = state.person.copy(email = email))
-            }
-            person = _stateFlow.value.person.normalized()
-         }
-      }
-
-      // Sanitize the phone number before validation.
-      if (person.phone != null) {
-         val phone = sanitizePhoneInput(person.phone)
-         if (phone != person.phone) {
-            // Show the sanitized value in the UI as well.
-            _stateFlow.update { state: PersonUiState ->
-               state.copy(person = state.person.copy(phone = phone))
-            }
-            person = _stateFlow.value.person.normalized()
-         }
-      }
+      // Publish the normalized snapshot even when validation fails.
+      val personToSave = state.person.normalized()
+      _stateFlow.update { it.copy(person = personToSave) }
 
       // Validate the complete entity before accessing the repository.
-      val error = _validator.validatePerson(person)
+      val error = _validator.validatePerson(personToSave)
       if (error != null) {
          showError(error)
          return
       }
 
-      val personToSave = person
-      // Freeze the submitted values and block further write operations immediately.
-      _stateFlow.update { it.copy(person = personToSave, isSaving = true) }
+      // Block further write operations immediately after successful validation.
+      _stateFlow.update { it.copy(isSaving = true) }
 
       val job = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
          currentCoroutineContext().ensureActive()

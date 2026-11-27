@@ -30,15 +30,16 @@ class NewsViewModel(
    // Dispatches all UI events through one public entry point.
    fun onIntent(intent: NewsIntent) {
       when (intent) {
-         is NewsIntent.SearchTextChanged -> {
-            _stateFlow.update { state: NewsUiState ->
-               state.copy(searchText = intent.value)
-            }
-         }
+         is NewsIntent.SearchTextChanged -> changeSearchText(intent.value)
          NewsIntent.Search -> search()
          is NewsIntent.Detail -> navigateToArticle(intent.article)
       }
    }
+
+   private fun changeSearchText(searchText: String) =
+      _stateFlow.update { state ->
+         state.copy(searchText = searchText)
+      }
 
    private fun search() {
       // Normalize and validate the user input before starting network work.

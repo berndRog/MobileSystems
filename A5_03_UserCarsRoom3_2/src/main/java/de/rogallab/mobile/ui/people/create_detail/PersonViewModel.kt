@@ -59,11 +59,18 @@ class PersonViewModel(
    }
 
    fun onIntent(intent: PersonIntent) {
+      // Text and selection edits stay available while images are processed.
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is PersonIntent.FirstNameChange ||
+            intent is PersonIntent.LastNameChange ||
+            intent is PersonIntent.EmailChange ||
+            intent is PersonIntent.PhoneChange)) return
+
       when (intent) {
-         is PersonIntent.FirstNameChange -> updateForm { it.copy(firstName = intent.firstName) }
-         is PersonIntent.LastNameChange -> updateForm { it.copy(lastName = intent.lastName) }
-         is PersonIntent.EmailChange -> updateForm { it.copy(email = intent.email) }
-         is PersonIntent.PhoneChange -> updateForm { it.copy(phone = intent.phone) }
+         is PersonIntent.FirstNameChange -> changeFirstName(intent.firstName)
+         is PersonIntent.LastNameChange -> changeLastName(intent.lastName)
+         is PersonIntent.EmailChange -> changeEmail(intent.email)
+         is PersonIntent.PhoneChange -> changePhone(intent.phone)
          is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
@@ -141,9 +148,31 @@ class PersonViewModel(
    }
 
    // Raw input is stored unchanged; normalization happens on Save.
-   private fun updateForm(transform: (PersonForm) -> PersonForm) {
+   private fun changeFirstName(firstName: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(firstName = firstName))
+      }
+
+   private fun changeLastName(lastName: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(lastName = lastName))
+      }
+
+   private fun changeEmail(email: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(email = email))
+      }
+
+   private fun changePhone(phone: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(phone = phone))
+      }
+
+   private fun changeImagePath(imagePath: String?) {
       if (_stateFlow.value.isSaving || _isClosing) return
-      _stateFlow.update { it.copy(form = transform(it.form)) }
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(imagePath = imagePath))
+      }
    }
 
    // All image entry points run on Main, like the other UI intents.
@@ -163,7 +192,7 @@ class PersonViewModel(
             operation()
                .onSuccess { change ->
                   currentCoroutineContext().ensureActive()
-                  change.paths?.let { paths -> updateForm { it.copy(imagePath = paths.firstOrNull()) } }
+                  change.paths?.let { paths -> changeImagePath(paths.firstOrNull()) }
                   if (change.failedImports > 0) {
                      showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
                   }

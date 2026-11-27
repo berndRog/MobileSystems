@@ -235,6 +235,53 @@ class PersonViewModelImageTest {
       }
 
    @Test
+   fun invalidSave_showsNormalizedValuesWithoutStartingWrite() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         viewModel.onIntent(PersonIntent.FirstNameChange("   "))
+         viewModel.onIntent(PersonIntent.LastNameChange("  Lovelace  "))
+         viewModel.onIntent(PersonIntent.EmailChange(" müller@example.de! "))
+         viewModel.onIntent(PersonIntent.PhoneChange(" +49abc123456 "))
+
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.Save)
+
+            val person = viewModel.stateFlow.value.person
+            assertEquals("", person.firstName)
+            assertEquals("Lovelace", person.lastName)
+            assertEquals("mueller@example.de", person.email)
+            assertEquals("+49123456", person.phone)
+            assertFalse(viewModel.stateFlow.value.isSaving)
+            advanceUntilIdle()
+            assertTrue(repository.created.isEmpty())
+            assertTrue(repository.updated.isEmpty())
+            assertTrue(awaitItem() is PersonEffect.ShowError)
+            expectNoEvents()
+         }
+      }
+
+   @Test
+   fun validSave_persistsTheNormalizedSnapshotShownInUi() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel()
+         viewModel.onIntent(PersonIntent.FirstNameChange("  Ada  "))
+         viewModel.onIntent(PersonIntent.LastNameChange("  Lovelace  "))
+         viewModel.onIntent(PersonIntent.EmailChange(" müller@example.de! "))
+         viewModel.onIntent(PersonIntent.PhoneChange(" +49abc123456 "))
+
+         viewModel.onIntent(PersonIntent.Save)
+         val snapshot = viewModel.stateFlow.value.person
+         assertEquals("Ada", snapshot.firstName)
+         assertEquals("Lovelace", snapshot.lastName)
+         assertEquals("mueller@example.de", snapshot.email)
+         assertEquals("+49123456", snapshot.phone)
+         assertTrue(viewModel.stateFlow.value.isSaving)
+
+         advanceUntilIdle()
+         assertEquals(snapshot, repository.created.single())
+      }
+
+   @Test
    fun save_blocksFormAndImageChanges_andCleansRejectedCamera() =
       runTest(mainDispatcherRule.testDispatcher) {
          val viewModel = createViewModel()

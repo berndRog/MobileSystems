@@ -67,18 +67,21 @@ class CarViewModel(
    }
 
    fun onIntent(intent: CarIntent) {
+      // Text and selection edits stay available while images are processed.
+      if ((_stateFlow.value.isSaving || _isClosing) &&
+         (intent is CarIntent.ManufacturerChanged ||
+            intent is CarIntent.ModelChanged ||
+            intent is CarIntent.PriceChanged ||
+            intent is CarIntent.SellerChanged)) return
+
       when (intent) {
-         is CarIntent.ManufacturerChanged ->
-            updateForm { form -> form.copy(manufacturer = intent.value) }
+         is CarIntent.ManufacturerChanged -> changeManufacturer(intent.value)
 
-         is CarIntent.ModelChanged ->
-            updateForm { form -> form.copy(model = intent.value) }
+         is CarIntent.ModelChanged -> changeModel(intent.value)
 
-         is CarIntent.PriceChanged ->
-            updateForm { form -> form.copy(priceInput = intent.value) }
+         is CarIntent.PriceChanged -> changePrice(intent.value)
 
-         is CarIntent.SellerChanged ->
-            updateForm { form -> form.copy(personId = intent.personId) }
+         is CarIntent.SellerChanged -> changeSeller(intent.personId)
 
          is CarIntent.GalleryImagesSelected ->
             storeGalleryImages(intent.sourceUris)
@@ -180,9 +183,31 @@ class CarViewModel(
    }
 
    // Raw input is stored unchanged; normalization happens on Save.
-   private fun updateForm(transform: (CarForm) -> CarForm) {
+   private fun changeManufacturer(manufacturer: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(manufacturer = manufacturer))
+      }
+
+   private fun changeModel(model: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(model = model))
+      }
+
+   private fun changePrice(priceInput: String) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(priceInput = priceInput))
+      }
+
+   private fun changeSeller(personId: String?) =
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(personId = personId))
+      }
+
+   private fun changeImagePaths(imagePaths: List<String>) {
       if (_stateFlow.value.isSaving || _isClosing) return
-      _stateFlow.update { it.copy(form = transform(it.form)) }
+      _stateFlow.update { state ->
+         state.copy(form = state.form.copy(imagePaths = imagePaths))
+      }
    }
 
    // All image entry points run on Main, like the other UI intents.
@@ -202,7 +227,7 @@ class CarViewModel(
             operation()
                .onSuccess { change ->
                   currentCoroutineContext().ensureActive()
-                  change.paths?.let { paths -> updateForm { it.copy(imagePaths = paths) } }
+                  change.paths?.let { paths -> changeImagePaths(paths) }
                   if (change.failedImports > 0) {
                      showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
                   }

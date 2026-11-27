@@ -39,6 +39,7 @@ class CarViewModel(
    private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
    private var _isSaving = false
+   private var _isClosing = false
 
    private val _stateFlow: MutableStateFlow<CarUiState> = MutableStateFlow(
       if (_isNew) {
@@ -64,20 +65,20 @@ class CarViewModel(
    }
 
    fun onIntent(intent: CarIntent) {
+      if ((_isSaving || _isClosing) &&
+         (intent is CarIntent.ManufacturerChanged ||
+            intent is CarIntent.ModelChanged ||
+            intent is CarIntent.PriceChanged ||
+            intent is CarIntent.SellerChanged)) return
+
       when (intent) {
-         is CarIntent.ManufacturerChanged ->
-            updateCar { car -> car.copy(manufacturer = intent.value) }
+         is CarIntent.ManufacturerChanged -> changeManufacturer(intent.value)
 
-         is CarIntent.ModelChanged ->
-            updateCar { car -> car.copy(model = intent.value) }
+         is CarIntent.ModelChanged -> changeModel(intent.value)
 
-         is CarIntent.PriceChanged ->
-            _stateFlow.update { state: CarUiState ->
-               state.copy(priceInput = intent.value)
-            }
+         is CarIntent.PriceChanged -> changePrice(intent.value)
 
-         is CarIntent.SellerChanged ->
-            updateCar { car -> car.copy(personId = intent.personId) }
+         is CarIntent.SellerChanged -> changeSeller(intent.personId)
 
          is CarIntent.GalleryImagesSelected ->
             storeGalleryImages(intent.sourceUris)
@@ -154,10 +155,34 @@ class CarViewModel(
       }
    }
 
-   private fun updateCar(transform: (Car) -> Car) {
-      _stateFlow.update { state: CarUiState ->
+   private fun changeManufacturer(manufacturer: String) =
+      _stateFlow.update { state ->
          val car = state.car ?: return@update state
-         state.copy(car = transform(car))
+         state.copy(car = car.copy(manufacturer = manufacturer))
+      }
+
+   private fun changeModel(model: String) =
+      _stateFlow.update { state ->
+         val car = state.car ?: return@update state
+         state.copy(car = car.copy(model = model))
+      }
+
+   private fun changePrice(priceInput: String) =
+      _stateFlow.update { state ->
+         state.copy(priceInput = priceInput)
+      }
+
+   private fun changeSeller(personId: String?) =
+      _stateFlow.update { state ->
+         val car = state.car ?: return@update state
+         state.copy(car = car.copy(personId = personId))
+      }
+
+   private fun changeImagePaths(imagePaths: List<String>) {
+      if (_isSaving || _isClosing) return
+      _stateFlow.update { state ->
+         val car = state.car ?: return@update state
+         state.copy(car = car.copy(imagePaths = imagePaths))
       }
    }
 
@@ -204,17 +229,13 @@ class CarViewModel(
          images = _imageEdit.replace(images.take(MAX_CAR_IMAGE_COUNT))
       }
 
-      updateCar { car ->
-         car.copy(imagePaths = images)
-      }
+      changeImagePaths(images)
    }
 
    private fun removeImage(imagePath: String) {
       viewModelScope.launch {
          val images = _imageEdit.remove(imagePath)
-         updateCar { car ->
-            car.copy(imagePaths = images)
-         }
+         changeImagePaths(images)
       }
    }
 
@@ -257,6 +278,7 @@ class CarViewModel(
                normalized.imagePaths
                   .filterNot { imagePath -> imagePath.isRemoteImageUrl() }
                   .forEach { imagePath -> deleteUploadedLocalImageQuietly(imagePath) }
+               _isClosing = true
                _effectDelegate.emit(
                   CarEffect.ShowMessage(
                      _stringProvider.getString(
@@ -283,6 +305,7 @@ class CarViewModel(
    }
 
    private fun cancel() {
+      _isClosing = true
       viewModelScope.launch {
          _imageEdit.discard()
          _effectDelegate.emit(
