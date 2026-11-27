@@ -12,30 +12,34 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface IPersonDao {
-   @Query("""
-      SELECT * 
-      FROM Person 
-      ORDER BY lastName, firstName
-   """)
+
+   // ─────────────────────────────────────────────────────────────
+   // Read side: used by PersonReadModel
+   // ─────────────────────────────────────────────────────────────
+   @Query("""SELECT * FROM Person ORDER BY lastName, firstName""")
    fun observeAll(): Flow<List<PersonDto>>
 
-   @Query("""
-      SELECT * 
-      FROM Person 
-      WHERE id = :personId 
-      LIMIT 1
-   """)
+   // ─────────────────────────────────────────────────────────────
+   // Write side: used by PeopleRepository
+   // ─────────────────────────────────────────────────────────────
+   @Query("""SELECT * FROM Person WHERE id = :personId LIMIT 1""")
    suspend fun findById(personId: String): PersonDto?
 
-   // One-to-many relationship Person -> Cars.
-   // Room returns a multimap.
-   @Query("""
-      SELECT Person.*, Car.*
-      FROM Person
-      JOIN Car ON Car.personId = Person.id
-      WHERE Person.id = :personId
-   """)
-   suspend fun findByIdWithCars(personId: String): Map<PersonDto, List<CarDto>>
+   @Insert(onConflict = OnConflictStrategy.ABORT)
+   suspend fun insert(personDto: PersonDto): Long
+   @Update
+   suspend fun update(personDto: PersonDto): Int
+   @Delete
+   suspend fun delete(personDto: PersonDto): Int
+
+   // ─────────────────────────────────────────────────────────────
+   // Infrastructure: used by SeedDatabase and tests
+   // ─────────────────────────────────────────────────────────────
+   @Query("SELECT COUNT(*) FROM Person")
+   suspend fun count(): Int
+
+   @Insert(onConflict = OnConflictStrategy.ABORT)
+   suspend fun insert(personDtos: List<PersonDto>)
 
    // Many-to-many relationship Person <-> Car via the TDrive junction table.
    @Query("""
@@ -47,16 +51,14 @@ interface IPersonDao {
    """)
    suspend fun findWithTestDriveCars(personId: String): Map<PersonDto, List<CarDto>>
 
-   @Query("SELECT COUNT(*) FROM Person")
-   suspend fun count(): Int
-   @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(personDto: PersonDto): Long
+   // One-to-many relationship Person -> Cars.
+   // Room returns a multimap.
+   @Query("""
+      SELECT Person.*, Car.*
+      FROM Person
+      JOIN Car ON Car.personId = Person.id
+      WHERE Person.id = :personId
+   """)
+   suspend fun findByIdWithCars(personId: String): Map<PersonDto, List<CarDto>>
 
-   @Insert(onConflict = OnConflictStrategy.ABORT)
-   suspend fun insert(personDtos: List<PersonDto>)
-
-   @Update
-   suspend fun update(personDto: PersonDto): Int
-   @Delete
-   suspend fun delete(personDto: PersonDto): Int
 }

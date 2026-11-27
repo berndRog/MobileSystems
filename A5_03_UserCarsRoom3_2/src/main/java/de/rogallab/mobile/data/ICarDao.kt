@@ -16,7 +16,6 @@ interface ICarDao {
    // ─────────────────────────────────────────────────────────────
    // Read side: used by CarReadModel
    // ─────────────────────────────────────────────────────────────
-
    // CarsScreen: all cars including the seller's full name.
    // LEFT JOIN keeps cars without a seller in the result.
    // The Flow observes both tables, Car and Person.
@@ -30,11 +29,7 @@ interface ICarDao {
    fun observeAllWithSeller(): Flow<List<CarListRow>>
 
    // TDriveScreen: all cars for the car selection field.
-   @Query("""
-      SELECT *
-      FROM Car
-      ORDER BY manufacturer, model
-   """)
+   @Query("""SELECT * FROM Car ORDER BY manufacturer, model""")
    fun observeAll(): Flow<List<CarDto>>
 
    // PersonScreen (bottom sheet): cars offered by one seller.
@@ -49,14 +44,8 @@ interface ICarDao {
    // ─────────────────────────────────────────────────────────────
    // Write side: used by CarRepository
    // ─────────────────────────────────────────────────────────────
-
    // Loads an aggregate for editing or deleting.
-   @Query("""
-      SELECT *
-      FROM Car
-      WHERE id = :carId
-      LIMIT 1
-   """)
+   @Query("""SELECT * FROM Car WHERE id = :carId LIMIT 1""")
    suspend fun findById(carId: String): CarDto?
 
    @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -72,7 +61,6 @@ interface ICarDao {
    // ─────────────────────────────────────────────────────────────
    // Infrastructure: used by SeedDatabase and tests
    // ─────────────────────────────────────────────────────────────
-
    @Query("SELECT COUNT(*) FROM Car")
    suspend fun count(): Int
 

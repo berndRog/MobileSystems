@@ -82,7 +82,6 @@ fun appModule(
          _imageFileStorage = get<IImageFileStorage>(),
       )
    }
-
    Alog.i(tag, "single    -> SeedDatabase")
    single<SeedDatabase> {
       SeedDatabase(
@@ -90,6 +89,7 @@ fun appModule(
       )
    }
 
+   Alog.i(tag, "single    -> PersonReadModel: IPersonReadModel")
    single<IPersonReadModel> {
       PersonReadModel(
          _personDao = get(),
@@ -111,6 +111,7 @@ fun appModule(
       )
    }
 
+   Alog.i(tag, "factory   -> PersonUcCreate")
    factory<PersonUcCreate> { parameters ->
       PersonUcCreate(
          _repository = get<IPersonRepository>(),
@@ -118,6 +119,7 @@ fun appModule(
       )
    }
 
+   Alog.i(tag, "factory   -> PersonUcUpdate")
    factory<PersonUcUpdate> { parameters ->
       PersonUcUpdate(
          _repository = get<IPersonRepository>(),

@@ -33,7 +33,6 @@ interface ITDriveDao {
    // ─────────────────────────────────────────────────────────────
    // Write side: used by TDriveRepository
    // ─────────────────────────────────────────────────────────────
-
    // Loads an aggregate for editing or deleting.
    @Query("""
       SELECT *
@@ -55,7 +54,6 @@ interface ITDriveDao {
    // ─────────────────────────────────────────────────────────────
    // Infrastructure: used by SeedDatabase and tests
    // ─────────────────────────────────────────────────────────────
-
    @Query("SELECT COUNT(*) FROM TDrive")
    suspend fun count(): Int
 

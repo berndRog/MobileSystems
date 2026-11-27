@@ -57,16 +57,26 @@ class PeopleViewModel(
    // Publish failures before cleanup; Retry waits for the previous collector.
    private fun observePeople() {
       val previousJob = _observeJob
+
+      // Mark the attempt before another Retry intent can arrive.
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+
       _observeJob = viewModelScope.launch {
+
+         // Wait until the previous collector has finished its cleanup
          previousJob?.cancelAndJoin()
          currentCoroutineContext().ensureActive()
+
          try {
+
             delay(_timing.delayRead)
+
             _readModel.observeListItems().collect { result: Result<List<PersonListItem>> ->
+               // Ignore emissions received after this collector was cancelled.
                currentCoroutineContext().ensureActive()
+
                result
-                  .onSuccess { items ->
+                  .onSuccess { items: List<PersonListItem> ->
                      _stateFlow.update {
                         it.copy(listItems = items, isLoading = false, loadFailure = null)
                      }
@@ -77,13 +87,15 @@ class PeopleViewModel(
                         it.copy(isLoading = false,
                            loadFailure = _stringProvider.getString(R.string.error_people_observe))
                      }
+                     // Cancel the currently running observation coroutine.
                      currentCoroutineContext().cancel()
                      currentCoroutineContext().ensureActive()
                   }
             }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
+         }
+         catch (e: CancellationException) { throw e }
+
+         catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             _stateFlow.update {
                it.copy(isLoading = false,
@@ -94,7 +106,9 @@ class PeopleViewModel(
    }
 
    private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch { _effectDelegate.emit(PeopleEffect.NavigateTo(personId)) }
+      viewModelScope.launch {
+         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
+      }
    }
 
    // A swipe asks for confirmation before anything is deleted.
@@ -114,38 +128,48 @@ class PeopleViewModel(
    private fun confirmRemove(personId: String) {
       val item = findPerson(personId) ?: return
       viewModelScope.launch {
-         delay(_timing.delayWrite)
 
-         _personUcDelete(item.id)
-            .onSuccess {
-               currentCoroutineContext().ensureActive()
-               _effectDelegate.emit(PeopleEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_person_removed, item.fullName)
-               ))
-            }
-            .onFailure { throwable ->
-               if (throwable is CancellationException) throw throwable
-               currentCoroutineContext().ensureActive()
-               Alog.e(TAG, "remove failed", throwable)
-               emitErrorNow(R.string.error_person_remove)
-            }
-         // On success the read model flow emits the list without this person.
+         try {
+            delay(_timing.delayWrite)
+
+            _personUcDelete(item.id).getOrThrow()
+
+            // Ensure that the coroutine is still active.
+            currentCoroutineContext().ensureActive()
+
+            // Emit a success message.
+            _effectDelegate.emit(PeopleEffect.ShowMessage(
+               _stringProvider.getString(R.string.message_person_removed, item.fullName)
+            ))
+         }
+
+         // Preserve cooperative coroutine cancellation.
+         catch(e: CancellationException) { throw e }
+
+         // Handle Result failures and directly thrown exceptions.
+         catch(e: Exception) {
+            if (e is CancellationException) throw e
+            currentCoroutineContext().ensureActive()
+
+            Alog.e(TAG, "remove failed", e)
+            _effectDelegate.emit(PeopleEffect.ShowError(
+               _stringProvider.getString(R.string.error_person_remove)
+            ))
+         }
       }
    }
 
    private fun findPerson(personId: String): PersonListItem? {
       val item = _stateFlow.value.listItems.find { it.id == personId }
-      if (item == null) emitError(R.string.error_person_not_found)
+      if (item == null) viewModelScope.launch{
+         _effectDelegate.emit(PeopleEffect.ShowMessage(
+            _stringProvider.getString(R.string.error_person_not_found)
+         ))
+      }
       return item
    }
 
-   private fun emitError(resourceId: Int) {
-      viewModelScope.launch { emitErrorNow(resourceId) }
-   }
 
-   private suspend fun emitErrorNow(resourceId: Int) {
-      _effectDelegate.emit(PeopleEffect.ShowError(_stringProvider.getString(resourceId)))
-   }
 
    companion object { private const val TAG = "<-PeopleViewModel" }
 }

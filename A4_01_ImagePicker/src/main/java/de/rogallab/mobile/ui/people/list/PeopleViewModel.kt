@@ -72,11 +72,13 @@ class PeopleViewModel(
          // Wait until the previous collector has finished its cleanup.
          previousJob?.cancelAndJoin()
          currentCoroutineContext().ensureActive()
+
          delay(_timing.delayRead)
 
          _repository.observeAll().collect { result ->
             // Ignore emissions received after this collector was cancelled.
             currentCoroutineContext().ensureActive()
+
             result
                .onSuccess { people ->
                   _stateFlow.update {

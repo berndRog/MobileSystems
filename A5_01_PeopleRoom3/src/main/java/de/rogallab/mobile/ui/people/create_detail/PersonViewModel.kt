@@ -79,6 +79,7 @@ class PersonViewModel(
    // Retry is gated by isLoading; the ViewModel always edits the original id.
    private fun loadPerson(id: String) {
       _stateFlow.update { it.copy(isLoading = true, loadFailure = null) }
+
       viewModelScope.launch {
          try {
             delay(_timing.delayRead)
@@ -97,9 +98,9 @@ class PersonViewModel(
                      isLoading = false, loadFailure = null)
                }
             }
-         } catch (e: CancellationException) {
-            throw e
-         } catch (e: Exception) {
+         }
+         catch (e: CancellationException) { throw e }
+         catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             if (_isClosing) return@launch
             _stateFlow.update {
@@ -125,7 +126,9 @@ class PersonViewModel(
       return true
    }
 
-   private fun changeImages(operation: suspend () -> Result<ImageChange>) {
+   private fun changeImages(
+      operation: suspend () -> Result<ImageChange>
+   ) {
       if (!beginImageChange()) return
       viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
          try {
