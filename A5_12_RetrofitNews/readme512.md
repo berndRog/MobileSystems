@@ -55,6 +55,10 @@ Open this directory as an Android Studio project or run from this directory:
 
 The local unit tests use fake webservices and repositories to verify request mapping, saved-article behavior, and ViewModels without making live News API requests. Running the app's search requires internet access and a valid API key.
 
+## Effect handling
+
+News, Article, and Articles ViewModels use Shared's existing EffectDispatcher. News configures only the error factory; no artificial ShowMessage effect is needed. launchShowError and launchEmit start delivery from intents; showError, showMessage, and emit stay in the running search or repository operation. Result callbacks, confirmations, navigation, and state handling remain intact. The dispatcher logs failures with a cause once; cancellation produces neither a message nor an error log. Feature decisions and delete confirmation text/action labels remain local.
+
 ## Suggested learning path
 
 1. Follow one search from `NewsIntent` through `NewsViewModel`, `INewsRepository`, `NewsRepository`, and `INewsWebservice`.

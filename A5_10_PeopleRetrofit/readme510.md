@@ -78,6 +78,10 @@ The app's manifest permits the HTTP traffic used by this teaching setup. Open th
 
 The local tests cover DTO mapping, use cases, navigation, ViewModel behavior, image editing, and successful and failed repository deletion with fakes; they do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that the AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
+## Effect handling
+
+Shared's EffectDispatcher resolves ordinary message resources and delivers the existing Person and People effects. launchShowError and launchEmit start delivery from intents; showError, showMessage, and emit stay in running Retrofit/image operations. Success messages precede back navigation. Network error handling, use cases, the image session, and persistent load failures retain their responsibilities. The save guard also resets when delivery is cancelled. Delete confirmation text and its action label remain in the ViewModel.
+
 ## Suggested learning path
 
 1. Compare `IPersonDao` in A5_01 with `IPersonWebservice` here. Match each repository operation to an HTTP method and endpoint.

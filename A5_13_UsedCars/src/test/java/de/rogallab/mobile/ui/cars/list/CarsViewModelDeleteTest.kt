@@ -17,6 +17,8 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35], application = android.app.Application::class)
 class CarsViewModelDeleteTest {
    @get:Rule val mainDispatcherRule = MainDispatcherRule()
    private val golf = Car(manufacturer = "VW", model = "Golf", id = "c1")
@@ -55,6 +57,33 @@ class CarsViewModelDeleteTest {
       assertEquals(listOf(golf), repository.removed)
       assertEquals(emptyList<Car>(), viewModel.stateFlow.value.cars)
    }
+
+   @Test
+   fun ordinaryFailureAndCancellation_keepFallbackAndAvoidDuplicateLogs() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         de.rogallab.mobile.shared.domain.utilities.Alog.set(useAndroidLog = true)
+         for (cancelled in listOf(false, true)) {
+            org.robolectric.shadows.ShadowLog.clear()
+            val repository = FakeCarRepository(listOf(golf)).apply {
+               removeResult = Result.failure(if (cancelled)
+                  kotlinx.coroutines.CancellationException("cancelled") else IllegalStateException("failed"))
+            }
+            val vm = create(repository)
+            val store = androidx.lifecycle.ViewModelStore().also { it.put("cars", vm) }
+            advanceUntilIdle()
+            vm.effects.test {
+               vm.onIntent(CarsIntent.ConfirmRemove(golf.id))
+               advanceUntilIdle()
+               if (!cancelled) assertEquals(
+                  CarsEffect.ShowError(strings.getString(R.string.error_car_delete)), awaitItem())
+               assertEquals(if (cancelled) 0 else 1,
+                  org.robolectric.shadows.ShadowLog.getLogsForTag("<-CarsViewModel").count { it.type == android.util.Log.ERROR })
+               assertEquals(listOf(golf), vm.stateFlow.value.cars)
+               expectNoEvents()
+            }
+            store.clear()
+         }
+      }
 
    @Test
    fun networkFailure_emitsSharedNetworkMessage() =

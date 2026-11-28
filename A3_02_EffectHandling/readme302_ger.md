@@ -15,6 +15,8 @@ Nach der Bearbeitung können Studierende:
 - `UiState`, der den aktuellen Screen-Zustand beschreibt, von Effects unterscheiden, mit denen das ViewModel eine UI-Aktion anfordert: `ShowMessage` zeigt eine Meldung in einer Snackbar, `ShowError` einen Fehler. Erklären, wie Navigationseffekte diesen Mechanismus in A3_03 erweitern.
 - Feature-spezifische Effects mit sealed Interfaces modellieren (`PersonEffect`, `PeopleEffect`).
 - Erklären, wie `EffectDelegate<E>` einen gepufferten `Channel` über `receiveAsFlow()` bereitstellt und Kotlin-Interfacedelegation mit `by` wiederholte Infrastruktur in den ViewModels vermeidet.
+- EffectDispatcher für Ressourcen, Formatargumente, typisierte Meldungen und zentrales Fehlerlogging einsetzen.
+- Suspendierende Aufrufe von launchShowError, launchShowMessage und launchEmit unterscheiden.
 - Generisches Sammeln von Effects und deren Feature-spezifische Verarbeitung im Adapter trennen.
 - Meldungs-Callbacks über `SnackbarController` und `SnackbarHostState` mit der Snackbar-Ausgabe von Material 3 verbinden.
 - Ladefehler im State sichtbar halten, einen expliziten Retry anbieten und State-Änderungen getrennt von ausgegebenen Effects testen.
@@ -23,7 +25,7 @@ Nach der Bearbeitung können Studierende:
 
 Die Architektur aus A3_01 bleibt erhalten. Hinzu kommt ein zweiter Ausgabepfad des ViewModel:
 
-**Benutzeraktion → Intent → ViewModel → Effect → Adapter → Snackbar**
+**Benutzeraktion → Intent → ViewModel → EffectDispatcher → EffectDelegate/IEffectSource → EffectHandler im Adapter → SnackbarController**
 
 Intents transportieren Benutzeraktionen zum ViewModel. Effects transportieren daraus entstehende Anforderungen vom ViewModel zur UI. Beim erfolgreichen Speichern lautet der konkrete Ablauf: `PersonIntent.Save` → Speichern im Repository → `PersonEffect.ShowMessage` → `onMessage` → `SnackbarController.showMessage()`. Bei einem Speicherfehler werden stattdessen `ShowError`, `onError` und `showError()` verwendet. In A3_03 erweitern `NavigateTo` und `NavigateBack` diesen Ausgabepfad um Navigation; die Navigationsschicht verändert daraufhin den Backstack.
 
@@ -34,9 +36,21 @@ Intents transportieren Benutzeraktionen zum ViewModel. Effects transportieren da
 
 Ein Ladefehler bleibt relevant, bis ein weiterer Ladeversuch erfolgreich ist. Er gehört deshalb in den State und wird zusammen mit Retry angezeigt. Eine Speicherbestätigung oder ein Fehler beim Speichern beziehungsweise Löschen betrifft eine einzelne Aktion und wird als Effect ausgegeben. Die Validierungsrückmeldung am Formular bleibt bestehen; die abschließende Prüfung vor dem Speichern kann zusätzlich `ShowError` auslösen.
 
-`EffectHandler` sammelt den Effect-Flow in `LaunchedEffect`. Der Adapter wertet den konkreten Effect aus und ruft `onMessage` oder `onError` auf. `SnackbarController` kapselt die Coroutine für den suspendierenden Aufruf von `showSnackbar()`. Meldungen erscheinen kurz; Fehler länger und mit einer Möglichkeit zum Schließen. ViewModels lösen Ressourcentexte über `IStringProvider` auf; Effects transportieren fertige Strings.
+`EffectHandler` sammelt den Effect-Flow in `LaunchedEffect`. Der Adapter wertet den konkreten Effect aus und ruft `onMessage` oder `onError` auf. `SnackbarController` kapselt die Coroutine für den suspendierenden Aufruf von `showSnackbar()`. Meldungen erscheinen kurz; Fehler länger und mit einer Möglichkeit zum Schließen. Der EffectDispatcher löst Meldungsressourcen über `IStringProvider` auf; Effects transportieren fertige Strings. Persistente Ladefehler werden weiterhin im ViewModel lokalisiert und im UiState gespeichert.
 
 Pro Feature-Effect-Flow ist ein UI-Consumer vorgesehen: Der zugrunde liegende Channel verteilt Ereignisse zwischen mehreren Consumern, statt jedes Ereignis an alle zu senden.
+
+## Referenzimplementierung mit EffectDispatcher
+
+A3_02 führt die generalisierte Effect-Verarbeitung bereits zusammen mit EffectDelegate, IEffectSource, EffectHandler und SnackbarController ein. Die direkte Delegate-Verwendung wird in den Vorlesungsunterlagen als Grundlage erklärt. Die nachfolgenden Projekte übernehmen dieses Muster nach gesonderter Freigabe.
+
+Jedes ViewModel erzeugt einen lokalen `EffectDispatcher<PersonEffect>` beziehungsweise `EffectDispatcher<PeopleEffect>`. Factory-Funktionen erzeugen die Feature-Effects. Dispatcher und die per `by` delegierte IEffectSource verwenden dieselbe injizierte EffectDelegate-Instanz. Koin, Effect-Definitionen, Adapter und SnackbarController bleiben unverändert.
+
+Innerhalb der laufenden Coroutine genügen `_effects.showError(R.string.error_person_save, throwable)` und `_effects.showMessage(R.string.message_person_saved, person.fullName)`. Außerhalb einer Coroutine startet `_effects.launchShowError(error)` den Versand eines Validierungstextes. Nur die launch-Methoden starten neue Coroutines; die suspendierenden Methoden bleiben im Kontext des Aufrufers.
+
+Der Dispatcher protokolliert einen übergebenen technischen Fehler einmal. Der Aufrufer loggt denselben Meldungsfehler nicht erneut. Validierungstexte ohne Throwable erzeugen keinen zusätzlichen Fehlerlog. Cancellation wird weder als Snackbar noch als persistenter Ladefehler ausgegeben. Ein Completion-Handler setzt beim Speichern ausschließlich isSaving zurück, auch nach Cancellation; er sendet keine Effects. Unerwartete Exceptions werden hier weiterhin nicht umfassend behandelt.
+
+Die Shared-Tests prüfen Ressourcenargumente, Factories, Logging, optionale Message-Factory, Cancellation, Scope-Verhalten, Buffering und Effect-Reihenfolge. Die ViewModel-Tests sichern Fachverhalten, getrennte Kanäle, einmalige Fehlermeldungen und dauerhafte Ladefehler ab. PersonSnackbarTest prüft den vollständigen UI-Pfad.
 
 ## Vorgeschlagener Lernpfad
 

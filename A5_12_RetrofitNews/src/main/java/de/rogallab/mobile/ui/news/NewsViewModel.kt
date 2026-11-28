@@ -8,6 +8,7 @@ import de.rogallab.mobile.R
 import de.rogallab.mobile.domain.INewsRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,15 @@ class NewsViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<NewsEffect> by _effectDelegate {
 
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<NewsEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { NewsEffect.ShowError(it) },
+      _tag = "<-NewsViewModel",
+   )
+
    // Mutable UI state remains private to the ViewModel.
    private val _stateFlow = MutableStateFlow(NewsUiState())
    // The screen observes only this read-only state representation.
@@ -32,7 +42,7 @@ class NewsViewModel(
       when (intent) {
          is NewsIntent.SearchTextChanged -> changeSearchText(intent.value)
          NewsIntent.Search -> search()
-         is NewsIntent.Detail -> navigateToArticle(intent.article)
+         is NewsIntent.Detail -> _effects.launchEmit(NewsEffect.NavigateToArticle(intent.article))
       }
    }
 
@@ -45,7 +55,7 @@ class NewsViewModel(
       // Normalize and validate the user input before starting network work.
       val searchText = _stateFlow.value.searchText.trim()
       if (searchText.isBlank()) {
-         showError(_stringProvider.getString(R.string.error_search_required))
+         _effects.launchShowError(R.string.error_search_required)
          return
       }
 
@@ -62,32 +72,30 @@ class NewsViewModel(
                   state.copy(articles = articles, isLoading = false)
                }
             }
-            .onFailure {
+            .onFailure { throwable ->
                _stateFlow.update { state: NewsUiState -> state.copy(isLoading = false) }
-               _effectDelegate.emit(
-                  NewsEffect.ShowError(
-                     _stringProvider.getString(R.string.error_news_load)
-                  )
-               )
+               _effects.showError(R.string.error_news_load, throwable)
             }
       }
    }
 
-   private fun navigateToArticle(article: de.rogallab.mobile.domain.entities.Article) {
-      viewModelScope.launch {
-         _effectDelegate.emit(NewsEffect.NavigateToArticle(article))
-      }
-   }
 
-   private fun showError(message: String) {
-      viewModelScope.launch {
-         _effectDelegate.emit(NewsEffect.ShowError(message))
-      }
-   }
+
 }
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - NewsViewModel verarbeitet Suchtext, Ladezustand und Suchergebnisse als
  *   persistenten UI-State. Fehler und Navigation bleiben einmalige Effects.

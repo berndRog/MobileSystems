@@ -11,6 +11,7 @@ import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -32,6 +33,16 @@ class PeopleViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
+   // Prepare messages without changing the operation's coroutine or effect transport.
+   private val _effects = EffectDispatcher<PeopleEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PeopleEffect.ShowError(it) },
+      _messageEffect = { PeopleEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
+
    private val _stateFlow = MutableStateFlow(PeopleUiState())
    val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
    private var _observeJob: Job? = null
@@ -47,8 +58,8 @@ class PeopleViewModel(
             if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
                observePeople()
             }
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         PeopleIntent.Create -> _effects.launchEmit(PeopleEffect.NavigateTo(null))
+         is PeopleIntent.Detail -> _effects.launchEmit(PeopleEffect.NavigateTo(intent.personId))
          is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
          is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
       }
@@ -105,12 +116,6 @@ class PeopleViewModel(
       }
    }
 
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
-      }
-   }
-
    // A swipe asks for confirmation before anything is deleted.
    private fun requestRemove(personId: String) {
       val item = findPerson(personId) ?: return
@@ -120,7 +125,7 @@ class PeopleViewModel(
             item.fullName,
          )
          val actionLabel = _stringProvider.getString(R.string.action_confirm)
-         _effectDelegate.emit(PeopleEffect.ConfirmRemove(message, actionLabel, item.id))
+         _effects.emit(PeopleEffect.ConfirmRemove(message, actionLabel, item.id))
       }
    }
 
@@ -138,9 +143,7 @@ class PeopleViewModel(
             currentCoroutineContext().ensureActive()
 
             // Emit a success message.
-            _effectDelegate.emit(PeopleEffect.ShowMessage(
-               _stringProvider.getString(R.string.message_person_removed, item.fullName)
-            ))
+            _effects.showMessage(R.string.message_person_removed, item.fullName)
          }
 
          // Preserve cooperative coroutine cancellation.
@@ -151,21 +154,14 @@ class PeopleViewModel(
             if (e is CancellationException) throw e
             currentCoroutineContext().ensureActive()
 
-            Alog.e(TAG, "remove failed", e)
-            _effectDelegate.emit(PeopleEffect.ShowError(
-               _stringProvider.getString(R.string.error_person_remove)
-            ))
+            _effects.showError(R.string.error_person_remove, e)
          }
       }
    }
 
    private fun findPerson(personId: String): PersonListItem? {
       val item = _stateFlow.value.listItems.find { it.id == personId }
-      if (item == null) viewModelScope.launch{
-         _effectDelegate.emit(PeopleEffect.ShowMessage(
-            _stringProvider.getString(R.string.error_person_not_found)
-         ))
-      }
+      if (item == null) _effects.launchShowMessage(R.string.error_person_not_found)
       return item
    }
 
@@ -173,3 +169,20 @@ class PeopleViewModel(
 
    companion object { private const val TAG = "<-PeopleViewModel" }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf; EffectDelegate transportiert die
+ *   unveränderten Feature-Effects. Persistente Ladefehler bleiben im UiState.
+ * - launch-Aufrufe starten Versand aus Intents. showError, showMessage und emit
+ *   bleiben innerhalb laufender Operationen in deren Coroutine und Reihenfolge.
+ * - Fachliche Guards, Bild-Session und Persistenz bleiben im ViewModel bzw.
+ *   Use Case. try/catch/finally, getOrThrow und Result-Callbacks bleiben erhalten.
+ * - Fehler mit Ursache werden im Dispatcher einmal protokolliert; bereits
+ *   protokolliertes technisches Cleanup wird ohne Throwable weitergereicht.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Effect-Versand erhalten.
+ */

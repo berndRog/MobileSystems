@@ -11,6 +11,7 @@ import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,6 +29,16 @@ class CarsViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<CarsEffect> by _effectDelegate {
 
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<CarsEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { CarsEffect.ShowError(it) },
+      _messageEffect = { CarsEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
+
    private val _stateFlow = MutableStateFlow(CarsUiState())
    val stateFlow: StateFlow<CarsUiState> = _stateFlow.asStateFlow()
    private var _observeJob: Job? = null
@@ -40,21 +51,18 @@ class CarsViewModel(
    fun onIntent(intent: CarsIntent) {
       Alog.d(TAG, "intent: $intent")
       when (intent) {
-         CarsIntent.Create -> navigateToCar(null)
-         is CarsIntent.Detail -> navigateToCar(intent.carId)
+         CarsIntent.Create -> _effects.launchEmit(CarsEffect.NavigateTo(null))
+         is CarsIntent.Detail -> _effects.launchEmit(CarsEffect.NavigateTo(intent.carId))
          is CarsIntent.RequestRemove -> requestRemove(intent.carId)
          is CarsIntent.ConfirmRemove -> confirmRemove(intent.carId)
       }
    }
 
-   private fun navigateToCar(carId: String?) {
-      viewModelScope.launch { _effectDelegate.emit(CarsEffect.NavigateTo(carId)) }
-   }
 
    private fun requestRemove(carId: String) {
       val car = _stateFlow.value.cars.find { it.id == carId }
       if (car == null) {
-         emitError(R.string.error_car_not_found)
+         _effects.launchShowError(R.string.error_car_not_found)
          return
       }
       viewModelScope.launch {
@@ -64,14 +72,14 @@ class CarsViewModel(
             car.model,
          )
          val actionLabel = _stringProvider.getString(R.string.action_confirm)
-         _effectDelegate.emit(CarsEffect.ConfirmRemove(message, actionLabel, car.id))
+         _effects.emit(CarsEffect.ConfirmRemove(message, actionLabel, car.id))
       }
    }
 
    private fun confirmRemove(carId: String) {
       val car = _stateFlow.value.cars.find { it.id == carId }
       if (car == null) {
-         emitError(R.string.error_car_not_found)
+         _effects.launchShowError(R.string.error_car_not_found)
          return
       }
       viewModelScope.launch {
@@ -79,7 +87,7 @@ class CarsViewModel(
 
          _repository.remove(car)
             .onFailure { throwable ->
-               emitErrorNow(R.string.error_car_delete, throwable)
+               _effects.showError(throwable.userMessageOr(_stringProvider.getString(R.string.error_car_delete)), throwable)
             }
       }
    }
@@ -99,7 +107,7 @@ class CarsViewModel(
                }
             }.onFailure { throwable ->
                _stateFlow.update { state: CarsUiState -> state.copy(isLoading = false) }
-               emitErrorNow(R.string.error_cars_load, throwable)
+               _effects.showError(throwable.userMessageOr(_stringProvider.getString(R.string.error_cars_load)), throwable)
             }
          }
       }
@@ -114,30 +122,30 @@ class CarsViewModel(
             result.onSuccess { people ->
                _stateFlow.update { state: CarsUiState -> state.copy(people = people) }
             }.onFailure { throwable ->
-               emitErrorNow(R.string.error_people_load, throwable)
+               _effects.showError(throwable.userMessageOr(_stringProvider.getString(R.string.error_people_load)), throwable)
             }
          }
       }
    }
 
-   private fun emitError(resourceId: Int) {
-      viewModelScope.launch { emitErrorNow(resourceId) }
-   }
 
-   private suspend fun emitErrorNow(
-      resourceId: Int,
-      throwable: Throwable? = null,
-   ) {
-      val fallback = _stringProvider.getString(resourceId)
-      val message = throwable?.userMessageOr(fallback) ?: fallback
-      _effectDelegate.emit(CarsEffect.ShowError(message))
-   }
 
    companion object { private const val TAG = "<-CarsViewModel" }
 }
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - CarsViewModel verwendet denselben UDF-Ablauf wie PeopleViewModel.
  * - Swipe-to-Delete entfernt kein Listenelement vorzeitig. Erst die bestätigte

@@ -41,9 +41,7 @@ class PeopleViewModel(
 
       _observeJob = viewModelScope.launch {
          // Show the loading indicator until the first result arrives.
-         _stateFlow.update { state: PeopleUiState ->
-            state.copy(isLoading = true)
-         }
+         _stateFlow.update { state: PeopleUiState -> state.copy(isLoading = true) }
          delay(1000) // simulate loading delay
 
 

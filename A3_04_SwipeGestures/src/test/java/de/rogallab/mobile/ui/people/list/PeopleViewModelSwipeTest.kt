@@ -135,4 +135,48 @@ class PeopleViewModelSwipeTest {
             cancelAndIgnoreRemainingEvents()
          }
       }
+   @Test
+   fun missingPerson_emitsOneErrorForRequestAndConfirmation() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository(listOf(ada))
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+      viewModel.effects.test {
+         for (intent in listOf(PeopleIntent.RequestRemove("missing"), PeopleIntent.ConfirmRemove("missing"))) {
+            viewModel.onIntent(intent)
+            advanceUntilIdle()
+            assertEquals(PeopleEffect.ShowError(stringProvider.getString(R.string.error_person_not_found)), awaitItem())
+            assertTrue(repository.removed.isEmpty())
+            expectNoEvents()
+         }
+      }
+   }
+
+   @Test
+   fun cancelledDelete_keepsThePersonWithoutAnErrorEffect() = runTest(mainDispatcherRule.testDispatcher) {
+      for (throwDirectly in listOf(false, true)) {
+         val source = FakePersonRepository(listOf(ada))
+         val repository = object : IPersonRepository by source {
+            override suspend fun remove(person: Person): Result<Unit> {
+               val cancellation = kotlinx.coroutines.CancellationException("delete cancelled")
+               if (throwDirectly) throw cancellation
+               return Result.failure(cancellation)
+            }
+         }
+         val viewModel = PeopleViewModel(repository, stringProvider, EffectDelegate())
+         val store = androidx.lifecycle.ViewModelStore().also { it.put("people", viewModel) }
+         try {
+            advanceUntilIdle()
+            viewModel.effects.test {
+               viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+               advanceUntilIdle()
+               assertTrue(source.removed.isEmpty())
+               assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+               expectNoEvents()
+            }
+         } finally {
+            store.clear()
+         }
+      }
+   }
+
 }

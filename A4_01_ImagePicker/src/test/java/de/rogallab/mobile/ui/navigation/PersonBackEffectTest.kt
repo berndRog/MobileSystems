@@ -1,6 +1,9 @@
 package de.rogallab.mobile.ui.navigation
 
 import android.app.Application
+import android.util.Log
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import org.robolectric.shadows.ShadowLog
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
@@ -270,6 +273,8 @@ class PersonBackEffectTest {
    @Test
    fun failedSaveResult_emitsErrorAndResetsSavingWithoutNavigation() =
       runTest(mainDispatcherRule.testDispatcher) {
+         Alog.set(useAndroidLog = true)
+         ShadowLog.clear()
          val repository = FakePersonRepository().apply {
             createResult = Result.failure(IllegalStateException("repository failure"))
          }
@@ -282,7 +287,8 @@ class PersonBackEffectTest {
             assertTrue(viewModel.stateFlow.value.isSaving)
             advanceUntilIdle()
 
-            assertTrue(awaitItem() is PersonEffect.ShowError)
+            assertEquals(PersonEffect.ShowError(stringProvider.getString(R.string.error_person_save)), awaitItem())
+            assertEquals(1, ShadowLog.getLogsForTag("<-PersonViewModel").count { it.type == Log.ERROR })
             assertFalse(viewModel.stateFlow.value.isSaving)
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()

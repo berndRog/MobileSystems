@@ -16,6 +16,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageEditDelegate
 import de.rogallab.mobile.shared.domain.images.ImageChange
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -39,6 +40,16 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
+
+   // Prepare messages through the same delegate exposed by IEffectSource.
+   private val _effects = EffectDispatcher<PersonEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PersonEffect.ShowError(it) },
+      _messageEffect = { PersonEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    private val _personId = personId?.toNullableInput()
    private val _isNew = _personId == null
@@ -74,7 +85,7 @@ class PersonViewModel(
          is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
-         is PersonIntent.ImageFailed -> showError(intent.message)
+         is PersonIntent.ImageFailed -> _effects.launchShowError(intent.message)
          PersonIntent.RetryLoad ->
             if (!_isClosing && !_isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
@@ -167,13 +178,13 @@ class PersonViewModel(
                currentCoroutineContext().ensureActive()
                change.paths?.let { paths -> changeImagePath(paths.firstOrNull()) }
                if (change.failedImports > 0) {
-                  showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+                  _effects.showError(SharedR.string.error_image_save)
                }
             }
             .onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+               _effects.showError(SharedR.string.error_image_save, error)
             }
       }
       // Register outside the body, even when the job has already completed.
@@ -194,7 +205,8 @@ class PersonViewModel(
             _images.rejectCamera(path).onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               if (!_isClosing) showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+               // rejectCamera already logs its cleanup failure in Shared.
+               if (!_isClosing) _effects.showError(SharedR.string.error_image_save)
             }
          }
       } else changeImages { _images.acceptCamera(path) }
@@ -216,7 +228,7 @@ class PersonViewModel(
       // Validate the complete entity before accessing the repository.
       val error = _validator.validatePerson(personToSave)
       if (error != null) {
-         showError(error)
+         _effects.launchShowError(error)
          return
       }
 
@@ -234,17 +246,14 @@ class PersonViewModel(
             .onSuccess {
                currentCoroutineContext().ensureActive()
                _isClosing = true
-               _effectDelegate.emit(
-                  PersonEffect.ShowMessage(
-                     _stringProvider.getString(R.string.message_person_saved, personToSave.fullName)
-                  )
-               )
-               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+               // Keep the confirmation and navigation in this save coroutine.
+               _effects.showMessage(R.string.message_person_saved, personToSave.fullName)
+               _effects.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
             .onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               showErrorNow(_stringProvider.getString(R.string.error_person_save))
+               _effects.showError(R.string.error_person_save, error)
             }
       }
       // Completion also releases the guard after cancellation.
@@ -262,23 +271,42 @@ class PersonViewModel(
          _images.discard()
             .onSuccess {
                currentCoroutineContext().ensureActive()
-               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
+               _effects.emit(PersonEffect.NavigateBack(BackReason.Cancel))
             }
             .onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
                // An expected cleanup failure allows another Cancel attempt.
                _isClosing = false
-               showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+               _effects.showError(SharedR.string.error_image_save, error)
             }
       }
    }
 
-   private fun showError(message: String) {
-      viewModelScope.launch { showErrorNow(message) }
-   }
-
-   private suspend fun showErrorNow(message: String) {
-      _effectDelegate.emit(PersonEffect.ShowError(message))
+   companion object {
+      private const val TAG = "<-PersonViewModel"
    }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und versendet typisierte Effects
+ *   über den bestehenden EffectDelegate. Ladefehler bleiben im UiState.
+ * - launchShowError startet den Versand aus einem Intent oder der Validierung.
+ *   showError, showMessage und emit verwenden die bereits laufende Coroutine.
+ *   Speicherbestätigung und Rücknavigation bleiben dadurch sequenziell.
+ * - Bildoperationen behalten ihren UNDISPATCHED-Start und ihre Guards.
+ *   Der ImageEditDelegate verwaltet weiterhin Import, Ersetzen und Cleanup;
+ *   die Use Cases persistieren vor dem Image-Commit. Cancel verwirft die Session.
+ * - Completion-Handler setzen ausschließlich isSaving und isEditingImages
+ *   zurück. Sie versenden keine Effects und führen keine Dateioperationen aus.
+ * - Cancellation und _isClosing verhindern verspätete Zustandsänderungen.
+ *   Erwartete Fehler werden mit onSuccess und onFailure verarbeitet;
+ *   die umfassende Behandlung unerwarteter Exceptions folgt in Kapitel 5.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung, Effect-Transport und fachliche Ablaufsteuerung trennen.
+ * - Suspendierenden Versand und launch-Aufrufe passend zum Kontext verwenden.
+ * - Bild-Session und Coroutine-Lebensdauer beim Meldungsversand erhalten.
+ */

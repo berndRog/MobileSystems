@@ -45,9 +45,7 @@ class PersonViewModel(
    private fun loadPerson(id: String) {
 
       // Mark the attempt before launching so repeated retries cannot overlap it.
-      _stateFlow.update { state: PersonUiState ->
-         state.copy(isLoading = true)
-      }
+      _stateFlow.update { state -> state.copy(isLoading = true) }
 
       viewModelScope.launch {
 
@@ -61,9 +59,7 @@ class PersonViewModel(
                // Store the loaded person.
                if (person != null) {
                   Alog.d(TAG, "_repository.findById.onSuccess: $person")
-                  _stateFlow.update { state ->
-                     state.copy(person = person)
-                  }
+                  _stateFlow.update { state -> state.copy(person = person) }
                }
                // A successful Result may still contain null if no person exists.
                else {
@@ -81,9 +77,7 @@ class PersonViewModel(
             }
 
          // Reset the loading flag regardless of success or failure.
-         _stateFlow.update { state ->
-            state.copy(isLoading = false)
-         }
+         _stateFlow.update { state -> state.copy(isLoading = false) }
       }
    }
 
@@ -102,25 +96,23 @@ class PersonViewModel(
 
    private fun changeFirstName(firstName: String) =
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(firstName = firstName.trim()))
+         state.copy(person = state.person.copy(firstName = firstName))
       }
 
    private fun changeLastName(lastName: String) =
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(lastName = lastName.trim()))
+         state.copy(person = state.person.copy(lastName = lastName))
       }
 
    private fun changeEmail(email: String) {
-      var emailNullable: String? = email.toNullableInput()
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(email = emailNullable))
+         state.copy(person = state.person.copy(email = email.toNullableInput()))
       }
    }
 
    private fun changePhone(phone: String) {
-      var phoneNullable: String? = phone.toNullableInput()
       _stateFlow.update { state ->
-         state.copy(person = state.person.copy(phone = phoneNullable))
+         state.copy(person = state.person.copy(phone = phone.toNullableInput()))
       }
    }
 
@@ -137,11 +129,8 @@ class PersonViewModel(
 
       // Validate the complete person before accessing the repository.
       val error = _validator.validatePerson(person)
-
-      Alog.d(TAG, "error: $error")
-
       if (error != null) {
-         Alog.e(TAG, error)
+         Alog.d(TAG, "error: $error")
          return
       }
 
@@ -169,9 +158,7 @@ class PersonViewModel(
             }
 
          // Reset the saving flag regardless of success or failure.
-         _stateFlow.update { state  ->
-            state.copy(isSaving = false)
-         }
+         _stateFlow.update { state  -> state.copy(isSaving = false) }
       }
    }
 

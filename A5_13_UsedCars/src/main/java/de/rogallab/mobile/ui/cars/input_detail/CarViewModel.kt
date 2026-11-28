@@ -14,6 +14,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageFileStorage
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.ui.people.create_detail.BackReason
@@ -35,6 +36,16 @@ class CarViewModel(
    private val _effectDelegate: EffectDelegate<CarEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<CarEffect> by _effectDelegate {
+
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<CarEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { CarEffect.ShowError(it) },
+      _messageEffect = { CarEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    private val _carId = carId?.takeUnless(String::isBlank)
    private val _isNew = _carId == null
@@ -90,7 +101,7 @@ class CarViewModel(
             removeImage(intent.imagePath)
 
          is CarIntent.ImageFailed ->
-            showError(intent.message)
+            _effects.launchShowError(intent.message)
 
          CarIntent.Save -> save()
          CarIntent.Cancel -> cancel()
@@ -111,7 +122,7 @@ class CarViewModel(
                .onFailure { throwable ->
                   val fallback =
                      _stringProvider.getString(R.string.error_people_load)
-                  showErrorNow(throwable.userMessageOr(fallback))
+                  _effects.showError(throwable.userMessageOr(fallback), throwable)
                }
          }
       }
@@ -127,9 +138,7 @@ class CarViewModel(
                   _stateFlow.update { state: CarUiState ->
                      state.copy(isLoading = false)
                   }
-                  showErrorNow(
-                     _stringProvider.getString(R.string.error_car_not_found)
-                  )
+                  _effects.showError(R.string.error_car_not_found)
                }
                else {
                   // The shared delegate remembers the persisted images as the
@@ -150,7 +159,7 @@ class CarViewModel(
                   state.copy(isLoading = false)
                }
                val fallback = _stringProvider.getString(R.string.error_car_load)
-               showErrorNow(throwable.userMessageOr(fallback))
+               _effects.showError(throwable.userMessageOr(fallback), throwable)
             }
       }
    }
@@ -207,9 +216,7 @@ class CarViewModel(
          }
 
          if (copyFailed) {
-            showErrorNow(
-               _stringProvider.getString(SharedR.string.error_image_save)
-            )
+            _effects.showError(SharedR.string.error_image_save)
          }
       }
    }
@@ -255,7 +262,7 @@ class CarViewModel(
          state.priceInput,
       )
       if (error != null) {
-         showError(error)
+         _effects.launchShowError(error)
          return
       }
 
@@ -264,7 +271,7 @@ class CarViewModel(
       }
       _isSaving = true
 
-      viewModelScope.launch {
+      val job = viewModelScope.launch {
          delay(_timing.delayWrite)
 
          val result =
@@ -279,27 +286,19 @@ class CarViewModel(
                   .filterNot { imagePath -> imagePath.isRemoteImageUrl() }
                   .forEach { imagePath -> deleteUploadedLocalImageQuietly(imagePath) }
                _isClosing = true
-               _effectDelegate.emit(
-                  CarEffect.ShowMessage(
-                     _stringProvider.getString(
-                        R.string.message_car_saved,
-                        normalized.displayName,
-                     )
-                  )
-               )
-               _effectDelegate.emit(
-                  CarEffect.NavigateBack(BackReason.Save)
-               )
+               _effects.showMessage(R.string.message_car_saved,
+                        normalized.displayName)
+               _effects.emit(CarEffect.NavigateBack(BackReason.Save))
             }
             .onFailure { throwable ->
                val fallback = _stringProvider.getString(R.string.error_car_save)
-               _effectDelegate.emit(
-                  CarEffect.ShowError(
-                     throwable.userMessageOr(fallback)
-                  )
-               )
+               _effects.showError(throwable.userMessageOr(fallback), throwable)
             }
 
+
+      }
+      // Reset the existing save guard even when effect delivery is cancelled.
+      job.invokeOnCompletion {
          _isSaving = false
       }
    }
@@ -308,21 +307,11 @@ class CarViewModel(
       _isClosing = true
       viewModelScope.launch {
          _imageEdit.discard()
-         _effectDelegate.emit(
-            CarEffect.NavigateBack(BackReason.Cancel)
-         )
+         _effects.emit(CarEffect.NavigateBack(BackReason.Cancel))
       }
    }
 
-   private fun showError(message: String) {
-      viewModelScope.launch {
-         showErrorNow(message)
-      }
-   }
 
-   private suspend fun showErrorNow(message: String) {
-      _effectDelegate.emit(CarEffect.ShowError(message))
-   }
 
    private suspend fun deleteUploadedLocalImageQuietly(imagePath: String) {
       _imageFileStorage.deleteImageFromAppStorage(imagePath)
@@ -342,6 +331,17 @@ class CarViewModel(
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - A5_13 verwendet für Fahrzeugbilder dieselbe Shared-Infrastruktur wie die
  *   vorherigen ImagePicker-Beispiele. Das Feature implementiert keine eigene

@@ -80,6 +80,10 @@ Image processing and UI remain familiar: `ImageEditDelegate` with `REPLACE` and 
 
 Common behavior tests cover cancellation, Retry, Save/Cancel, Discard, image actions, and session sharing. Navigation and gallery integration tests carry forward A4 coverage with form/read-model adaptations. Delete confirmation uses the real StringProvider in English and German. Additional A5 tests cover form mapping, read models, repository, DAO return values, unexpected exceptions, database creation, reopening emptied databases, and rollback. Shared's technical image tests are not duplicated.
 
+## Effect handling
+
+Both ViewModels use Shared's EffectDispatcher as in A3_02 and A4_01. launchShowError, launchShowMessage, and launchEmit start delivery from intents; showError, showMessage, and emit stay in running operations. Save confirmation and navigation are sent sequentially. Load failures remain in UiState; delete confirmation retains its text, action label, and ID. The image session, guards, UNDISPATCHED starts, and try/catch/finally remain intact. Camera cleanup failures already logged by Shared are forwarded without a Throwable. PersonForm, PersonListItem, and UI flows match the Room/Retrofit reference; persistence remains project-specific.
+
 ## Suggested learning path
 
 1. **Read the schema:** Assign each `PersonDto` property to a column; explain primary-key identity, nullability, and the image-path reference.

@@ -460,6 +460,27 @@ class PersonViewModelCoordinationTest {
          }
       }
 
+   @Test fun saveFailure_logsOnce_andCancellationDoesNotLogOrEmit() = runTest(dispatcherRule.testDispatcher) {
+      de.rogallab.mobile.shared.domain.utilities.Alog.set(useAndroidLog = true)
+      for (cancelled in listOf(false, true)) {
+         org.robolectric.shadows.ShadowLog.clear()
+         write = { Result.failure(if (cancelled) CancellationException("cancelled") else IllegalStateException("failed")) }
+         val vm = create()
+         runCurrent()
+         vm.effects.test {
+            vm.onIntent(PersonIntent.Save)
+            runCurrent()
+            val logs = org.robolectric.shadows.ShadowLog.getLogsForTag("<-PersonViewModel")
+               .count { it.type == android.util.Log.ERROR }
+            assertEquals(if (cancelled) 0 else 1, logs)
+            assertFalse(vm.stateFlow.value.isSaving)
+            if (!cancelled) assertTrue(awaitItem() is PersonEffect.ShowError)
+            expectNoEvents()
+         }
+         store.clear()
+      }
+   }
+
    @Test fun rejectedCameraFailure_afterCancellation_doesNotPublishAnError() =
       runTest(dispatcherRule.testDispatcher) {
          val rejecting = CompletableDeferred<Result<Unit>>()

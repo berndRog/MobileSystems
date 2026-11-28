@@ -50,6 +50,30 @@ class PersonViewModelTest {
       _effectDelegate = EffectDelegate(),
    )
 
+   @Test fun failedAndCancelledSave_preserveSession_andLogAtMostOnce() = runTest(dispatcherRule.testDispatcher) {
+      de.rogallab.mobile.shared.domain.utilities.Alog.set(useAndroidLog = true)
+      for (cancelled in listOf(false, true)) {
+         org.robolectric.shadows.ShadowLog.clear()
+         repository.createResult = Result.failure(
+            if (cancelled) kotlinx.coroutines.CancellationException("cancelled") else IllegalStateException("write failed"))
+         val vm = viewModel()
+         val store = androidx.lifecycle.ViewModelStore().also { it.put("person", vm) }
+         vm.onIntent(PersonIntent.FirstNameChange("Ada"))
+         vm.onIntent(PersonIntent.LastNameChange("Lovelace"))
+         vm.effects.test {
+            vm.onIntent(PersonIntent.Save)
+            advanceUntilIdle()
+            assertEquals(if (cancelled) 0 else 1,
+               org.robolectric.shadows.ShadowLog.getLogsForTag("<-PersonViewModel").count { it.type == android.util.Log.ERROR })
+            assertFalse(vm.stateFlow.value.isSaving)
+            assertEquals(0, imageEdit.commitCount)
+            if (!cancelled) assertTrue(awaitItem() is PersonEffect.ShowError)
+            expectNoEvents()
+         }
+         store.clear()
+      }
+   }
+
    @Test fun failedLoad_staysVisibleUntilRetry() = runTest(dispatcherRule.testDispatcher) {
       repository.findResult = Result.failure(IllegalStateException("offline"))
       val vm = viewModel("p1")

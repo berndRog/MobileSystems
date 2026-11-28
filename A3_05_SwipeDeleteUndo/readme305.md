@@ -43,6 +43,12 @@ Undo clears the pending and hidden state; no persistent deletion has happened ye
 
 After Undo or a failed commit, `restoredPersonId` identifies the restored item. `PeopleScreen` uses `ScrollToItemIfNotVisible` to bring it into view when needed. `RestoreHandled` then clears the target. Stable person IDs and `animateItem()` support removal, reinsertion, and movement.
 
+## Generalized effect handling
+
+As in A3_02, each ViewModel uses an `EffectDispatcher` with its existing `EffectDelegate`. `launchShowError` and `launchEmit` start delivery outside a coroutine; `showError`, `showMessage`, and `emit` use the coroutine already running. The save confirmation is sent before back navigation. The completion handler only resets `isSaving`, including cancellation; it starts no coroutine.
+
+The dispatcher resolves ordinary message resources and logs their failures. Persistent load failures remain in UiState. The text and action label of `ShowUndo` remain in the ViewModel. VisualRemoval, commit, and restoration are still coordinated there; the dispatcher only delivers effects. Cancellation produces no user message.
+
 ## Suggested learning path and optional depth
 
 **Core, if teaching time is limited:**

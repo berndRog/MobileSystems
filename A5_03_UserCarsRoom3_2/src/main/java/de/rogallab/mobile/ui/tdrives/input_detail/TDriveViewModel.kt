@@ -13,6 +13,7 @@ import de.rogallab.mobile.domain.repositories.ITDriveRepository
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
 import kotlinx.coroutines.CoroutineStart
@@ -46,6 +47,16 @@ class TDriveViewModel(
    private val _timing: AppTiming = AppTiming(),
    private val _effectDelegate: EffectDelegate<TDriveEffect>,
 ) : ViewModel(), IEffectSource<TDriveEffect> by _effectDelegate {
+
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<TDriveEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { TDriveEffect.ShowError(it) },
+      _messageEffect = { TDriveEffect.ShowMessage(it) },
+      _tag = "<-TDriveViewModel",
+   )
 
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
@@ -250,7 +261,7 @@ class TDriveViewModel(
       _stateFlow.update { it.copy(form = form) }
       val error = _validator.validateTDrive(form)
       if (error != null) {
-         showError(error)
+         _effects.launchShowError(error)
          return
       }
       val tDrive: TDrive = form.toTDrive(_localTimeZone)
@@ -268,17 +279,13 @@ class TDriveViewModel(
             result.getOrThrow()
             currentCoroutineContext().ensureActive()
             _isClosing = true
-            _effectDelegate.emit(
-               TDriveEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_test_drive_saved)
-               )
-            )
-            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
+            _effects.showMessage(R.string.message_test_drive_saved)
+            _effects.emit(TDriveEffect.NavigateBack(BackReason.Save))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
-            showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
+            _effects.showError(R.string.error_test_drive_save, e)
          } finally {
             _stateFlow.update { it.copy(isSaving = false) }
          }
@@ -291,21 +298,31 @@ class TDriveViewModel(
       _isClosing = true
       viewModelScope.launch {
          try {
-            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Cancel))
+            _effects.emit(TDriveEffect.NavigateBack(BackReason.Cancel))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
             _isClosing = false
-            showErrorNow(_stringProvider.getString(R.string.error_test_drive_save))
+            _effects.showError(R.string.error_test_drive_save, e)
          }
       }
    }
 
-   private fun showError(message: String) {
-      viewModelScope.launch { showErrorNow(message) }
-   }
 
-   private suspend fun showErrorNow(message: String) {
-      _effectDelegate.emit(TDriveEffect.ShowError(message))
-   }
+
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
+ */

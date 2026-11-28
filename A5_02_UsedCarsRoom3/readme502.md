@@ -66,6 +66,10 @@ All declared foreign keys use `RESTRICT`. A referenced person or car cannot simp
 
 In `di/appModules.kt`, Koin registers one `single<AppDatabase>`, three DAO singletons obtained from that database, and three repository bindings. `get<AppDatabase>()` resolves the common database; constructor injection supplies each repository with its DAO. Domain entities and UI remain separate from annotated persistence models.
 
+## Effect handling
+
+People, Cars, and TDrives ViewModels use Shared's EffectDispatcher. launchShowError and launchEmit start delivery from intents; showError, showMessage, and emit stay in running operations. Success messages precede navigation. ShowCars, selection state, and delete confirmations remain feature responsibilities. Persistent load failures are still localized in UiState. Persistence, image processing, and Result handling remain intact; save guards are also reset when delivery is cancelled. Technical cleanup already logged by its owner is not logged again.
+
 ## Didactic approach and learning path
 
 Keep seller assignment and test-drive participation distinct throughout:

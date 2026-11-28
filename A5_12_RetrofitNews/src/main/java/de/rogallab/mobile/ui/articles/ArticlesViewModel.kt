@@ -9,6 +9,7 @@ import de.rogallab.mobile.domain.IArticleRepository
 import de.rogallab.mobile.domain.entities.Article
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,16 @@ class ArticlesViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<ArticlesEffect> by _effectDelegate {
 
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<ArticlesEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { ArticlesEffect.ShowError(it) },
+      _messageEffect = { ArticlesEffect.ShowMessage(it) },
+      _tag = "<-ArticlesViewModel",
+   )
+
    // Holds the current snapshot of articles stored in Room.
    private val _stateFlow = MutableStateFlow(ArticlesUiState())
    val stateFlow: StateFlow<ArticlesUiState> = _stateFlow.asStateFlow()
@@ -34,9 +45,7 @@ class ArticlesViewModel(
    fun onIntent(intent: ArticlesIntent) {
       when (intent) {
          is ArticlesIntent.Detail -> {
-            viewModelScope.launch {
-               _effectDelegate.emit(ArticlesEffect.NavigateToArticle(intent.article))
-            }
+            _effects.launchEmit(ArticlesEffect.NavigateToArticle(intent.article))
          }
          is ArticlesIntent.RequestRemove -> requestRemove(intent.url)
          is ArticlesIntent.ConfirmRemove -> remove(intent.url)
@@ -56,13 +65,9 @@ class ArticlesViewModel(
                      isLoading = false,
                   )
                }
-            }.onFailure {
+            }.onFailure { throwable ->
                _stateFlow.update { state: ArticlesUiState -> state.copy(isLoading = false) }
-               _effectDelegate.emit(
-                  ArticlesEffect.ShowError(
-                     _stringProvider.getString(R.string.error_articles_load)
-                  )
-               )
+               _effects.showError(R.string.error_articles_load, throwable)
             }
          }
       }
@@ -70,13 +75,11 @@ class ArticlesViewModel(
 
    private fun requestRemove(url: String) {
       viewModelScope.launch {
-         _effectDelegate.emit(
-            ArticlesEffect.ConfirmRemove(
+         _effects.emit(ArticlesEffect.ConfirmRemove(
                message = _stringProvider.getString(R.string.confirm_article_delete),
                actionLabel = _stringProvider.getString(R.string.action_confirm),
                url = url,
-            )
-         )
+            ))
       }
    }
 
@@ -87,18 +90,10 @@ class ArticlesViewModel(
 
          _articleRepository.remove(url)
             .onSuccess {
-               _effectDelegate.emit(
-                  ArticlesEffect.ShowMessage(
-                     _stringProvider.getString(R.string.message_article_deleted)
-                  )
-               )
+               _effects.showMessage(R.string.message_article_deleted)
             }
-            .onFailure {
-               _effectDelegate.emit(
-                  ArticlesEffect.ShowError(
-                     _stringProvider.getString(R.string.error_article_delete)
-                  )
-               )
+            .onFailure { throwable ->
+               _effects.showError(R.string.error_article_delete, throwable)
             }
       }
    }
@@ -106,6 +101,17 @@ class ArticlesViewModel(
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - ArticlesViewModel beobachtet die lokal gespeicherten Artikel reaktiv. Nach
  *   Änderungen liefert Room über das Repository automatisch einen neuen Zustand.

@@ -40,6 +40,12 @@ Meldungs-Effects nehmen einen eigenen Weg zum `SnackbarController`. Ein gemeinsa
 
 Save verwendet eine horizontale Rückkehranimation. Bei Cancel wird der vorherige Screen eingeblendet, während das Formular nach unten verschwindet. Eine eigene Scale-/Fade-Transition unterstützt Predictive Back.
 
+## Generalisierte Effect-Verarbeitung
+
+Wie in A3_02 verwendet jedes ViewModel einen `EffectDispatcher` mit seinem bestehenden `EffectDelegate`. `launchShowError` und `launchEmit` starten den Versand außerhalb einer Coroutine; `showError`, `showMessage` und `emit` werden innerhalb der bereits laufenden Coroutine verwendet. Die Speicherbestätigung wird vor der Rücknavigation gesendet. Der Completion-Handler setzt ausschließlich `isSaving` zurück, auch bei Cancellation; er startet keine Coroutine.
+
+Ressourcen für einfache Meldungen und deren Fehlerlogging übernimmt der Dispatcher. Dauerhafte Ladefehler bleiben im UiState. Navigation bleibt ein projektspezifischer, typisierter Effect. Cancellation erzeugt keine Benutzermeldung.
+
 ## Vorgeschlagener Lernpfad
 
 1. **Create und Detail verfolgen:** Beide Aktionen von `PeopleViewModel` über `PeopleAdapter` bis `AppNavigation` nachvollziehen und ihre `PersonKey`-Werte vergleichen.

@@ -80,6 +80,10 @@ Bildverarbeitung und UI bleiben vertraut: `ImageEditDelegate` mit `REPLACE` und 
 
 Gemeinsame Verhaltensprüfungen decken Cancellation, Retry, Save/Cancel, Discard, Bildaktionen und die gemeinsame Session ab. Navigations- und Galerie-Integrationstests führen die A4-Prüfungen mit Form-/ReadModel-Anpassungen fort. Die Löschbestätigung wird mit dem echten StringProvider in Deutsch und Englisch geprüft. Zusätzliche A5-Tests behandeln Form-Mapping, ReadModel, Repository, DAO-Rückgabewerte, unerwartete Exceptions sowie einmalige Datenbankerstellung, Wiederöffnen geleerter Datenbanken und Rollback. Technische Shared-Bildtests werden nicht dupliziert.
 
+## Effect-Verarbeitung
+
+Beide ViewModels verwenden den EffectDispatcher aus Shared wie A3_02 und A4_01. launchShowError, launchShowMessage und launchEmit starten Versand aus Intents; showError, showMessage und emit bleiben in laufenden Operationen. Speicherbestätigung und Navigation werden sequenziell gesendet. Ladefehler bleiben im UiState, die Löschbestätigung behält Text, Action-Label und ID. Bild-Session, Guards, UNDISPATCHED-Starts und try/catch/finally bleiben erhalten. Bereits in Shared protokollierte Camera-Cleanup-Fehler werden ohne Throwable weitergereicht. PersonForm und PersonListItem sowie die UI-Abläufe stimmen mit der Room-/Retrofit-Referenz überein; die Persistenz bleibt projektspezifisch.
+
 ## Vorgeschlagener Lernpfad
 
 1. **Schema lesen:** Jede Eigenschaft von `PersonDto` einer Spalte zuordnen; Identität über Primary Key, Nullability und Bildpfadreferenz erklären.

@@ -86,6 +86,10 @@ Das Manifest erlaubt HTTP für dieses Lehrbeispiel. Im Projektordner:
 
 Lokale Unit-Tests prüfen DTO-Mapping, `Instant`-Serialisierung, Bildverhalten und Löschzustand der Repositories, Laden und Sortieren der Testfahrten sowie ausgewählte ViewModels. Sie verwenden bei Bedarf Fake-Webservices und benötigen keine laufende API. Für die Nutzung der App muss die API laufen; AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP müssen zur gewählten Variante passen.
 
+## Effect-Verarbeitung
+
+Alle People-, Cars- und TDrives-ViewModels verwenden den EffectDispatcher aus Shared. Die Netzwerkaufbereitung mit userMessageOr bleibt im Feature: Ihr Ergebnis wird über die String-Überladung von showError zusammen mit der Ursache weitergegeben. Allgemeine Meldungen verwenden Ressourcen-Überladungen. launch-Aufrufe starten Versand aus Intents; laufende Netzwerk- und Bildoperationen verwenden suspendierenden Versand. Save-Meldung und Navigation bleiben sequenziell. Bild-Commit, Upload-Cleanup und dessen technisches Logging bleiben erhalten. Die Save-Sperre wird bei Job-Abschluss zurückgesetzt. navigateBack im TDriveViewModel bleibt als fachliche Methode erhalten, weil sie vor dem Versand den Abschlussmarker setzt. Die Gerätetests verwenden ein isoliertes Repository und benötigen keine laufende API.
+
 ## Vorgeschlagener Lernpfad
 
 1. Die drei Room-DAOs aus A5_02 mit den drei Retrofit-Schnittstellen aus A5_13 vergleichen.

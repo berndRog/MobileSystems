@@ -10,6 +10,7 @@ import de.rogallab.mobile.domain.usecases.TDriveUcDelete
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
@@ -33,6 +34,16 @@ class TDrivesViewModel(
    private val _effectDelegate: EffectDelegate<TDrivesEffect>,
 ) : ViewModel(), IEffectSource<TDrivesEffect> by _effectDelegate {
 
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<TDrivesEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { TDrivesEffect.ShowError(it) },
+      _messageEffect = { TDrivesEffect.ShowMessage(it) },
+      _tag = "<-TDrivesViewModel",
+   )
+
    private val _stateFlow = MutableStateFlow(TDrivesUiState())
    val stateFlow: StateFlow<TDrivesUiState> = _stateFlow.asStateFlow()
 
@@ -48,8 +59,8 @@ class TDrivesViewModel(
             if (!_stateFlow.value.isLoading && _stateFlow.value.loadFailure != null) {
                observeTDrives()
             }
-         TDrivesIntent.Create -> navigateTo(null)
-         is TDrivesIntent.Detail -> navigateTo(intent.tDriveId)
+         TDrivesIntent.Create -> _effects.launchEmit(TDrivesEffect.NavigateTo(null))
+         is TDrivesIntent.Detail -> _effects.launchEmit(TDrivesEffect.NavigateTo(intent.tDriveId))
          is TDrivesIntent.RequestRemove -> requestRemove(intent.tDriveId)
          is TDrivesIntent.ConfirmRemove -> confirmRemove(intent.tDriveId)
       }
@@ -94,21 +105,16 @@ class TDrivesViewModel(
       }
    }
 
-   private fun navigateTo(tDriveId: String?) {
-      viewModelScope.launch { _effectDelegate.emit(TDrivesEffect.NavigateTo(tDriveId)) }
-   }
 
    // A swipe asks for confirmation before anything is deleted.
    private fun requestRemove(tDriveId: String) {
       val item = findItem(tDriveId) ?: return
       viewModelScope.launch {
-         _effectDelegate.emit(
-            TDrivesEffect.ConfirmRemove(
+         _effects.emit(TDrivesEffect.ConfirmRemove(
                message = _stringProvider.getString(R.string.message_test_drive_remove_confirm),
                actionLabel = _stringProvider.getString(R.string.action_confirm),
                tDriveId = item.id,
-            )
-         )
+            ))
       }
    }
 
@@ -118,8 +124,8 @@ class TDrivesViewModel(
       viewModelScope.launch {
          delay(_timing.delayWrite)
          _tDriveUcDelete(item.id)
-            .onFailure {
-               emitErrorNow(R.string.error_test_drive_delete)
+            .onFailure { throwable ->
+               _effects.showError(R.string.error_test_drive_delete, throwable)
             }
          // The read model flow updates the list after successful deletion.
       }
@@ -127,15 +133,25 @@ class TDrivesViewModel(
 
    private fun findItem(tDriveId: String): TDriveListItem? {
       val item = _stateFlow.value.tDrives.find { it.id == tDriveId }
-      if (item == null) emitError(R.string.error_test_drive_not_found)
+      if (item == null) _effects.launchShowError(R.string.error_test_drive_not_found)
       return item
    }
 
-   private fun emitError(resourceId: Int) {
-      viewModelScope.launch { emitErrorNow(resourceId) }
-   }
 
-   private suspend fun emitErrorNow(resourceId: Int) {
-      _effectDelegate.emit(TDrivesEffect.ShowError(_stringProvider.getString(resourceId)))
-   }
+
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
+ */

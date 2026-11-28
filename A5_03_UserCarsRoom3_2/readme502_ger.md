@@ -66,6 +66,10 @@ Alle definierten Fremdschlüssel verwenden `RESTRICT`. Eine referenzierte Person
 
 In `di/appModules.kt` registriert Koin eine `single<AppDatabase>`, drei daraus bezogene DAO-Singletons und drei Repository-Bindings. `get<AppDatabase>()` löst die gemeinsame Datenbank auf; Constructor Injection versorgt jedes Repository mit seinem DAO. Domain-Entities und UI bleiben von annotierten Persistenzmodellen getrennt.
 
+## Effect-Verarbeitung
+
+People-, Cars- und TDrives-ViewModels verwenden den EffectDispatcher aus Shared. launchShowError und launchEmit starten Versand aus Intents; showError, showMessage und emit bleiben in laufenden Operationen. Erfolgsnachricht und Navigation bleiben sequenziell. ShowCars, Auswahlzustände und Löschbestätigungen bleiben fachliche Bestandteile des Features. Persistente Ladefehler werden weiter lokalisiert im UiState gespeichert. Die vorhandene Persistenz-, Bild- und Result-Verarbeitung bleibt erhalten; Save-Guards werden auch bei abgebrochenem Versand zurückgesetzt. Bereits protokolliertes technisches Cleanup wird nicht erneut geloggt.
+
 ## Didaktischer Ansatz und Lernpfad
 
 Verkäuferzuordnung und Testfahrtteilnahme werden konsequent auseinandergehalten:

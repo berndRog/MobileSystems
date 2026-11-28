@@ -86,6 +86,10 @@ The app manifest permits HTTP for this example. From this project directory:
 
 Local unit tests cover DTO mapping, `Instant` serialization, image handling and deletion state in repositories, test-drive loading and sorting, and selected ViewModel behavior. They use fake webservices where needed and do not require a running API. To use the app, check that the API is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
+## Effect handling
+
+All People, Cars, and TDrives ViewModels use Shared's EffectDispatcher. Network message preparation with userMessageOr remains in the feature: its result and cause are passed to the String overload of showError. Ordinary messages use resource overloads. launch calls start delivery from intents; running network/image operations use suspending delivery. Save messages precede navigation. Image commit, upload cleanup, and its technical logging remain intact. The save guard resets on job completion. TDriveViewModel keeps navigateBack as a feature method because it sets the closing marker before delivery. Device tests use an isolated repository and require no running API.
+
 ## Suggested learning path
 
 1. Compare the three Room DAOs in A5_02 with A5_13's three Retrofit interfaces.

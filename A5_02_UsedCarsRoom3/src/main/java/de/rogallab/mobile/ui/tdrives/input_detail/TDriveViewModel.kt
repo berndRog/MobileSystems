@@ -12,6 +12,7 @@ import de.rogallab.mobile.domain.entities.TDrive
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.newUuid
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.ui.common.DateTimeText
 import de.rogallab.mobile.ui.people.create_detail.BackReason
@@ -37,6 +38,16 @@ class TDriveViewModel(
    private val _effectDelegate: EffectDelegate<TDriveEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<TDriveEffect> by _effectDelegate {
+
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<TDriveEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { TDriveEffect.ShowError(it) },
+      _messageEffect = { TDriveEffect.ShowMessage(it) },
+      _tag = "<-TDriveViewModel",
+   )
 
    private val _tDriveId = tDriveId?.takeUnless(String::isBlank)
    private val _isNew = _tDriveId == null
@@ -77,7 +88,7 @@ class TDriveViewModel(
          is TDriveIntent.StartChanged -> _stateFlow.update { state: TDriveUiState -> state.copy(startInput = intent.value) }
          is TDriveIntent.CompletedChanged -> update { it.copy(isCompleted = intent.value) }
          TDriveIntent.Save -> save()
-         TDriveIntent.Cancel -> navigateBack(BackReason.Cancel)
+         TDriveIntent.Cancel -> _effects.launchEmit(TDriveEffect.NavigateBack(BackReason.Cancel))
       }
    }
 
@@ -87,7 +98,7 @@ class TDriveViewModel(
 
          _personRepository.observeAll().collect { result ->
             result.onSuccess { people -> _stateFlow.update { state: TDriveUiState -> state.copy(people = people) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_people_load)) }
+               .onFailure { throwable -> _effects.showError(R.string.error_people_load, throwable) }
          }
       }
    }
@@ -97,7 +108,7 @@ class TDriveViewModel(
 
          _carRepository.observeAll().collect { result ->
             result.onSuccess { cars -> _stateFlow.update { state: TDriveUiState -> state.copy(cars = cars) } }
-               .onFailure { showErrorNow(_stringProvider.getString(R.string.error_cars_load)) }
+               .onFailure { throwable -> _effects.showError(R.string.error_cars_load, throwable) }
          }
       }
    }
@@ -108,7 +119,7 @@ class TDriveViewModel(
          _tDriveRepository.findById(id).onSuccess { tDrive ->
             if (tDrive == null) {
                _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
-               showErrorNow(_stringProvider.getString(R.string.error_test_drive_not_found))
+               _effects.showError(R.string.error_test_drive_not_found)
             } else {
                _stateFlow.update { state: TDriveUiState ->
                   state.copy(
@@ -118,9 +129,9 @@ class TDriveViewModel(
                   )
                }
             }
-         }.onFailure {
+         }.onFailure { throwable ->
             _stateFlow.update { state: TDriveUiState -> state.copy(isLoading = false) }
-            showErrorNow(_stringProvider.getString(R.string.error_test_drive_load))
+            _effects.showError(R.string.error_test_drive_load, throwable)
          }
       }
    }
@@ -133,27 +144,46 @@ class TDriveViewModel(
       val tDrive = state.tDrive ?: return
       val start = _validator.parseStart(state.startInput)
       if (start == null) {
-         showError(_validator.validateStart(state.startInput).orEmpty()); return
+         _effects.launchShowError(_validator.validateStart(state.startInput).orEmpty()); return
       }
       val normalized = tDrive.copy(start = start.toInstant(_localTimeZone))
       val error = _validator.validateTestDrive(normalized, state.startInput)
-      if (error != null) { showError(error); return }
+      if (error != null) { _effects.launchShowError(error); return }
       _stateFlow.update { current: TDriveUiState -> current.copy(tDrive = normalized) }
       _isSaving = true
-      viewModelScope.launch {
+      val job = viewModelScope.launch {
          delay(_timing.delayWrite)
 
          val result = if (_isNew) _tDriveRepository.create(normalized) else _tDriveRepository.update(normalized)
          result.onSuccess {
-            _effectDelegate.emit(TDriveEffect.ShowMessage(_stringProvider.getString(R.string.message_test_drive_saved)))
-            _effectDelegate.emit(TDriveEffect.NavigateBack(BackReason.Save))
-         }.onFailure {
-            _effectDelegate.emit(TDriveEffect.ShowError(_stringProvider.getString(R.string.error_test_drive_save)))
+            _effects.showMessage(R.string.message_test_drive_saved)
+            _effects.emit(TDriveEffect.NavigateBack(BackReason.Save))
+         }.onFailure { throwable ->
+            _effects.showError(R.string.error_test_drive_save, throwable)
          }
+
+      }
+      // Reset the existing save guard even when effect delivery is cancelled.
+      job.invokeOnCompletion {
          _isSaving = false
       }
    }
-   private fun navigateBack(reason: BackReason) { viewModelScope.launch { _effectDelegate.emit(TDriveEffect.NavigateBack(reason)) } }
-   private fun showError(message: String) { viewModelScope.launch { showErrorNow(message) } }
-   private suspend fun showErrorNow(message: String) { _effectDelegate.emit(TDriveEffect.ShowError(message)) }
+
+
+
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
+ */

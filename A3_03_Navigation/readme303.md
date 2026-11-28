@@ -40,6 +40,12 @@ Message effects follow a separate path to `SnackbarController`. One `SnackbarHos
 
 Save uses a horizontal return animation; Cancel fades the previous screen in while the form exits downward. A separate scale/fade transition supports predictive Back.
 
+## Generalized effect handling
+
+As in A3_02, each ViewModel uses an `EffectDispatcher` with its existing `EffectDelegate`. `launchShowError` and `launchEmit` start delivery outside a coroutine; `showError`, `showMessage`, and `emit` use the coroutine already running. The save confirmation is sent before back navigation. The completion handler only resets `isSaving`, including cancellation; it starts no coroutine.
+
+The dispatcher resolves ordinary message resources and logs their failures. Persistent load failures remain in UiState. Navigation remains a project-specific, typed effect. Cancellation produces no user message.
+
 ## Suggested learning path
 
 1. **Trace Create and Detail:** Follow both actions from `PeopleViewModel` through `PeopleAdapter` to `AppNavigation` and compare their `PersonKey` values.

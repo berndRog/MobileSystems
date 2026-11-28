@@ -15,6 +15,7 @@ import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.domain.utilities.sanitizeEmailInput
 import de.rogallab.mobile.shared.domain.utilities.sanitizePhoneInput
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.images.IImageEdit
 import de.rogallab.mobile.ui.people.PersonValidator
@@ -39,6 +40,16 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
+
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<PersonEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PersonEffect.ShowError(it) },
+      _messageEffect = { PersonEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    // A null or blank id means that a new person is being created.
    private val _personId = personId?.toNullableInput()
@@ -83,8 +94,7 @@ class PersonViewModel(
             .onSuccess { person ->
                // A successful repository call may still return no matching person.
                if (person == null) {
-                  val error = _stringProvider.getString(R.string.error_person_not_found)
-                  _effectDelegate.emit(PersonEffect.ShowError(error))
+                  _effects.showError(R.string.error_person_not_found)
 
                   _stateFlow.update { state: PersonUiState ->
                      state.copy(isLoading = false)
@@ -106,7 +116,7 @@ class PersonViewModel(
                val fallback =
                   _stringProvider.getString(R.string.error_person_load)
                val error = throwable.userMessageOr(fallback)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               _effects.showError(error, throwable)
 
                _stateFlow.update { state: PersonUiState ->
                   state.copy(isLoading = false)
@@ -138,7 +148,7 @@ class PersonViewModel(
          // The same intent is also used when an image is removed with null.
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
          // Technical image errors are converted into the common error effect.
-         is PersonIntent.ImageFailed -> showError(intent.message)
+         is PersonIntent.ImageFailed -> _effects.launchShowError(intent.message)
 
          PersonIntent.CarsRequested -> loadCars()
          PersonIntent.Save -> save()
@@ -193,7 +203,7 @@ class PersonViewModel(
                   )
                }
                // Open the bottom sheet only after the relation data is available.
-               _effectDelegate.emit(PersonEffect.ShowCars)
+               _effects.emit(PersonEffect.ShowCars)
             }
             .onFailure { throwable ->
                _stateFlow.update { state: PersonUiState ->
@@ -201,7 +211,7 @@ class PersonViewModel(
                }
                val fallback = _stringProvider.getString(R.string.error_cars_load)
                val error = throwable.userMessageOr(fallback)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               _effects.showError(error, throwable)
             }
       }
    }
@@ -216,7 +226,7 @@ class PersonViewModel(
             .getOrElse {
                // The gallery image could not be stored, therefore the current
                // edit-session image remains unchanged.
-               showError(_stringProvider.getString(SharedR.string.error_image_save))
+               _effects.showError(SharedR.string.error_image_save, it)
                return@launch
             }
          // From this point on the feature works only with an internal path.
@@ -256,12 +266,6 @@ class PersonViewModel(
       }
    }
 
-   // Send an error as a one-time effect instead of storing it in PersonUiState.
-   private fun showError(message: String) {
-      viewModelScope.launch {
-         _effectDelegate.emit(PersonEffect.ShowError(message))
-      }
-   }
 
    // Validate and persist the current person.
    private fun save() {
@@ -299,7 +303,7 @@ class PersonViewModel(
       // Validate the complete entity before accessing the repository.
       val error = _validator.validatePerson(person)
       if (error != null) {
-         showError(error)
+         _effects.launchShowError(error)
          return
       }
 
@@ -311,7 +315,7 @@ class PersonViewModel(
       // Update: save operation is in progress.
       _isSaving = true
 
-      viewModelScope.launch {
+      val job = viewModelScope.launch {
 
          // New entities are inserted, existing entities are updated.
          delay(_timing.delayWrite)
@@ -329,14 +333,11 @@ class PersonViewModel(
 
                _isClosing = true
                // First show the success message...
-               val message = _stringProvider.getString(
-                  R.string.message_person_saved,
-                  person.fullName,
-               )
-               _effectDelegate.emit(PersonEffect.ShowMessage(message))
+               _effects.showMessage(R.string.message_person_saved,
+                  person.fullName)
 
                // ...and then request reverse navigation with Save semantics.
-               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+               _effects.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
             .onFailure { throwable ->
                // A failed repository write must not commit the image session.
@@ -345,10 +346,12 @@ class PersonViewModel(
                val fallback =
                   _stringProvider.getString(R.string.error_person_save)
                val error = throwable.userMessageOr(fallback)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               _effects.showError(error, throwable)
             }
 
-         // Update: save operation is finished
+      }
+      // Reset the existing save guard even when effect delivery is cancelled.
+      job.invokeOnCompletion {
          _isSaving = false
       }
    }
@@ -363,7 +366,7 @@ class PersonViewModel(
          _imageEdit.discard()
 
          // Navigation is emitted only after image cleanup has completed.
-         _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
+         _effects.emit(PersonEffect.NavigateBack(BackReason.Cancel))
       }
    }
 
@@ -387,6 +390,17 @@ class PersonViewModel(
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - PersonViewModel bleibt der zentrale Zustands- und Intent-Verarbeiter für
  *   die Personenbearbeitung. Der Screen beobachtet weiterhin genau einen

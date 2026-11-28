@@ -11,6 +11,7 @@ import de.rogallab.mobile.shared.data.network.userMessageOr
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,6 +27,16 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
+
+   // Reuse the existing scope and transport; suspend calls preserve effect order.
+   private val _effects = EffectDispatcher<PeopleEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PeopleEffect.ShowError(it) },
+      _messageEffect = { PeopleEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    // Holds the observable UI state of the people screen.
    private val _stateFlow: MutableStateFlow<PeopleUiState> =
@@ -72,7 +83,7 @@ class PeopleViewModel(
                   val fallback =
                      _stringProvider.getString(R.string.error_people_observe)
                   val error = throwable.userMessageOr(fallback)
-                  _effectDelegate.emit(PeopleEffect.ShowError(error))
+                  _effects.showError(error, throwable)
                }
          }
       }
@@ -83,19 +94,13 @@ class PeopleViewModel(
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         PeopleIntent.Create -> _effects.launchEmit(PeopleEffect.NavigateTo(null))
+         is PeopleIntent.Detail -> _effects.launchEmit(PeopleEffect.NavigateTo(intent.personId))
          is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
          is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
       }
    }
 
-   // Emits the navigation effect. A null id opens the create destination.
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
-      }
-   }
 
    // Requests confirmation before the repository is changed.
    private fun requestRemove(personId: String) {
@@ -104,7 +109,7 @@ class PeopleViewModel(
       }
 
       if (person == null) {
-         emitPersonNotFound()
+         _effects.launchShowError(R.string.error_person_not_found)
          return
       }
 
@@ -116,13 +121,11 @@ class PeopleViewModel(
          )
          val actionLabel = _stringProvider.getString(R.string.action_confirm)
 
-         _effectDelegate.emit(
-            PeopleEffect.ConfirmRemove(
+         _effects.emit(PeopleEffect.ConfirmRemove(
                message = message,
                actionLabel = actionLabel,
                personId = person.id,
-            )
-         )
+            ))
       }
    }
 
@@ -133,7 +136,7 @@ class PeopleViewModel(
       }
 
       if (person == null) {
-         emitPersonNotFound()
+         _effects.launchShowError(R.string.error_person_not_found)
          return
       }
 
@@ -150,19 +153,11 @@ class PeopleViewModel(
                val fallback =
                   _stringProvider.getString(R.string.error_person_remove)
                val error = throwable.userMessageOr(fallback)
-               _effectDelegate.emit(PeopleEffect.ShowError(error))
+               _effects.showError(error, throwable)
             }
       }
    }
 
-   // Reports that the requested person is no longer available.
-   private fun emitPersonNotFound() {
-      viewModelScope.launch {
-         val error =
-            _stringProvider.getString(R.string.error_person_not_found)
-         _effectDelegate.emit(PeopleEffect.ShowError(error))
-      }
-   }
 
    companion object {
       private const val TAG = "<-PeopleViewModel"
@@ -171,6 +166,17 @@ class PeopleViewModel(
 
 /*
  * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate.
+ *   Persistente Fehler und fachliche Entscheidungen bleiben im ViewModel.
+ * - launch-Aufrufe starten Versand aus Intents; showError, showMessage und emit
+ *   bleiben im Kontext laufender Operationen und erhalten deren Reihenfolge.
+ * - Result-Callbacks, try/catch/finally, Guards und technische Cleanup-Abläufe
+ *   bleiben erhalten. Ein Fehler wird am Aufrufer nicht zusätzlich protokolliert.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Versand typisierter Effects erhalten.
  *
  * - A5_01_PeopleRoom3 übernimmt den UDF-Ablauf der vorherigen Beispiele
  *   unverändert: Die UI sendet Intents, PeopleViewModel aktualisiert den State

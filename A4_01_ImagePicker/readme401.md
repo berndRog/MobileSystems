@@ -60,6 +60,12 @@ The learning step is to move the combined persistence/image operation out of the
 
 Image-copy failures and camera errors become `ShowError` effects from the ViewModel and are displayed in a Snackbar. Successful saving emits `ShowMessage`, followed by `NavigateBack`. The image path remains state; the request for a message or navigation is an effect.
 
+## Generalized effect handling
+
+As in A3_02 and A3_04, both ViewModels use the `EffectDispatcher` with their existing `EffectDelegate`. `launchShowError` and `launchEmit` start delivery from intents; `showError`, `showMessage`, and `emit` stay in the coroutine of the operation already running. The save confirmation is sent before back navigation. Image operations and Save retain their `UNDISPATCHED` start, guards, and completion handlers.
+
+The dispatcher resolves ordinary message resources and logs their failures. Camera rejection failures already logged by Shared are forwarded without a Throwable to avoid a second log entry. Load failures remain in UiState; the delete confirmation text and action label remain in the ViewModel. Image import, commit, discard, and cleanup retain their responsibilities and lifetimes.
+
 ## Boundary with Chapter 5
 
 ViewModels and all three person use cases process expected failures exclusively with `.onSuccess` and `.onFailure`. They use neither `try/catch/finally`, `getOrThrow()`, nor `resultOf()`. Cancellation propagates; `ensureActive()` prevents late side effects, while `cancelAndJoin()` waits for the previous collector during Retry. Completion handlers only reset `isSaving` and `isEditingImages`; they perform no cleanup.

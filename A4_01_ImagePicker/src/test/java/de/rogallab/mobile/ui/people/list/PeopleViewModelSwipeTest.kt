@@ -123,12 +123,16 @@ class PeopleViewModelSwipeTest {
          val viewModel = createViewModel(repository)
          advanceUntilIdle()
 
-         viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
-         advanceUntilIdle()
-
-         assertEquals(listOf(ada), repository.removed)
-         assertEquals(listOf(ada.imagePath), imageFileStorage.deletedPaths)
-         assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+         viewModel.effects.test {
+            viewModel.onIntent(PeopleIntent.ConfirmRemove(ada.id))
+            advanceUntilIdle()
+            assertEquals(PeopleEffect.ShowMessage(stringProvider.getString(
+               R.string.message_person_removed, ada.fullName)), awaitItem())
+            assertEquals(listOf(ada), repository.removed)
+            assertEquals(listOf(ada.imagePath), imageFileStorage.deletedPaths)
+            assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+            expectNoEvents()
+         }
       }
 
    @Test
@@ -152,6 +156,23 @@ class PeopleViewModelSwipeTest {
             }
          } finally {
             store.clear()
+         }
+      }
+
+   @Test
+   fun missingPerson_emitsOneErrorForRequestAndConfirmation() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val viewModel = createViewModel(FakePersonRepository(listOf(ada)))
+         advanceUntilIdle()
+         viewModel.effects.test {
+            for (intent in listOf(PeopleIntent.RequestRemove("missing"), PeopleIntent.ConfirmRemove("missing"))) {
+               viewModel.onIntent(intent)
+               advanceUntilIdle()
+               assertEquals(PeopleEffect.ShowError(stringProvider.getString(R.string.error_person_not_found)), awaitItem())
+               expectNoEvents()
+            }
+            assertEquals(listOf(ada), viewModel.stateFlow.value.people)
+            assertTrue(imageFileStorage.deletedPaths.isEmpty())
          }
       }
 

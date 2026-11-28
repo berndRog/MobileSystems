@@ -43,6 +43,12 @@ Undo entfernt den Pending-/Hidden-Zustand; eine persistente Löschung hat noch n
 
 Nach Undo oder fehlgeschlagenem Commit kennzeichnet `restoredPersonId` den wiederhergestellten Eintrag. `PeopleScreen` macht ihn bei Bedarf mit `ScrollToItemIfNotVisible` sichtbar. Anschließend löscht `RestoreHandled` das Ziel. Stabile Personen-IDs und `animateItem()` unterstützen Entfernen, Wiedereinfügen und Verschieben.
 
+## Generalisierte Effect-Verarbeitung
+
+Wie in A3_02 verwendet jedes ViewModel einen `EffectDispatcher` mit seinem bestehenden `EffectDelegate`. `launchShowError` und `launchEmit` starten den Versand außerhalb einer Coroutine; `showError`, `showMessage` und `emit` werden innerhalb der bereits laufenden Coroutine verwendet. Die Speicherbestätigung wird vor der Rücknavigation gesendet. Der Completion-Handler setzt ausschließlich `isSaving` zurück, auch bei Cancellation; er startet keine Coroutine.
+
+Ressourcen für einfache Meldungen und deren Fehlerlogging übernimmt der Dispatcher. Dauerhafte Ladefehler bleiben im UiState. Text und Aktionslabel von `ShowUndo` bleiben im ViewModel. VisualRemoval, Commit und Wiederherstellung werden weiterhin dort koordiniert; der Dispatcher übernimmt nur den Versand. Cancellation erzeugt keine Benutzermeldung.
+
 ## Vorgeschlagener Lernpfad und optionale Vertiefung
 
 **Kern, wenn die Lehrzeit knapp ist:**

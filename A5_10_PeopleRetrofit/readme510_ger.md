@@ -78,6 +78,10 @@ Das Manifest erlaubt den für dieses Lehrbeispiel verwendeten HTTP-Verkehr. Öff
 
 Die lokalen Tests prüfen DTO-Mapping, Use Cases, Navigation, ViewModel-Verhalten, Bildbearbeitung sowie erfolgreiches und fehlgeschlagenes Löschen im Repository mit Fakes; sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
 
+## Effect-Verarbeitung
+
+Der EffectDispatcher aus Shared löst einfache Meldungsressourcen auf und versendet die vorhandenen Person- und People-Effects. launchShowError und launchEmit starten Versand aus Intents; showError, showMessage und emit bleiben in den laufenden Retrofit-/Bildoperationen. Erfolgsnachricht und Rücknavigation bleiben sequenziell. Netzwerkfehlerbehandlung, Use Cases, Bild-Session und persistente Ladefehler bleiben fachlich unverändert. Die Save-Sperre wird auch bei Cancellation des Versands zurückgesetzt. Text und Action-Label der Löschbestätigung bleiben im ViewModel.
+
 ## Vorgeschlagener Lernpfad
 
 1. `IPersonDao` aus A5_01 mit `IPersonWebservice` vergleichen. Jede Repository-Operation einer HTTP-Methode und einem Endpunkt zuordnen.

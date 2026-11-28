@@ -15,6 +15,8 @@ After studying the module, students should be able to:
 - Distinguish `UiState`, which describes the current screen state, from effects through which the ViewModel requests a UI action: `ShowMessage` displays an informational Snackbar, and `ShowError` displays an error Snackbar. Explain how navigation effects extend this mechanism in A3_03.
 - Model feature-specific effects with sealed interfaces (`PersonEffect`, `PeopleEffect`).
 - Explain how `EffectDelegate<E>` exposes a buffered `Channel` through `receiveAsFlow()`, and how Kotlin interface delegation with `by` avoids repeating infrastructure in each ViewModel.
+- Use EffectDispatcher for resources, format arguments, typed messages, and centralized error logging.
+- Distinguish suspending calls from launchShowError, launchShowMessage, and launchEmit.
 - Separate generic effect collection from feature-specific handling in an adapter.
 - Connect message callbacks to Material 3 Snackbar output through `SnackbarController` and `SnackbarHostState`.
 - Keep load failures visible in state, offer an explicit retry, and test state changes separately from emitted effects.
@@ -23,7 +25,7 @@ After studying the module, students should be able to:
 
 The module preserves the architecture from A3_01 and adds a second output path from the ViewModel:
 
-**User action → Intent → ViewModel → Effect → adapter → Snackbar**
+**User action → Intent → ViewModel → EffectDispatcher → EffectDelegate/IEffectSource → EffectHandler in the adapter → SnackbarController**
 
 Intents carry user actions into the ViewModel. Effects carry resulting requests out of the ViewModel to the UI. For a successful save, the concrete path is: `PersonIntent.Save` → repository save → `PersonEffect.ShowMessage` → `onMessage` → `SnackbarController.showMessage()`. On a save failure, the path uses `ShowError`, `onError`, and `showError()` instead. In A3_03, `NavigateTo` and `NavigateBack` extend this output path to navigation; the navigation layer updates the back stack.
 
@@ -34,9 +36,21 @@ Intents carry user actions into the ViewModel. Effects carry resulting requests 
 
 A load failure remains relevant until another load attempt succeeds. It therefore belongs in state and is displayed with Retry. A save confirmation or save/delete failure concerns an individual action and is emitted as an effect. Form validation feedback remains in place; the final validation before saving can additionally emit `ShowError`.
 
-`EffectHandler` collects the effect flow in `LaunchedEffect`. The adapter interprets the concrete effect and calls `onMessage` or `onError`. `SnackbarController` encapsulates the coroutine needed by the suspending `showSnackbar()` call. Messages are short; errors use a longer duration and offer dismissal. ViewModels resolve resource texts through `IStringProvider`; effects carry ready-to-display strings.
+`EffectHandler` collects the effect flow in `LaunchedEffect`. The adapter interprets the concrete effect and calls `onMessage` or `onError`. `SnackbarController` encapsulates the coroutine needed by the suspending `showSnackbar()` call. Messages are short; errors use a longer duration and offer dismissal. EffectDispatcher resolves message resources through `IStringProvider`; effects carry ready-to-display strings. Persistent load failures are still localized in the ViewModel and stored in UiState.
 
 Use one UI consumer per feature effect flow: the underlying channel distributes events between consumers rather than broadcasting every event to all of them.
+
+## Reference implementation with EffectDispatcher
+
+A3_02 introduces generalized effect handling together with EffectDelegate, IEffectSource, EffectHandler, and SnackbarController. Lecture material explains direct delegate usage as its foundation. Later projects adopt this pattern after separate approval.
+
+Each ViewModel creates a local `EffectDispatcher<PersonEffect>` or `EffectDispatcher<PeopleEffect>`. Factory functions construct feature effects. The dispatcher and the IEffectSource delegated with `by` use the same injected EffectDelegate instance. Koin, effect definitions, adapters, and SnackbarController remain unchanged.
+
+Inside an existing coroutine, use `_effects.showError(R.string.error_person_save, throwable)` or `_effects.showMessage(R.string.message_person_saved, person.fullName)`. Outside a coroutine, `_effects.launchShowError(error)` starts sending a validation message. Only launch-prefixed methods start new coroutines; suspending methods retain the caller's context.
+
+The dispatcher logs a supplied technical failure once. Callers do not log the same message failure again. Validation strings without a Throwable produce no additional error log. Cancellation becomes neither a Snackbar nor a persistent load failure. A completion handler only resets isSaving, including after cancellation; it emits no effects. Unexpected exceptions are still not comprehensively handled here.
+
+Shared tests cover resource arguments, factories, logging, optional message support, cancellation, scope behavior, buffering, and effect order. ViewModel tests protect feature behavior, isolated channels, single error messages, and persistent load failures. PersonSnackbarTest verifies the complete UI path.
 
 ## Suggested learning path
 

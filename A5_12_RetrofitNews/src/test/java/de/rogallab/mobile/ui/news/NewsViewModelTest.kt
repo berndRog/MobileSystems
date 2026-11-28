@@ -17,6 +17,8 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35], application = android.app.Application::class)
 class NewsViewModelTest {
 
    @get:Rule
@@ -34,6 +36,32 @@ class NewsViewModelTest {
          _stringProvider = stringProvider,
          _effectDelegate = EffectDelegate(),
       )
+
+   @Test
+   fun searchFailure_logsOnce_butCancellationDoesNotEmitOrLog() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         de.rogallab.mobile.shared.domain.utilities.Alog.set(useAndroidLog = true)
+         for (cancelled in listOf(false, true)) {
+            org.robolectric.shadows.ShadowLog.clear()
+            val repository = FakeNewsRepository().apply {
+               searchResult = Result.failure(if (cancelled)
+                  kotlinx.coroutines.CancellationException("cancelled") else IllegalStateException("offline"))
+            }
+            val vm = createViewModel(repository)
+            val store = androidx.lifecycle.ViewModelStore().also { it.put("news", vm) }
+            vm.effects.test {
+               vm.onIntent(NewsIntent.SearchTextChanged("kotlin"))
+               vm.onIntent(NewsIntent.Search)
+               advanceUntilIdle()
+               assertEquals(if (cancelled) 0 else 1,
+                  org.robolectric.shadows.ShadowLog.getLogsForTag("<-NewsViewModel").count { it.type == android.util.Log.ERROR })
+               if (!cancelled) assertEquals(
+                  NewsEffect.ShowError(stringProvider.getString(R.string.error_news_load)), awaitItem())
+               expectNoEvents()
+            }
+            store.clear()
+         }
+      }
 
    @Test
    fun search_blankText_emitsRequiredErrorWithoutRepositoryCall() =

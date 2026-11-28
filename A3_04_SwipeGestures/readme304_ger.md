@@ -42,6 +42,12 @@ Der Hintergrund richtet sich nach `dismissDirection`: Die Detailrichtung nutzt `
 
 Vor dem Callback setzt `SwipeCard` ihren Zustand mit `snapTo(Settled)` zurück. `remember` hält den Dismiss-Handler stabil, während `rememberUpdatedState` aktuelle Callbacks bereitstellt. Personen-IDs identifizieren Einträge in der `LazyColumn`; `animateItem()` animiert Änderungen nach dem Repository-Update.
 
+## Generalisierte Effect-Verarbeitung
+
+Wie in A3_02 verwendet jedes ViewModel einen `EffectDispatcher` mit seinem bestehenden `EffectDelegate`. `launchShowError` und `launchEmit` starten den Versand außerhalb einer Coroutine; `showError`, `showMessage` und `emit` werden innerhalb der bereits laufenden Coroutine verwendet. Die Speicherbestätigung wird vor der Rücknavigation gesendet. Der Completion-Handler setzt ausschließlich `isSaving` zurück, auch bei Cancellation; er startet keine Coroutine.
+
+Ressourcen für einfache Meldungen und deren Fehlerlogging übernimmt der Dispatcher. Dauerhafte Ladefehler bleiben im UiState. Text und Aktionslabel der typisierten Löschbestätigung bleiben im ViewModel; nur deren Versand erfolgt über `emit`. Cancellation erzeugt keine Benutzermeldung.
+
 ## Vorgeschlagener Lernpfad
 
 1. Beide Wischrichtungen ausprobieren und Farben, Symbole, Detailansicht und Bestätigungs-Snackbar vergleichen.

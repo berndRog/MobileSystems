@@ -87,6 +87,10 @@ Prüfe auch die zurückgegebene `imageUrl`: Enthält sie einen vom Handy nicht e
 
 `PersonRepositoryImageTest` verwendet einen Fake-Webservice und prüft Create/Upload, Rollback, Wiederverwendung von Server-URLs, Ersatz-Upload und Bildlöschung. Weitere lokale Tests prüfen Mapping, Use Cases, ViewModel-Verhalten, Navigation sowie erfolgreiches und fehlgeschlagenes Löschen im Repository. Sie benötigen keine laufende API. Der instrumentierte Test prüft die Swipe-Oberfläche. Bei einem Netzwerkfehler prüfe, ob der Dienst läuft und ob die AVD-Weiterleitung oder die in der App eingetragene Rechner-LAN-IP zur gewählten Variante passt.
 
+## Effect-Verarbeitung
+
+Beide ViewModels verwenden den EffectDispatcher aus Shared wie A3_02 und A4_01. launchShowError, launchShowMessage und launchEmit starten Versand aus Intents; showError, showMessage und emit bleiben in laufenden Operationen. Speicherbestätigung und Navigation werden sequenziell gesendet. Ladefehler bleiben im UiState, die Löschbestätigung behält Text, Action-Label und ID. Bild-Session, Guards, UNDISPATCHED-Starts und try/catch/finally bleiben erhalten. Bereits in Shared protokollierte Camera-Cleanup-Fehler werden ohne Throwable weitergereicht. PersonForm und PersonListItem sowie die UI-Abläufe stimmen mit der Room-/Retrofit-Referenz überein; die Persistenz bleibt projektspezifisch.
+
 ## Vorgeschlagener Lernpfad
 
 1. Die beiden `IPersonWebservice`-Schnittstellen vergleichen. Welche Bildendpunkte kommen in A5_11 hinzu, welche JSON-Endpunkte bleiben aus A5_10 erhalten?

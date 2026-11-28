@@ -14,6 +14,7 @@ import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.images.IImageEditDelegate
 import de.rogallab.mobile.shared.domain.images.ImageChange
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -37,6 +38,16 @@ class PersonViewModel(
    private val _effectDelegate: EffectDelegate<PersonEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
+
+   // Prepare messages without changing the operation's coroutine or effect transport.
+   private val _effects = EffectDispatcher<PersonEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PersonEffect.ShowError(it) },
+      _messageEffect = { PersonEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    private val _personId = personId?.toNullableInput()
    private val _isNew = _personId == null
@@ -72,7 +83,7 @@ class PersonViewModel(
          is PersonIntent.GalleryImageSelected -> storeGalleryImage(intent.sourceUri)
          is PersonIntent.CameraImageTaken -> storeCameraImage(intent.imagePath)
          is PersonIntent.RemoveImage -> removeImage(intent.imagePath)
-         is PersonIntent.ImageFailed -> showError(intent.message)
+         is PersonIntent.ImageFailed -> _effects.launchShowError(intent.message)
          PersonIntent.RetryLoad ->
             if (!_isClosing && !_isNew && !_stateFlow.value.isLoading &&
                _stateFlow.value.loadFailure is PersonLoadFailure.Failed) {
@@ -167,13 +178,13 @@ class PersonViewModel(
                   currentCoroutineContext().ensureActive()
                   change.paths?.let { paths -> changeImagePath(paths.firstOrNull()) }
                   if (change.failedImports > 0) {
-                     showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+                     _effects.showError(SharedR.string.error_image_save)
                   }
                }
                .onFailure { error ->
                   currentCoroutineContext().ensureActive()
                   if (error is CancellationException) throw error
-                  showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+                  _effects.showError(SharedR.string.error_image_save, error)
                }
          } finally {
             _stateFlow.update { it.copy(isEditingImages = false) }
@@ -192,7 +203,8 @@ class PersonViewModel(
             _images.rejectCamera(path).onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               if (!_isClosing) showErrorNow(_stringProvider.getString(SharedR.string.error_image_save))
+               // Shared already logs rejected-camera cleanup failures.
+               if (!_isClosing) _effects.showError(SharedR.string.error_image_save)
             }
          }
       } else changeImages { _images.acceptCamera(path) }
@@ -212,7 +224,7 @@ class PersonViewModel(
       _stateFlow.update { it.copy(form = form) }
       val error = _validator.validatePerson(form)
       if (error != null) {
-         showError(error)
+         _effects.launchShowError(error)
          return
       }
       val person: Person = form.toPerson()
@@ -231,17 +243,14 @@ class PersonViewModel(
             result.getOrThrow()
             currentCoroutineContext().ensureActive()
             _isClosing = true
-            _effectDelegate.emit(
-               PersonEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_person_saved, person.fullName)
-               )
-            )
-            _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+            // Send both effects sequentially in the save coroutine.
+            _effects.showMessage(R.string.message_person_saved, person.fullName)
+            _effects.emit(PersonEffect.NavigateBack(BackReason.Save))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
-            showErrorNow(_stringProvider.getString(R.string.error_person_save))
+            _effects.showError(R.string.error_person_save, e)
          } finally {
             _stateFlow.update { it.copy(isSaving = false) }
          }
@@ -256,23 +265,33 @@ class PersonViewModel(
          try {
             _images.discard().getOrThrow()
             currentCoroutineContext().ensureActive()
-            _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
+            _effects.emit(PersonEffect.NavigateBack(BackReason.Cancel))
          } catch (e: CancellationException) {
             throw e
          } catch (e: Exception) {
             currentCoroutineContext().ensureActive()
             _isClosing = false
-            _effectDelegate.emit(PersonEffect.ShowError(
-               _stringProvider.getString(SharedR.string.error_image_save)))
+            _effects.showError(SharedR.string.error_image_save, e)
          }
       }
    }
 
-   private fun showError(message: String) {
-      viewModelScope.launch { showErrorNow(message) }
-   }
-
-   private suspend fun showErrorNow(message: String) {
-      _effectDelegate.emit(PersonEffect.ShowError(message))
-   }
+   companion object { private const val TAG = "<-PersonViewModel" }
 }
+
+/*
+ * Didaktik und Lernziele
+ *
+ * - EffectDispatcher bereitet Meldungen auf; EffectDelegate transportiert die
+ *   unveränderten Feature-Effects. Persistente Ladefehler bleiben im UiState.
+ * - launch-Aufrufe starten Versand aus Intents. showError, showMessage und emit
+ *   bleiben innerhalb laufender Operationen in deren Coroutine und Reihenfolge.
+ * - Fachliche Guards, Bild-Session und Persistenz bleiben im ViewModel bzw.
+ *   Use Case. try/catch/finally, getOrThrow und Result-Callbacks bleiben erhalten.
+ * - Fehler mit Ursache werden im Dispatcher einmal protokolliert; bereits
+ *   protokolliertes technisches Cleanup wird ohne Throwable weitergereicht.
+ *
+ * Lernziele:
+ * - Meldungsaufbereitung von fachlicher Fehlerbehandlung unterscheiden.
+ * - Coroutine-Lebensdauer und sequenziellen Effect-Versand erhalten.
+ */

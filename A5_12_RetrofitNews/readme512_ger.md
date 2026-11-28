@@ -55,6 +55,10 @@ NEWS_API_KEY=your_key_here
 
 Die lokalen Unit-Tests verwenden Fake-Webservices und -Repositories. Sie prüfen Request-Mapping, das Verhalten gespeicherter Artikel und die ViewModels ohne echte News-API-Anfragen. Für die Suche in der laufenden App sind Internetzugang und ein gültiger API-Schlüssel erforderlich.
 
+## Effect-Verarbeitung
+
+News-, Article- und Articles-ViewModel verwenden den vorhandenen EffectDispatcher aus Shared. News konfiguriert ausschließlich die Error-Factory; ein künstlicher ShowMessage-Effect ist nicht erforderlich. launchShowError und launchEmit starten Versand aus Intents, showError, showMessage und emit bleiben in der laufenden Suche oder Repository-Operation. Result-Callbacks, Bestätigungen, Navigation und State-Verarbeitung bleiben erhalten. Der Dispatcher protokolliert Fehler mit Ursache einmal; Cancellation erzeugt weder Meldung noch Fehlerlog. Fachliche Entscheidungen und Text/Action-Label der Löschbestätigung bleiben im Feature.
+
 ## Vorgeschlagener Lernpfad
 
 1. Eine Suche von `NewsIntent` über `NewsViewModel`, `INewsRepository` und `NewsRepository` bis `INewsWebservice` verfolgen.

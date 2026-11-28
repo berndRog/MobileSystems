@@ -205,4 +205,49 @@ class PeopleViewModelSwipeTest {
       assertTrue(repository.removed.isEmpty())
       assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
    }
+   @Test
+   fun bufferedUndoAndNavigation_keepThePendingRemovalAvailable() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository(listOf(ada, grace))
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+      // Navigation must not end the longer-lived list ViewModel or its Undo state.
+      viewModel.onIntent(PeopleIntent.Remove(ada))
+      advanceUntilIdle()
+      viewModel.onIntent(PeopleIntent.Detail(grace.id))
+      advanceUntilIdle()
+
+      viewModel.effects.test {
+         val undo = awaitItem() as PeopleEffect.ShowUndo
+         assertEquals(ada.id, undo.personId)
+         assertEquals(PeopleEffect.NavigateTo(grace.id), awaitItem())
+         assertEquals(listOf(grace), viewModel.stateFlow.value.people)
+         viewModel.onIntent(PeopleIntent.UndoRemove(undo.personId))
+         advanceUntilIdle()
+         assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+         assertTrue(repository.removed.isEmpty())
+         expectNoEvents()
+      }
+   }
+
+   @Test
+   fun cancelledCommitResult_preservesFailureRestoreWithoutAnErrorEffect() = runTest(mainDispatcherRule.testDispatcher) {
+      val repository = FakePersonRepository(listOf(ada, grace)).apply {
+         removeResult = Result.failure(kotlinx.coroutines.CancellationException("delete cancelled"))
+      }
+      val viewModel = createViewModel(repository)
+      advanceUntilIdle()
+      viewModel.effects.test {
+         viewModel.onIntent(PeopleIntent.Remove(ada))
+         advanceUntilIdle()
+         assertTrue(awaitItem() is PeopleEffect.ShowUndo)
+         viewModel.onIntent(PeopleIntent.CommitRemove(ada.id))
+         advanceUntilIdle()
+         // Keep the existing Result-failure rollback before propagating cancellation.
+         assertEquals(listOf(ada, grace), viewModel.stateFlow.value.people)
+         assertEquals(ada.id, viewModel.stateFlow.value.restoredPersonId)
+         assertTrue(repository.removed.isEmpty())
+         expectNoEvents()
+      }
+   }
+
 }

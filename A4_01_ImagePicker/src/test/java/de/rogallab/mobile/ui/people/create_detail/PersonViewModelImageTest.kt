@@ -1,6 +1,10 @@
 package de.rogallab.mobile.ui.people.create_detail
 
 import android.app.Application
+import android.util.Log
+import de.rogallab.mobile.shared.domain.utilities.Alog
+import org.robolectric.shadows.ShadowLog
+import de.rogallab.mobile.shared.R as SharedR
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewModelScope
 import de.rogallab.mobile.shared.domain.images.IImageEditDelegate
@@ -117,6 +121,8 @@ class PersonViewModelImageTest {
    fun galleryCopyFailure_emitsShowErrorAndKeepsState() = runTest(mainDispatcherRule.testDispatcher) {
       val viewModel = createViewModel()
       val sourceUri = Uri.parse("content://gallery/image/1")
+      Alog.set(useAndroidLog = true)
+      ShadowLog.clear()
       storage.copyResult = Result.failure(IllegalStateException("copy failed"))
 
       viewModel.effects.test {
@@ -124,8 +130,10 @@ class PersonViewModelImageTest {
          advanceUntilIdle()
          assertEquals(listOf(sourceUri), storage.copiedUris)
          assertNull(viewModel.stateFlow.value.person.imagePath)
-         assertTrue(awaitItem() is PersonEffect.ShowError)
-         cancelAndIgnoreRemainingEvents()
+         assertEquals(PersonEffect.ShowError(stringProvider.getString(SharedR.string.error_image_save)), awaitItem())
+         assertEquals(1, ShadowLog.getLogsForTag("<-PersonViewModel").count { it.type == Log.ERROR })
+         assertFalse(viewModel.stateFlow.value.isEditingImages)
+         expectNoEvents()
       }
    }
 
@@ -487,6 +495,55 @@ class PersonViewModelImageTest {
             } finally {
                store.clear()
             }
+         }
+      }
+
+   @Test
+   fun partialImageChange_emitsOneErrorAndKeepsTheUpdatedSelection() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         val delegate = ImageEditDelegate(ImageEdit(storage), storage, ImageSelectionMode.REPLACE, 1)
+         val images = object : IImageEditDelegate by delegate {
+            override suspend fun importGallery(uris: List<Uri>): Result<ImageChange> =
+               Result.success(ImageChange(paths = listOf("/images/partial.jpg"), failedImports = 1))
+         }
+         val viewModel = createViewModel(images = images)
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/1")))
+            advanceUntilIdle()
+            assertEquals("/images/partial.jpg", viewModel.stateFlow.value.person.imagePath)
+            assertFalse(viewModel.stateFlow.value.isEditingImages)
+            assertEquals(PersonEffect.ShowError(stringProvider.getString(SharedR.string.error_image_save)), awaitItem())
+            expectNoEvents()
+         }
+      }
+
+   @Test
+   fun rejectedCameraCleanupFailure_isLoggedOnlyByShared_withoutReleasingTheImageGuard() =
+      runTest(mainDispatcherRule.testDispatcher) {
+         Alog.set(useAndroidLog = true)
+         ShadowLog.clear()
+         val pending = CompletableDeferred<Result<String>>()
+         val delayedStorage = object : IImageFileStorage by storage {
+            override suspend fun copyImageToAppStorage(sourceUri: Uri): Result<String> = pending.await()
+         }
+         storage.deleteResult = Result.failure(IllegalStateException("cleanup failed"))
+         val viewModel = createViewModel(imageStorage = delayedStorage)
+         viewModel.effects.test {
+            viewModel.onIntent(PersonIntent.GalleryImageSelected(Uri.parse("content://gallery/1")))
+            viewModel.onIntent(PersonIntent.CameraImageTaken("/images/rejected.jpg"))
+            advanceUntilIdle()
+            assertEquals(PersonEffect.ShowError(stringProvider.getString(SharedR.string.error_image_save)), awaitItem())
+            assertTrue(viewModel.stateFlow.value.isEditingImages)
+            assertEquals(listOf("/images/rejected.jpg"), storage.deletedPaths)
+            assertEquals(1, ShadowLog.getLogsForTag("<-ImageEditDelegate").count { it.type == Log.ERROR })
+            assertTrue(ShadowLog.getLogsForTag("<-PersonViewModel").none { it.type == Log.ERROR })
+            expectNoEvents()
+
+            pending.complete(Result.success("/images/selected.jpg"))
+            advanceUntilIdle()
+            assertFalse(viewModel.stateFlow.value.isEditingImages)
+            assertEquals("/images/selected.jpg", viewModel.stateFlow.value.person.imagePath)
+            expectNoEvents()
          }
       }
 

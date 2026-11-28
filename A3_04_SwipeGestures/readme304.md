@@ -42,6 +42,12 @@ The background follows `dismissDirection`: Detail uses `primaryContainer` with a
 
 Before invoking the callback, `SwipeCard` resets its state with `snapTo(Settled)`. `remember` keeps the dismiss handler stable, while `rememberUpdatedState` supplies current callbacks. In `LazyColumn`, person IDs identify entries across list changes; `animateItem()` animates removal and movement after the repository updates the list.
 
+## Generalized effect handling
+
+As in A3_02, each ViewModel uses an `EffectDispatcher` with its existing `EffectDelegate`. `launchShowError` and `launchEmit` start delivery outside a coroutine; `showError`, `showMessage`, and `emit` use the coroutine already running. The save confirmation is sent before back navigation. The completion handler only resets `isSaving`, including cancellation; it starts no coroutine.
+
+The dispatcher resolves ordinary message resources and logs their failures. Persistent load failures remain in UiState. The typed delete confirmation keeps its text and action label in the ViewModel; only delivery uses `emit`. Cancellation produces no user message.
+
 ## Suggested learning path
 
 1. **Observe both directions:** Compare the revealed colors/icons and the resulting Detail screen or confirmation Snackbar.

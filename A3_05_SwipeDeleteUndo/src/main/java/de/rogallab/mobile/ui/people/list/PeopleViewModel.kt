@@ -9,9 +9,13 @@ import de.rogallab.mobile.domain.entities.Person
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.shared.domain.IVisualRemoval
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +29,16 @@ class PeopleViewModel(
    private val _effectDelegate: EffectDelegate<PeopleEffect>,
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
+
+   // Reuse the injected transport for messages and feature-specific effects.
+   private val _effects = EffectDispatcher<PeopleEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PeopleEffect.ShowError(it) },
+      _messageEffect = { PeopleEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
 
    // StateFlow PeopleUiState
    private val _stateFlow = MutableStateFlow(PeopleUiState())
@@ -60,6 +74,7 @@ class PeopleViewModel(
             result
                // Update the UI state with the list of people when the repository operation succeeded.
                .onSuccess { people ->
+                  currentCoroutineContext().ensureActive()
                   _visualRemoval.update(people)
 
                   _stateFlow.update { state ->
@@ -70,6 +85,8 @@ class PeopleViewModel(
 
                // Update the UI state with an error message when the repository operation failed.
                .onFailure { throwable ->
+                  if (throwable is CancellationException) throw throwable
+                  currentCoroutineContext().ensureActive()
                   val error = _stringProvider.getString(R.string.error_people_observe)
                   Alog.e(TAG, error, throwable)
                   _stateFlow.update { state ->
@@ -85,8 +102,8 @@ class PeopleViewModel(
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         PeopleIntent.Create -> _effects.launchEmit(PeopleEffect.NavigateTo(null))
+         is PeopleIntent.Detail -> _effects.launchEmit(PeopleEffect.NavigateTo(intent.personId))
          is PeopleIntent.Remove -> removeVisually(intent.person)
          is PeopleIntent.UndoRemove -> undoRemove(intent.personId)
          PeopleIntent.RestoreHandled -> restoreHandled()
@@ -98,20 +115,13 @@ class PeopleViewModel(
       }
    }
 
-   // Emits navigation as a one-time effect; AppNavigation updates the back stack.
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
-      }
-   }
-
    // Hide the item until the Snackbar resolves Undo or final deletion.
    private fun removeVisually(person: Person) {
       if (!_visualRemoval.remove(person)) return
       publishVisiblePeople(restoredPersonId = null)
 
       viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.ShowUndo(
+         _effects.emit(PeopleEffect.ShowUndo(
             message = _stringProvider.getString(R.string.message_person_removed, person.fullName),
             actionLabel = _stringProvider.getString(R.string.action_undo),
             personId = person.id,
@@ -142,8 +152,7 @@ class PeopleViewModel(
             .onFailure { throwable ->
                _visualRemoval.restore(personId)
                publishVisiblePeople(restoredPersonId = personId)
-               val error = _stringProvider.getString(R.string.error_person_remove)
-               _effectDelegate.emit(PeopleEffect.ShowError(error))
+               _effects.showError(R.string.error_person_remove, throwable)
             }
       }
    }
@@ -178,12 +187,19 @@ class PeopleViewModel(
  *   persistiert die Löschung nach Ablauf der Snackbar. Ein Fehler stellt
  *   die Person wieder her und wird als ShowError ausgegeben.
  *
- * - String-Ressourcen werden im ViewModel über IStringProvider aufgelöst.
- *   Die Effects transportieren anschließend nur noch fertige Strings.
+ * - EffectDispatcher übernimmt Aktionsmeldungen und deren Fehlerlogging wie
+ *   in A3_02. Ladefehler bleiben lokal aufgelöster UiState.
+ *   Die Effects transportieren weiterhin fertige Strings.
+ *
+ * - launchEmit startet die Navigation aus der Intent-Verarbeitung. Innerhalb
+ *   laufender Operationen werden Effects suspendierend und ohne zusätzliche
+ *   Versand-Coroutine gesendet. Der Delegate und die UI-Consumer bleiben gleich.
  *
  * Lernziele:
  *
  * - Gemeinsame Effect-Infrastruktur in mehreren ViewModels einsetzen.
  * - Dauerhafte Ladefehler von einmaligen Aktionsfehlern unterscheiden.
  * - Navigation als einmaligen Effect an den Backstack weitergeben.
+ * - Fachliche Bestätigungs-/Undo-Effects von allgemeinen Meldungen unterscheiden.
+ * - Bestehende Coroutine-Lebensdauern beim vereinheitlichten Versand erhalten.
  */

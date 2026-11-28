@@ -8,10 +8,14 @@ import de.rogallab.mobile.domain.IPersonRepository
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import de.rogallab.mobile.ui.people.PersonValidator
 import de.rogallab.mobile.ui.people.normalized
 import de.rogallab.mobile.ui.people.toNullableInput
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +31,16 @@ class PersonViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PersonEffect> by _effectDelegate {
 
+   // Use the same delegate for message preparation and the exposed effect flow.
+   private val _effects = EffectDispatcher<PersonEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PersonEffect.ShowError(it) },
+      _messageEffect = { PersonEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
+
    // A null or blank id means that a new person is created.
    private val _personId = personId?.toNullableInput()
 
@@ -34,7 +48,7 @@ class PersonViewModel(
       if (_personId == null) PersonUiState(isNew = true, isLoading = false)
       else PersonUiState(isNew = false, isLoading = true)
 
-   // StateFloe PersonUiState
+   // StateFlow PersonUiState
    private val _stateFlow = MutableStateFlow(_initialState)
    val stateFlow = _stateFlow.asStateFlow()
 
@@ -61,6 +75,7 @@ class PersonViewModel(
 
             // Handle successful repository result
             .onSuccess { person ->
+               currentCoroutineContext().ensureActive()
                // Store the loaded person.
                if (person != null) {
                   Alog.d(TAG, "_repository.findById.onSuccess: $person")
@@ -80,6 +95,8 @@ class PersonViewModel(
 
             // Handle repository failure returned as Result.failure
             .onFailure { throwable ->
+               if (throwable is CancellationException) throw throwable
+               currentCoroutineContext().ensureActive()
                val error = _stringProvider.getString(R.string.error_person_load)
                Alog.e(TAG, error, throwable)
                _stateFlow.update { state ->
@@ -148,16 +165,15 @@ class PersonViewModel(
       // Validate the complete person before accessing the repository.
       val error = _validator.validatePerson(person)
       if (error != null) {
-         viewModelScope.launch {
-            _effectDelegate.emit(PersonEffect.ShowError(error))
-         }
+         _effects.launchShowError(error)
          return
       }
 
       // Expose the active save to both the UI and the duplicate-save guard.
       _stateFlow.update { state -> state.copy(isSaving = true) }
 
-      viewModelScope.launch {
+      val job = viewModelScope.launch {
+         currentCoroutineContext().ensureActive()
 
          // Create a new person or update the existing person
          delay(_timing.delayWrite)
@@ -169,20 +185,20 @@ class PersonViewModel(
          result
             // Handle the repository result and emit a one-time effect for success
             .onSuccess {
-               val message = _stringProvider.getString(R.string.message_person_saved, person.fullName)
-               _effectDelegate.emit(PersonEffect.ShowMessage(message))
-               _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Save))
+               // Keep confirmation and navigation sequential in this save coroutine.
+               _effects.showMessage(R.string.message_person_saved, person.fullName)
+               _effects.emit(PersonEffect.NavigateBack(BackReason.Save))
             }
             // Handle repository errors and emit a one-time effect for failure.
             .onFailure { throwable ->
-               Alog.e(TAG, "Save failed", throwable)
-               val error = _stringProvider.getString(R.string.error_person_save)
-               _effectDelegate.emit(PersonEffect.ShowError(error))
+               _effects.showError(R.string.error_person_save, throwable)
             }
 
-         // Reset the saving flag regardless of success or failure.
+      }
+      // Only reset the guard here, including cancellation during either send.
+      // The existing save coroutine still owns the message and navigation.
+      job.invokeOnCompletion {
          _stateFlow.update { state -> state.copy(isSaving = false) }
-
       }
    }
 
@@ -194,9 +210,7 @@ class PersonViewModel(
          state.copy(person = state.person.copy(firstName = "", lastName = "",
             email = null, phone = null, imagePath = null))
       }
-      viewModelScope.launch {
-         _effectDelegate.emit(PersonEffect.NavigateBack(BackReason.Cancel))
-      }
+      _effects.launchEmit(PersonEffect.NavigateBack(BackReason.Cancel))
    }
 
    companion object {
@@ -225,17 +239,17 @@ class PersonViewModel(
  *   NotFound führt in A3_03 zurück; Repository-Fehler bieten Retry.
  *   isSaving sperrt weitere Save- und Cancel-Aktionen bis zum Ergebnis.
  *
- * - Bekannte Texte werden über IStringProvider aufgelöst und als String transportiert:
+ * - EffectDispatcher bereitet Meldungen auf und sendet über denselben Delegate,
+ *   der die IEffectSource-Schnittstelle bereitstellt. Ressourcen für Meldungen
+ *   und deren Fehlerlogging sind damit wie in A3_02 zentralisiert.
  *
- *      _stringProvider.getString(R.string.error_person_save)
+ * - launchShowError sendet Validierungstexte außerhalb einer Coroutine.
+ *   showMessage und emit senden Save-Meldung und Rücknavigation nacheinander
+ *   innerhalb derselben Coroutine. Cancel verwendet launchEmit.
  *
- * - Bereits vorhandene Strings, beispielsweise aus der Validierung, werden
- *   direkt in den Effect übernommen:
- *
- *      errorMessage
- *
- * - Das ViewModel benötigt keinen Context. String-Ressourcen werden über
- *   IStringProvider bereits hier in fertige Strings aufgelöst.
+ * - Ladefehler bleiben hier lokalisierter UiState. Cancellation wird nicht als
+ *   Benutzerfehler behandelt. Der Completion-Handler setzt nur isSaving zurück;
+ *   er erzeugt weder Effects noch eine zusätzliche Coroutine.
  *
  * - IEffectSource<PersonEffect> wird mit "by _effectDelegate" delegiert.
  *   Channel und Flow müssen deshalb nicht in jedem ViewModel erneut
@@ -247,7 +261,9 @@ class PersonViewModel(
  * Lernziele:
  *
  * - State und einmalige Effects unterscheiden.
- * - IStringProvider für String-Ressourcen und bereits vorhandene Strings unterscheiden.
+ * - Meldungsaufbereitung im Dispatcher und Transport im Delegate unterscheiden.
+ * - launch-Aufrufe und suspendierenden Versand passend zum Aufrufer verwenden.
+ * - Die Reihenfolge von Speicherbestätigung und Navigation erhalten.
  * - Implementierungsdelegation mit "by" verstehen.
  * - Fehlerbehandlung von konkreter UI-Darstellung entkoppeln.
  * - Ladefehler als State und Fehler einzelner Aktionen als Effects behandeln.

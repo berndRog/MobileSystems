@@ -60,6 +60,12 @@ Der Lernschritt besteht darin, die zusammengesetzte Persistenz-/Bildoperation au
 
 Fehler beim Kopieren und Kamera-Fehler werden zu `ShowError`-Effects aus dem ViewModel und in einer Snackbar ausgegeben. Erfolgreiches Speichern erzeugt `ShowMessage`, danach `NavigateBack`. Der Bildpfad bleibt State; die Anforderung einer Meldung oder Navigation ist ein Effect.
 
+## Generalisierte Effect-Verarbeitung
+
+Wie in A3_02 und A3_04 verwenden beide ViewModels den `EffectDispatcher` mit ihrem bestehenden `EffectDelegate`. `launchShowError` und `launchEmit` starten den Versand aus Intents; `showError`, `showMessage` und `emit` bleiben innerhalb laufender Operationen in deren Coroutine. Die Speicherbestätigung wird vor der Rücknavigation gesendet. Bildoperationen und Save behalten ihren `UNDISPATCHED`-Start, alle Guards und Completion-Handler bei.
+
+Einfache Meldungsressourcen und Fehlerlogging übernimmt der Dispatcher. Bereits protokollierte Fehler beim Abweisen eines Kamerabildes werden ohne Throwable weitergereicht, damit kein zweiter Logeintrag entsteht. Ladefehler bleiben im UiState; Text und Action-Label der Löschbestätigung bleiben im ViewModel. Bildimport, Commit, Discard und Cleanup behalten ihre bisherigen Verantwortlichkeiten und Lebensdauern.
+
 ## Abgrenzung zu Kapitel 5
 
 ViewModels und die drei Personen-Use-Cases verarbeiten erwartete Fehler ausschließlich mit `.onSuccess` und `.onFailure`. Sie verwenden weder `try/catch/finally` noch `getOrThrow()` oder `resultOf()`. Cancellation wird weitergegeben; `ensureActive()` verhindert verspätete Seiteneffekte, `cancelAndJoin()` wartet bei Retry auf den vorherigen Collector. Completion-Handler setzen ausschließlich `isSaving` und `isEditingImages` zurück und führen kein Cleanup aus.

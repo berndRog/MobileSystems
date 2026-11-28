@@ -10,6 +10,7 @@ import de.rogallab.mobile.domain.usecases.PersonUcDelete
 import de.rogallab.mobile.shared.domain.IStringProvider
 import de.rogallab.mobile.shared.domain.utilities.Alog
 import de.rogallab.mobile.shared.ui.effects.EffectDelegate
+import de.rogallab.mobile.shared.ui.effects.EffectDispatcher
 import de.rogallab.mobile.shared.domain.IEffectSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -32,6 +33,16 @@ class PeopleViewModel(
    private val _timing: AppTiming = AppTiming(),
 ) : ViewModel(), IEffectSource<PeopleEffect> by _effectDelegate {
 
+   // Prepare messages through the same delegate exposed by IEffectSource.
+   private val _effects = EffectDispatcher<PeopleEffect>(
+      _scope = viewModelScope,
+      _effectDelegate = _effectDelegate,
+      _stringProvider = _stringProvider,
+      _errorEffect = { PeopleEffect.ShowError(it) },
+      _messageEffect = { PeopleEffect.ShowMessage(it) },
+      _tag = TAG,
+   )
+
    // StateFlow holds the persistent people list and load failure.
    private val _stateFlow = MutableStateFlow(PeopleUiState())
    val stateFlow: StateFlow<PeopleUiState> = _stateFlow.asStateFlow()
@@ -50,8 +61,8 @@ class PeopleViewModel(
       Alog.d(TAG, "intent: $intent")
 
       when (intent) {
-         PeopleIntent.Create -> navigateToPerson(null)
-         is PeopleIntent.Detail -> navigateToPerson(intent.personId)
+         PeopleIntent.Create -> _effects.launchEmit(PeopleEffect.NavigateTo(null))
+         is PeopleIntent.Detail -> _effects.launchEmit(PeopleEffect.NavigateTo(intent.personId))
          is PeopleIntent.RequestRemove -> requestRemove(intent.personId)
          is PeopleIntent.ConfirmRemove -> confirmRemove(intent.personId)
          PeopleIntent.RetryLoad ->
@@ -102,18 +113,11 @@ class PeopleViewModel(
       }
    }
 
-   // Emits navigation as a one-time effect; AppNavigation updates the back stack.
-   private fun navigateToPerson(personId: String?) {
-      viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.NavigateTo(personId))
-      }
-   }
-
    // A swipe asks for confirmation before anything is deleted.
    private fun requestRemove(personId: String) {
       val person = findPerson(personId) ?: return
       viewModelScope.launch {
-         _effectDelegate.emit(PeopleEffect.ConfirmRemove(
+         _effects.emit(PeopleEffect.ConfirmRemove(
             message = _stringProvider.getString(
                R.string.message_person_remove_confirm, person.fullName
             ),
@@ -131,30 +135,20 @@ class PeopleViewModel(
          _personUcDelete(person.id)
             .onSuccess {
                currentCoroutineContext().ensureActive()
-               _effectDelegate.emit(PeopleEffect.ShowMessage(
-                  _stringProvider.getString(R.string.message_person_removed, person.fullName)
-               ))
+               _effects.showMessage(R.string.message_person_removed, person.fullName)
             }
             .onFailure { error ->
                if (error is CancellationException) throw error
                currentCoroutineContext().ensureActive()
-               emitErrorNow(R.string.error_person_remove)
+               _effects.showError(R.string.error_person_remove, error)
             }
       }
    }
 
    private fun findPerson(personId: String): Person? {
       val person = _stateFlow.value.people.find { it.id == personId }
-      if (person == null) emitError(R.string.error_person_not_found)
+      if (person == null) _effects.launchShowError(R.string.error_person_not_found)
       return person
-   }
-
-   private fun emitError(resourceId: Int) {
-      viewModelScope.launch { emitErrorNow(resourceId) }
-   }
-
-   private suspend fun emitErrorNow(resourceId: Int) {
-      _effectDelegate.emit(PeopleEffect.ShowError(_stringProvider.getString(resourceId)))
    }
 
    companion object {
@@ -182,10 +176,21 @@ class PeopleViewModel(
  *   anschließend die zugehörige Bilddatei aus dem privaten App-Speicher.
  *
  * - Ein VisualRemovalDelegate, pending Removals und ein Restore-State sind in
- *   A4_01 deshalb nicht erforderlich. Diese Erweiterungen werden bewusst in
- *   A4_02_ImagePickerUndo eingeführt.
+ *   A4_01 deshalb nicht erforderlich. Der Schwerpunkt bleibt die Bildverwaltung.
+ *
+ * - EffectDispatcher übernimmt einfache Meldungen und deren Fehlerlogging.
+ *   Ladefehler bleiben lokalisierter UiState; Text und Action-Label der
+ *   fachlichen Löschbestätigung werden weiterhin hier zusammengestellt.
+ * - launchEmit startet Navigation aus einem Intent. Laufende Operationen
+ *   verwenden showError, showMessage und emit ohne weitere Coroutine.
+ * - Retry wartet mit cancelAndJoin auf den bisherigen Collector; ein Fehler
+ *   beendet nur dessen eigenen Coroutine-Kontext. Diese Koordination bleibt
+ *   unabhängig vom Effect-Versand erhalten.
  *
  * Lernziele:
+ *
+ * - Gemeinsame Meldungsaufbereitung und fachliche Bestätigung unterscheiden.
+ * - Effect-Versand im bestehenden Coroutine-Kontext erhalten.
  *
  * - State, Intent und Effect weiterhin konsequent voneinander unterscheiden.
  * - Eine destruktive Aktion vor der Repository-Änderung bestätigen.

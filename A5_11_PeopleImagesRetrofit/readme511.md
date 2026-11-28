@@ -87,6 +87,10 @@ Check the returned `imageUrl` as well: if it contains a host name or address tha
 
 `PersonRepositoryImageTest` uses a fake web service to cover create/upload, rollback, reuse of server URLs, replacement upload, and image deletion. Other local tests cover mapping, use cases, ViewModel behavior, navigation, and successful and failed repository deletion. They do not need a running API. The instrumented test exercises the swipe UI. To investigate a network failure, check that the service is running and that AVD forwarding or the computer's LAN IP configured in the app matches the selected setup.
 
+## Effect handling
+
+Both ViewModels use Shared's EffectDispatcher as in A3_02 and A4_01. launchShowError, launchShowMessage, and launchEmit start delivery from intents; showError, showMessage, and emit stay in running operations. Save confirmation and navigation are sent sequentially. Load failures remain in UiState; delete confirmation retains its text, action label, and ID. The image session, guards, UNDISPATCHED starts, and try/catch/finally remain intact. Camera cleanup failures already logged by Shared are forwarded without a Throwable. PersonForm, PersonListItem, and UI flows match the Room/Retrofit reference; persistence remains project-specific.
+
 ## Suggested learning path
 
 1. Compare the two `IPersonWebservice` interfaces. Identify the image endpoints added in A5_11 and the JSON endpoints retained from A5_10.
